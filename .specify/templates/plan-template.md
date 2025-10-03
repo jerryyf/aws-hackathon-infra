@@ -18,7 +18,7 @@
    → Update Progress Tracking: Initial Constitution Check
 5. Execute Phase 0 → research.md
    → If NEEDS CLARIFICATION remain: ERROR "Resolve unknowns"
-6. Execute Phase 1 → contracts, data-model.md, quickstart.md, agent-specific template file (e.g., `CLAUDE.md` for Claude Code, `.github/copilot-instructions.md` for GitHub Copilot, `GEMINI.md` for Gemini CLI, `QWEN.md` for Qwen Code or `AGENTS.md` for opencode).
+6. Execute Phase 1 → contracts, data-model.md, quickstart.md, agent-specific template file (e.g., `CLAUDE.md` for Claude Code, `.github/copilot-instructions.md` for GitHub Copilot, `GEMINI.md` for Gemini CLI, `QWEN.md` for Qwen Code, or `AGENTS.md` for all other agents).
 7. Re-evaluate Constitution Check section
    → If new violations: Refactor design, return to Phase 1
    → Update Progress Tracking: Post-Design Constitution Check
@@ -47,49 +47,7 @@
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### I. AWS Well-Architected Framework Compliance
-- [ ] **Operational Excellence**: Automation strategy defined, monitoring planned
-- [ ] **Security**: Least privilege IAM, encryption at rest/transit, network isolation
-- [ ] **Reliability**: Multi-AZ design, failure recovery procedures documented
-- [ ] **Performance Efficiency**: Right-sized resources, performance targets defined
-- [ ] **Cost Optimization**: Resource tagging strategy, budget considerations
-- [ ] **Sustainability**: Resource utilization maximized, efficient compute selected
-
-### II. Infrastructure as Code Excellence
-- [ ] All AWS resources defined in CDK/Terraform (no manual console changes)
-- [ ] IaC is modular and reusable across environments
-- [ ] Secrets management via AWS Secrets Manager or Parameter Store
-- [ ] State management centralized and secured
-
-### III. Security & Compliance First
-- [ ] IAM policies follow least privilege principle
-- [ ] Defense in depth: network, application, and data layer security
-- [ ] Encryption enabled (TLS 1.2+, at-rest encryption)
-- [ ] Audit trail enabled (CloudTrail, VPC Flow Logs, access logs)
-- [ ] Container/dependency vulnerability scanning planned
-- [ ] Private subnets for compute, VPC endpoints for AWS services
-
-### IV. Code Quality & Maintainability
-- [ ] Linting and formatting automated in CI/CD
-- [ ] Strong typing used (TypeScript, Python type hints)
-- [ ] Public APIs documented, complex logic commented
-- [ ] Minimum 80% test coverage for core logic
-- [ ] Code review process enforced
-
-### V. Extensibility & Modularity
-- [ ] Services loosely coupled with well-defined interfaces
-- [ ] API-first design (REST/GraphQL before consumers)
-- [ ] Event-driven patterns where appropriate (EventBridge, SNS/SQS)
-- [ ] Breaking changes include migration paths
-
-### VI. Observability & Operational Excellence
-- [ ] Structured logging to CloudWatch with correlation IDs
-- [ ] AWS X-Ray enabled for distributed tracing
-- [ ] CloudWatch metrics and alarms for KPIs defined
-- [ ] Health check endpoints exposed
-- [ ] Runbooks documented for common failures
-
-*If any checks fail, document in Complexity Tracking section with justification*
+[Gates determined based on constitution file]
 
 ## Project Structure
 
@@ -194,7 +152,7 @@ directories captured above]
    - Quickstart test = story validation steps
 
 5. **Update agent file incrementally** (O(1) operation):
-   - Run `.specify/scripts/bash/update-agent-context.sh copilot`
+   - Run `.specify/scripts/bash/update-agent-context.sh opencode`
      **IMPORTANT**: Execute it exactly as specified above. Do not add or remove any arguments.
    - If exists: Add only NEW tech from current plan
    - Preserve manual additions between markers
@@ -258,4 +216,4 @@ directories captured above]
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v1.0.0 - See `.specify/memory/constitution.md`*
+*Based on Constitution v2.1.1 - See `/memory/constitution.md`*

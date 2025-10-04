@@ -1,0 +1,154 @@
+openapi: 3.0.0
+info:
+  title: AWS Hackathon Infrastructure Stack Contract
+  version: 1.0.0
+  description: Contract for CDK stack outputs and interfaces
+
+paths:
+  /vpc:
+    get:
+      summary: Get VPC details
+      responses:
+        '200':
+          description: VPC information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vpcId:
+                    type: string
+                  cidr:
+                    type: string
+                  region:
+                    type: string
+
+  /subnets/public:
+    get:
+      summary: Get public subnet IDs
+      responses:
+        '200':
+          description: Public subnet IDs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /subnets/private/app:
+    get:
+      summary: Get private application subnet IDs
+      responses:
+        '200':
+          description: Private app subnet IDs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /subnets/private/agent:
+    get:
+      summary: Get private agent subnet IDs
+      responses:
+        '200':
+          description: Private agent subnet IDs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /subnets/private/data:
+    get:
+      summary: Get private data subnet IDs
+      responses:
+        '200':
+          description: Private data subnet IDs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /alb/dns:
+    get:
+      summary: Get ALB DNS name
+      responses:
+        '200':
+          description: ALB DNS name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dnsName:
+                    type: string
+
+  /rds/endpoint:
+    get:
+      summary: Get RDS proxy endpoint
+      responses:
+        '200':
+          description: RDS proxy endpoint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endpoint:
+                    type: string
+                  port:
+                    type: integer
+
+  /opensearch/endpoint:
+    get:
+      summary: Get OpenSearch endpoint
+      responses:
+        '200':
+          description: OpenSearch endpoint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endpoint:
+                    type: string
+
+  /s3/buckets:
+    get:
+      summary: Get S3 bucket names
+      responses:
+        '200':
+          description: S3 bucket names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  knowledgeBase:
+                    type: string
+                  logs:
+                    type: string
+                  bda:
+                    type: string
+
+  /ecr/repositories:
+    get:
+      summary: Get ECR repository URIs
+      responses:
+        '200':
+          description: ECR repository URIs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repositories:
+                    type: array
+                    items:
+                      type: string

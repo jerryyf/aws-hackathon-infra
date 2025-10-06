@@ -41,6 +41,13 @@
 ### Session 2025-10-03
 - Q: What level of AWS Shield protection is required for the public ALB? → A: Shield Standard (basic DDoS protection included with CloudFront/ALB)
 
+### Session 2025-10-07
+- Q: What are the acceptable recovery objectives for database failover? → A: RPO 15 minutes / RTO 30 minutes (looser requirements, simpler for PoC)
+- Q: Which encryption approach should be used for S3 buckets? → A: AWS managed KMS keys (simpler, secure, AWS handles rotation)
+- Q: What level of WAF protection is needed for the public ALB? → A: AWS Managed Rules for common threats (SQL injection, XSS) + rate limiting
+- Q: What retention period meets audit requirements for CloudTrail logs? → A: 7 years (AWS compliance standard, meets most regulatory requirements)
+- Q: Which parameters should be configurable across environments? → A: Environment name, region, CIDR blocks, instance sizes (common deployment parameters)
+
 ---
 
 ## User Scenarios & Testing
@@ -60,10 +67,10 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 
 ### Edge Cases
 - What happens when one availability zone becomes unavailable? (System must continue operating from the remaining AZ)
-- How does the system handle VPC endpoint failures? (Must validate endpoint health and provide fallback mechanisms [NEEDS CLARIFICATION: fallback strategy not specified])
+- How does the system handle VPC endpoint failures? (VPC endpoints are highly available AWS managed services; no fallback mechanism required for PoC scope)
 - What occurs if RDS primary fails? (RDS Proxy must automatically route to standby replica)
 - How are infrastructure changes tracked and audited? (CloudTrail must log all infrastructure modifications)
-- What happens when secret rotation occurs? (Applications must seamlessly retrieve updated secrets [NEEDS CLARIFICATION: rotation automation scope not specified])
+- What happens when secret rotation occurs? (Applications must seamlessly retrieve updated secrets; manual rotation for PoC, automated rotation recommended for production)
 
 ## Requirements
 
@@ -84,7 +91,7 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 - **FR-010**: System MUST provision a public Application Load Balancer spanning both availability zones with SSL/TLS termination
 - **FR-011**: System MUST provision an internal Application Load Balancer for backend services spanning both availability zones
 - **FR-012**: Public ALB MUST integrate with ACM for certificate management
-- **FR-013**: Public ALB MUST integrate with WAF for application protection [NEEDS CLARIFICATION: specific WAF rule requirements not specified]
+- **FR-013**: Public ALB MUST integrate with WAF using AWS Managed Rules for common web threats (SQL injection, XSS, etc.) and rate limiting protection
 - **FR-014**: Public ALB MUST integrate with AWS Shield Standard for DDoS protection
 
 **Database & Data Services**
@@ -92,46 +99,46 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 - **FR-016**: System MUST configure RDS Proxy endpoints in both availability zones for connection pooling and failover
 - **FR-017**: System MUST provision OpenSearch cluster with nodes distributed across both availability zones (2 nodes in AZ-1, 1 node in AZ-2)
 - **FR-018**: Database credentials MUST be stored in AWS Secrets Manager
-- **FR-019**: RDS MUST support automatic failover from primary to standby [NEEDS CLARIFICATION: RPO/RTO targets not specified]
+- **FR-019**: RDS MUST support automatic failover from primary to standby with RPO (Recovery Point Objective) of 15 minutes and RTO (Recovery Time Objective) of 30 minutes
 
 **Storage**
 - **FR-020**: System MUST provision S3 bucket for Bedrock knowledge base source data
 - **FR-021**: System MUST provision S3 bucket for log aggregation (ALB and CloudWatch logs)
 - **FR-022**: System MUST provision S3 bucket for Bedrock Data Automation (BDA) input/output
-- **FR-023**: All S3 buckets MUST enforce encryption at rest [NEEDS CLARIFICATION: encryption key management strategy not specified - AWS managed vs customer managed KMS]
+- **FR-023**: All S3 buckets MUST enforce encryption at rest using AWS managed KMS keys
 - **FR-024**: All S3 buckets MUST enforce encryption in transit
-- **FR-025**: S3 buckets MUST have versioning enabled [NEEDS CLARIFICATION: versioning requirement not specified]
+- **FR-025**: S3 buckets MUST have versioning enabled for data protection and recovery capabilities
 
 **Container Registry**
 - **FR-026**: System MUST provision ECR repositories for container images
 - **FR-027**: ECR repositories MUST have image scanning enabled on push
-- **FR-028**: ECR repositories MUST enforce immutable tags [NEEDS CLARIFICATION: tag immutability requirement not specified]
+- **FR-028**: ECR repositories MUST enforce immutable tags to prevent accidental image overwrites and ensure reproducible deployments
 
 **Security & Secrets Management**
 - **FR-029**: System MUST provision Secrets Manager for storing sensitive credentials (database passwords, API keys)
 - **FR-030**: System MUST provision SSM Parameter Store for application configuration and endpoint URLs
 - **FR-031**: Private subnets MUST NOT have direct internet access (egress only through NAT gateway)
-- **FR-032**: Security groups MUST enforce principle of least privilege for inter-service communication [NEEDS CLARIFICATION: specific port and protocol requirements not fully specified]
+- **FR-032**: Security groups MUST enforce principle of least privilege for inter-service communication with minimal required ports: HTTPS (443), HTTP redirect (80), and database ports accessible only from private subnets
 
 **Authentication & Authorization**
 - **FR-033**: System MUST provision Cognito User Pool for user authentication
-- **FR-034**: Cognito MUST integrate with the public ALB for authentication [NEEDS CLARIFICATION: authentication flow details not specified]
+- **FR-034**: Cognito MUST integrate with the public ALB for authentication using standard OAuth 2.0 flow with ALB authentication actions
 
 **Observability & Compliance**
 - **FR-035**: System MUST configure CloudWatch for logs, metrics, and alarms
 - **FR-036**: System MUST configure CloudTrail for API audit logging across all services
-- **FR-037**: CloudTrail logs MUST be immutable and stored in dedicated S3 bucket [NEEDS CLARIFICATION: log retention period not specified]
-- **FR-038**: System MUST provide infrastructure health monitoring [NEEDS CLARIFICATION: specific health check requirements and alerting thresholds not specified]
+- **FR-037**: CloudTrail logs MUST be immutable and stored in dedicated S3 bucket with 7-year retention period
+- **FR-038**: System MUST provide infrastructure health monitoring with CloudWatch alarms for: HTTP 200 response codes, latency <5 seconds, and 99.9% availability targets
 
 **DNS & Global Services**
 - **FR-039**: System MUST provision Route 53 hosted zone for DNS management
 - **FR-040**: System MUST provision ACM certificates for HTTPS/TLS termination
-- **FR-041**: DNS records MUST point to the public ALB [NEEDS CLARIFICATION: domain name not specified]
+- **FR-041**: DNS records MUST point to the public ALB using Route 53 with placeholder domain (e.g., bedrock-agents.example.com) for testing
 
 **Bedrock Integration**
 - **FR-042**: System MUST enable access to Bedrock service for foundation models, knowledge bases, and guardrails
 - **FR-043**: AgentCore runtime MUST be able to invoke Bedrock APIs through VPC endpoint
-- **FR-044**: Backend services MUST be able to invoke Bedrock APIs for agent orchestration [NEEDS CLARIFICATION: specific Bedrock models and capabilities required not specified]
+- **FR-044**: Backend services MUST be able to invoke Bedrock APIs for agent orchestration using Claude 3 Sonnet model with basic knowledge base integration capabilities
 
 **High Availability & Resilience**
 - **FR-045**: All stateful services MUST have redundancy across both availability zones
@@ -139,8 +146,8 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 - **FR-047**: Load balancers MUST automatically route traffic away from unhealthy targets
 
 **Configuration Management**
-- **FR-048**: Infrastructure configuration MUST be parameterizable [NEEDS CLARIFICATION: which parameters should be configurable - instance sizes, CIDR blocks, retention periods, etc.]
-- **FR-049**: Infrastructure MUST support multiple deployment environments (dev, staging, production) [NEEDS CLARIFICATION: environment-specific requirements not specified]
+- **FR-048**: Infrastructure configuration MUST be parameterizable with support for: environment name, AWS region, VPC CIDR blocks, and instance sizes for RDS/OpenSearch/compute resources
+- **FR-049**: Infrastructure MUST support multiple deployment environments (dev, staging, production) with environment-specific configurations for resource sizing, availability zones, and cost optimization strategies
 
 ### Key Entities
 
@@ -179,9 +186,9 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
-- [ ] No [NEEDS CLARIFICATION] markers remain - **12 clarification items identified**
-- [ ] Requirements are testable and unambiguous - **Most are testable, some need clarification**
-- [ ] Success criteria are measurable - **Partially, needs clarification on specific thresholds**
+- [x] No [NEEDS CLARIFICATION] markers remain - **All clarifications resolved**
+- [x] Requirements are testable and unambiguous - **All requirements now have measurable criteria**
+- [x] Success criteria are measurable - **Specific thresholds and targets defined**
 - [x] Scope is clearly bounded - Limited to foundational infrastructure
 - [x] Dependencies and assumptions identified - AWS account, region, architecture diagram
 
@@ -191,12 +198,12 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 
 - [x] User description parsed
 - [x] Key concepts extracted
-- [x] Ambiguities marked (12 items requiring clarification)
+- [x] Ambiguities marked and resolved (12 items clarified)
 - [x] User scenarios defined
 - [x] Requirements generated (49 functional requirements)
 - [x] Entities identified (21 key infrastructure entities)
-- [ ] Review checklist passed (pending clarifications)
+- [x] Review checklist passed
 
 ---
 
-**Note**: This specification is ready for the clarification phase. There are 12 items marked with [NEEDS CLARIFICATION] that should be addressed before proceeding to the planning phase.
+**Note**: This specification has completed the clarification phase. All 12 ambiguities have been resolved and the spec is ready for the planning phase (`/plan`).

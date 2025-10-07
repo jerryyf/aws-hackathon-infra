@@ -1,8 +1,10 @@
 from aws_cdk import (
     Stack,
+    Duration,
     aws_rds as rds,
     aws_opensearchservice as opensearch,
     aws_secretsmanager as secretsmanager,
+    aws_ec2 as ec2,
     CfnOutput,
 )
 from constructs import Construct
@@ -19,7 +21,6 @@ class DatabaseStack(Stack):
             data_subnets = [subnet for subnet in vpc.private_subnets if "PrivateData" in subnet.node.id]
         else:
             # For testing, create minimal VPC
-            from aws_cdk import aws_ec2 as ec2
             vpc = ec2.Vpc(self, "TestVpc", cidr="10.0.0.0/16", max_azs=2)
             data_subnets = vpc.private_subnets
 
@@ -40,7 +41,7 @@ class DatabaseStack(Stack):
             engine=rds.DatabaseClusterEngine.aurora_postgres(
                 version=rds.AuroraPostgresEngineVersion.VER_15_4
             ),
-            credentials=rds.Credentials.from_secret(self.rds_secret),
+            credentials=rds.Credentials.from_secret(self.rds_secret, "username"),
             instance_props=rds.InstanceProps(
                 vpc=vpc,
                 vpc_subnets=ec2.SubnetSelection(subnets=data_subnets),
@@ -49,7 +50,7 @@ class DatabaseStack(Stack):
             default_database_name="hackathon",
             instances=2,
             backup=rds.BackupProps(
-                retention=7
+                retention=Duration.days(7)
             )
         )
 

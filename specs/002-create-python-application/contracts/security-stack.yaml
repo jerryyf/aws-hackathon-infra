@@ -1,0 +1,382 @@
+# Security Stack Output Contract
+
+**Stack Name**: `SecurityStack`  
+**Version**: 1.0.0  
+**Description**: Security groups, network ACLs, WAF Web ACL, and Shield configuration
+
+## Output Specifications
+
+### AlbPublicSgId
+- **Type**: String
+- **Description**: Security group ID for public-facing Application Load Balancer
+- **Export Name**: `${AWS::StackName}-AlbPublicSgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-0a1b2c3d4e5f67890`
+- **Ingress Rules**:
+  - HTTPS (443) from 0.0.0.0/0 (internet-facing)
+- **Egress Rules**:
+  - All traffic to ECS BFF security group
+- **Usage**: Public ALB security group attachment
+
+### AlbInternalSgId
+- **Type**: String
+- **Description**: Security group ID for internal Application Load Balancer
+- **Export Name**: `${AWS::StackName}-AlbInternalSgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-1b2c3d4e5f6789012`
+- **Ingress Rules**:
+  - HTTPS (443) from ECS BFF security group
+- **Egress Rules**:
+  - All traffic to ECS backend security group
+- **Usage**: Internal ALB security group attachment
+
+### EcsBffSgId
+- **Type**: String
+- **Description**: Security group ID for ECS BFF (Backend for Frontend) service
+- **Export Name**: `${AWS::StackName}-EcsBffSgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-2c3d4e5f6789012ab`
+- **Ingress Rules**:
+  - All traffic from public ALB security group
+- **Egress Rules**:
+  - HTTPS (443) to internal ALB security group
+  - HTTPS (443) to VPC endpoint security group
+- **Usage**: ECS BFF task security group attachment
+
+### EcsBackendSgId
+- **Type**: String
+- **Description**: Security group ID for ECS backend (GraphQL) service
+- **Export Name**: `${AWS::StackName}-EcsBackendSgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-3d4e5f6789012abcd`
+- **Ingress Rules**:
+  - All traffic from internal ALB security group
+- **Egress Rules**:
+  - PostgreSQL (5432) to RDS Proxy security group
+  - HTTPS (443) to OpenSearch security group
+  - HTTPS (443) to VPC endpoint security group
+- **Usage**: ECS backend task security group attachment
+
+### RdsProxySgId
+- **Type**: String
+- **Description**: Security group ID for RDS Proxy connection pooling
+- **Export Name**: `${AWS::StackName}-RdsProxySgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-4e5f6789012abcdef`
+- **Ingress Rules**:
+  - PostgreSQL (5432) from ECS backend security group
+- **Egress Rules**:
+  - PostgreSQL (5432) to RDS security group
+- **Usage**: RDS Proxy security group attachment
+
+### RdsSgId
+- **Type**: String
+- **Description**: Security group ID for RDS PostgreSQL database
+- **Export Name**: `${AWS::StackName}-RdsSgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-5f6789012abcdef01`
+- **Ingress Rules**:
+  - PostgreSQL (5432) from RDS Proxy security group only
+- **Egress Rules**:
+  - None (database endpoint, no outbound required)
+- **Usage**: RDS instance security group attachment
+
+### OpenSearchSgId
+- **Type**: String
+- **Description**: Security group ID for OpenSearch domain
+- **Export Name**: `${AWS::StackName}-OpenSearchSgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-6789012abcdef0123`
+- **Ingress Rules**:
+  - HTTPS (443) from ECS backend security group
+- **Egress Rules**:
+  - None (managed service endpoint)
+- **Usage**: OpenSearch domain VPC configuration
+
+### VpcEndpointSgId
+- **Type**: String
+- **Description**: Security group ID for VPC interface endpoints
+- **Export Name**: `${AWS::StackName}-VpcEndpointSgId`
+- **Validation**: Must match pattern `sg-[a-f0-9]{17}`
+- **Example**: `sg-789012abcdef01234`
+- **Ingress Rules**:
+  - HTTPS (443) from private subnet CIDR ranges (10.0.11.0/24, 10.0.12.0/24, 10.0.21.0/24, 10.0.22.0/24, 10.0.31.0/24, 10.0.32.0/24)
+- **Egress Rules**:
+  - None (AWS-managed service endpoints)
+- **Usage**: Bedrock, Secrets Manager, SSM, ECR, CloudWatch Logs VPC endpoints
+
+### WafWebAclArn
+- **Type**: String
+- **Description**: WAF Web ACL ARN for public ALB protection
+- **Export Name**: `${AWS::StackName}-WafWebAclArn`
+- **Validation**: Must match pattern `arn:aws:wafv2:us-east-1:\d{12}:regional/webacl/[a-zA-Z0-9-]+/[a-f0-9-]{36}`
+- **Example**: `arn:aws:wafv2:us-east-1:123456789012:regional/webacl/bedrock-agent-waf/a1b2c3d4-5678-90ab-cdef-1234567890ab`
+- **Rules**:
+  - Rate limiting: 2000 requests per 5 minutes per IP (priority 1)
+  - AWS Managed Rules - Core Rule Set (OWASP Top 10 protection, priority 2)
+  - AWS Managed Rules - Known Bad Inputs (CVE exploit prevention, priority 3)
+- **Default Action**: Allow
+- **Usage**: Public ALB WAF association
+
+### ShieldProtectionId
+- **Type**: String
+- **Description**: AWS Shield Standard protection ID (informational, auto-enabled)
+- **Export Name**: `${AWS::StackName}-ShieldProtectionId`
+- **Validation**: Shield Standard automatically enabled for ALB (no explicit ID)
+- **Example**: `N/A (Shield Standard is automatic)`
+- **Protection Level**: Shield Standard (basic DDoS protection for ALB, CloudFront)
+- **Usage**: Reference for Shield Advanced upgrade (deferred to production)
+
+### CognitoUserPoolId
+- **Type**: String
+- **Description**: Cognito User Pool ID for user authentication
+- **Export Name**: `${AWS::StackName}-CognitoUserPoolId`
+- **Validation**: Must match pattern `us-east-1_[a-zA-Z0-9]{9}`
+- **Example**: `us-east-1_Ab1Cd2Ef3`
+- **Usage**: ALB authenticate-cognito action, application config for user management
+
+### CognitoUserPoolArn
+- **Type**: String
+- **Description**: Cognito User Pool ARN for IAM policy references
+- **Export Name**: `${AWS::StackName}-CognitoUserPoolArn`
+- **Validation**: Must match pattern `arn:aws:cognito-idp:us-east-1:\d{12}:userpool/us-east-1_[a-zA-Z0-9]{9}`
+- **Example**: `arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_Ab1Cd2Ef3`
+- **Usage**: IAM policies for user pool administration
+
+### CognitoUserPoolClientId
+- **Type**: String
+- **Description**: Cognito User Pool App Client ID for ALB integration
+- **Export Name**: `${AWS::StackName}-CognitoUserPoolClientId`
+- **Validation**: Must match pattern `[a-z0-9]{26}`
+- **Example**: `1a2b3c4d5e6f7g8h9i0j1k2l3m`
+- **Usage**: ALB listener authenticate-cognito action configuration
+
+### CognitoUserPoolDomain
+- **Type**: String
+- **Description**: Cognito hosted UI domain for OAuth 2.0 flows
+- **Export Name**: `${AWS::StackName}-CognitoUserPoolDomain`
+- **Validation**: Must match pattern `[a-z0-9-]+\.auth\.us-east-1\.amazoncognito\.com` (Cognito prefix) or custom domain
+- **Example**: `bedrock-agents.auth.us-east-1.amazoncognito.com`
+- **Usage**: OAuth authorize/token endpoint construction, ALB session redirect
+
+## Contract Tests
+
+### Test: Public ALB security group allows HTTPS from internet
+```python
+def test_alb_public_sg_ingress():
+    template = Template.from_stack(security_stack)
+    template.has_resource_properties("AWS::EC2::SecurityGroup", {
+        "GroupDescription": Match.string_like_regexp(".*Public ALB.*"),
+        "SecurityGroupIngress": [
+            {
+                "IpProtocol": "tcp",
+                "FromPort": 443,
+                "ToPort": 443,
+                "CidrIp": "0.0.0.0/0"
+            }
+        ]
+    })
+```
+
+### Test: RDS security group only accepts traffic from RDS Proxy
+```python
+def test_rds_sg_least_privilege():
+    template = Template.from_stack(security_stack)
+    rds_sg = template.find_resources("AWS::EC2::SecurityGroup", {
+        "GroupDescription": Match.string_like_regexp(".*RDS database.*")
+    })
+    
+    ingress_rules = rds_sg["Properties"]["SecurityGroupIngress"]
+    assert len(ingress_rules) == 1
+    assert ingress_rules[0]["IpProtocol"] == "tcp"
+    assert ingress_rules[0]["FromPort"] == 5432
+    assert ingress_rules[0]["SourceSecurityGroupId"]["Ref"] == "RdsProxySg"
+```
+
+### Test: Security groups follow layered architecture
+```python
+def test_security_group_layering():
+    template = Template.from_stack(security_stack)
+    
+    # Public ALB -> ECS BFF
+    alb_public_sg = template.find_resources("AWS::EC2::SecurityGroup", {
+        "GroupDescription": Match.string_like_regexp(".*Public ALB.*")
+    })
+    assert alb_public_sg["Properties"]["SecurityGroupEgress"][0]["DestinationSecurityGroupId"]["Ref"] == "EcsBffSg"
+    
+    # ECS BFF -> Internal ALB
+    ecs_bff_sg = template.find_resources("AWS::EC2::SecurityGroup", {
+        "GroupDescription": Match.string_like_regexp(".*ECS BFF.*")
+    })
+    assert "AlbInternalSg" in str(ecs_bff_sg["Properties"]["SecurityGroupEgress"])
+    
+    # Internal ALB -> ECS Backend
+    alb_internal_sg = template.find_resources("AWS::EC2::SecurityGroup", {
+        "GroupDescription": Match.string_like_regexp(".*Internal ALB.*")
+    })
+    assert alb_internal_sg["Properties"]["SecurityGroupEgress"][0]["DestinationSecurityGroupId"]["Ref"] == "EcsBackendSg"
+```
+
+### Test: WAF Web ACL includes required managed rules
+```python
+def test_waf_managed_rules():
+    template = Template.from_stack(security_stack)
+    template.has_resource_properties("AWS::WAFv2::WebACL", {
+        "Scope": "REGIONAL",
+        "DefaultAction": {"Allow": {}},
+        "Rules": Match.array_with([
+            Match.object_like({
+                "Name": "RateLimitRule",
+                "Priority": 1,
+                "Statement": {
+                    "RateBasedStatement": {
+                        "Limit": 2000,
+                        "AggregateKeyType": "IP"
+                    }
+                },
+                "Action": {"Block": {}}
+            }),
+            Match.object_like({
+                "Name": "AWSManagedRulesCommonRuleSet",
+                "Priority": 2,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesCommonRuleSet"
+                    }
+                },
+                "OverrideAction": {"None": {}}
+            }),
+            Match.object_like({
+                "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+                "Priority": 3,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesKnownBadInputsRuleSet"
+                    }
+                },
+                "OverrideAction": {"None": {}}
+            })
+        ])
+    })
+```
+
+### Test: VPC endpoint security group allows HTTPS from private subnets
+```python
+def test_vpc_endpoint_sg():
+    template = Template.from_stack(security_stack)
+    vpc_endpoint_sg = template.find_resources("AWS::EC2::SecurityGroup", {
+        "GroupDescription": Match.string_like_regexp(".*VPC endpoints.*")
+    })
+    
+    ingress_rules = vpc_endpoint_sg["Properties"]["SecurityGroupIngress"]
+    expected_cidrs = [
+        "10.0.11.0/24", "10.0.12.0/24",  # Private app subnets
+        "10.0.21.0/24", "10.0.22.0/24",  # Private AgentCore subnets
+        "10.0.31.0/24", "10.0.32.0/24"   # Private data subnets
+    ]
+    
+    for rule in ingress_rules:
+        assert rule["IpProtocol"] == "tcp"
+        assert rule["FromPort"] == 443
+        assert rule["CidrIp"] in expected_cidrs
+```
+
+### Test: No security groups allow 0.0.0.0/0 except public ALB on port 443
+```python
+def test_no_wildcard_ingress_except_alb():
+    template = Template.from_stack(security_stack)
+    security_groups = template.find_resources("AWS::EC2::SecurityGroup")
+    
+    for sg_name, sg in security_groups.items():
+        ingress_rules = sg["Properties"].get("SecurityGroupIngress", [])
+        for rule in ingress_rules:
+            if rule.get("CidrIp") == "0.0.0.0/0":
+                # Only public ALB allowed, and only on port 443
+                assert "Public ALB" in sg["Properties"]["GroupDescription"]
+                assert rule["FromPort"] == 443
+                assert rule["ToPort"] == 443
+```
+
+### Test: All outputs are correctly exported
+```python
+def test_security_stack_outputs():
+    template = Template.from_stack(security_stack)
+    outputs = template.find_outputs("*")
+    
+    required_outputs = [
+        "AlbPublicSgId",
+        "AlbInternalSgId",
+        "EcsBffSgId",
+        "EcsBackendSgId",
+        "RdsProxySgId",
+        "RdsSgId",
+        "OpenSearchSgId",
+        "VpcEndpointSgId",
+        "WafWebAclArn",
+        "CognitoUserPoolId",
+        "CognitoUserPoolArn",
+        "CognitoUserPoolClientId",
+        "CognitoUserPoolDomain"
+    ]
+    
+    for output_name in required_outputs:
+        assert output_name in outputs
+        assert "Export" in outputs[output_name]
+```
+
+### Test: Cognito User Pool has secure password policy
+```python
+def test_cognito_password_policy():
+    template = Template.from_stack(security_stack)
+    template.has_resource_properties("AWS::Cognito::UserPool", {
+        "UserPoolName": "bedrock-agents-users",
+        "Policies": {
+            "PasswordPolicy": {
+                "MinimumLength": 12,
+                "RequireUppercase": True,
+                "RequireLowercase": True,
+                "RequireNumbers": True,
+                "RequireSymbols": True
+            }
+        },
+        "MfaConfiguration": "OPTIONAL",
+        "AutoVerifiedAttributes": ["email"]
+    })
+```
+
+### Test: Cognito User Pool Client configured for ALB OAuth integration
+```python
+def test_cognito_client_oauth_config():
+    template = Template.from_stack(security_stack)
+    template.has_resource_properties("AWS::Cognito::UserPoolClient", {
+        "ClientName": "ALBClient",
+        "AllowedOAuthFlows": ["code"],
+        "AllowedOAuthScopes": ["openid", "email", "profile"],
+        "AllowedOAuthFlowsUserPoolClient": True,
+        "GenerateSecret": False,  # Public client for ALB
+        "SupportedIdentityProviders": ["COGNITO"],
+        "CallbackURLs": Match.array_with([
+            Match.string_like_regexp("https://.*\\.elb\\.us-east-1\\.amazonaws\\.com/oauth2/idpresponse")
+        ])
+    })
+```
+
+### Test: Cognito User Pool Domain exists
+```python
+def test_cognito_user_pool_domain():
+    template = Template.from_stack(security_stack)
+    template.has_resource_properties("AWS::Cognito::UserPoolDomain", {
+        "Domain": Match.string_like_regexp("bedrock-agents.*"),
+        "UserPoolId": {"Ref": Match.any_value()}
+    })
+```
+
+## Dependencies
+- `NetworkStack` (requires VPC ID for security group creation)
+
+## Dependent Stacks
+- `ComputeStack` (requires security group IDs and WAF Web ACL ARN)
+- `DatabaseStack` (requires RDS and OpenSearch security group IDs)
+- All stacks using VPC endpoints (requires VPC endpoint security group ID)

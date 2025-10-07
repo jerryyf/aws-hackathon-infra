@@ -1,81 +1,312 @@
-# Research Findings: AWS CDK Infrastructure for Bedrock Agent Platform
+# Research: AWS CDK Infrastructure for Bedrock Agent Platform
 
-## Decision: WAF Rule Requirements
-**Chosen**: Use AWS Managed Rules for common web application threats (SQL injection, XSS, etc.) plus rate limiting
-**Rationale**: Provides comprehensive protection out-of-the-box for hackathon PoC, balances security with simplicity
-**Alternatives Considered**: Custom rules (too complex for PoC), third-party WAF (adds cost/complexity)
+**Feature**: `002-create-python-application`  
+**Date**: 2025-10-07  
+**Status**: Complete
 
-## Decision: Shield Level
-**Chosen**: Shield Standard (included with ALB)
-**Rationale**: Sufficient for DDoS protection in PoC environment, automatic mitigation for common attacks
-**Alternatives Considered**: Shield Advanced (overkill for demo, adds cost)
+## Research Objectives
+From Technical Context analysis, all primary dependencies and architectural patterns have been clarified through prior specification sessions. This research consolidates technology choices, validates CDK patterns, and documents best practices for AWS managed services integration.
 
-## Decision: RPO/RTO Targets
-**Chosen**: RPO 5 minutes, RTO 10 minutes
-**Rationale**: Reasonable for hackathon demo, allows for automated failover testing
-**Alternatives Considered**: Stricter targets (5min/5min - requires more complex setup), looser targets (1hr/2hr - insufficient for demo)
+## Technology Decisions
 
-## Decision: S3 Encryption Key Management
-**Chosen**: AWS managed KMS keys
-**Rationale**: Simple, secure, and compliant for PoC without key management overhead
-**Alternatives Considered**: Customer managed KMS (adds complexity), SSE-S3 (less secure)
+### 1. CDK Stack Organization Pattern
 
-## Decision: S3 Versioning Requirement
-**Chosen**: Enable versioning on all buckets
-**Rationale**: Provides data protection and recovery options for demo scenarios
-**Alternatives Considered**: No versioning (simpler but riskier)
+**Decision**: Modular stack architecture with cross-stack references  
+**Rationale**: 
+- Enables independent stack updates (network changes don't require database redeployment)
+- Supports parallel development (teams can work on different stacks)
+- Aligns with AWS Well-Architected operational excellence (smaller blast radius for changes)
+- Facilitates environment-specific overrides (dev uses smaller RDS instances, prod uses larger)
 
-## Decision: ECR Tag Immutability
-**Chosen**: Enable immutable tags
-**Rationale**: Prevents accidental overwrites and ensures reproducible deployments
-**Alternatives Considered**: Mutable tags (allows updates but risks inconsistency)
+**Alternatives Considered**:
+- **Monolithic single stack**: Rejected - violates modularity principle, slow deployments, difficult rollbacks
+- **Nested stacks**: Rejected - adds complexity, harder to test in isolation, CloudFormation template size limits
+- **CDK Pipelines with stages**: Deferred to post-PoC - adds CI/CD complexity, requires CodePipeline setup
 
-## Decision: Security Group Port/Protocol Requirements
-**Chosen**: Minimal ports - 443 for HTTPS, 80 for HTTP redirect, database ports only from private subnets
-**Rationale**: Follows least privilege, reduces attack surface
-**Alternatives Considered**: Open ports (insecure), overly restrictive (breaks functionality)
+**Implementation Approach**:
+```python
+# Network stack exports VPC, subnet IDs via CfnOutput
+network_stack = NetworkStack(app, "NetworkStack", env=env)
 
-## Decision: Cognito Authentication Flow
-**Chosen**: Standard OAuth 2.0 flow with ALB integration
-**Rationale**: Simple integration for demo, supports user authentication
-**Alternatives Considered**: Custom auth (complex), SAML (overkill for PoC)
+# Database stack imports network stack outputs via properties
+database_stack = DatabaseStack(
+    app, "DatabaseStack",
+    vpc=network_stack.vpc,
+    private_subnets=network_stack.private_data_subnets,
+    env=env
+)
+```
 
-## Decision: CloudTrail Log Retention
-**Chosen**: 7 years (AWS compliance standard)
-**Rationale**: Meets common compliance requirements, sufficient for audit trails
-**Alternatives Considered**: 1 year (shorter retention), indefinite (storage cost)
+### 2. VPC Endpoint Strategy
 
-## Decision: Infrastructure Health Check Thresholds
-**Chosen**: 200 response codes, <5s latency, 99.9% availability
-**Rationale**: Standard web application metrics for monitoring
-**Alternatives Considered**: Stricter thresholds (harder to achieve), looser (less meaningful)
+**Decision**: Interface endpoints for AWS services, gateway endpoint for S3  
+**Rationale**:
+- Interface endpoints (PrivateLink) required for Bedrock, Secrets Manager, ECR, CloudWatch (no internet gateway access)
+- Gateway endpoints for S3 are free (no hourly charges) and support on-premises connectivity
+- Reduces data transfer costs (traffic stays within AWS network)
+- Meets security requirement: no public internet access for private resources
 
-## Decision: Domain Name
-**Chosen**: Use Route 53 with placeholder domain (e.g., example.com)
-**Rationale**: Allows DNS configuration testing without real domain
-**Alternatives Considered**: No DNS (breaks ALB access), real domain (requires ownership)
+**Alternatives Considered**:
+- **NAT Gateway for AWS service access**: Rejected - violates private subnet isolation, higher latency, data transfer costs
+- **VPC Peering to shared services VPC**: Rejected - over-engineered for single-account PoC, adds networking complexity
 
-## Decision: Bedrock Models and Capabilities
-**Chosen**: Claude 3 Sonnet for text generation, basic knowledge base integration
-**Rationale**: Popular model for demos, sufficient for agent platform showcase
-**Alternatives Considered**: Multiple models (complexity), no specific model (ambiguous)
+**Cost Implications**:
+- Interface endpoints: ~$7.20/month per endpoint × 6 endpoints = ~$43/month base cost
+- Data processing: $0.01/GB (typically negligible for control plane operations)
+- S3 gateway endpoint: $0 (free)
 
-## Decision: VPC Endpoint Fallback Strategy
-**Chosen**: No fallback (rely on VPC endpoint availability)
-**Rationale**: VPC endpoints are highly available, fallback adds unnecessary complexity for PoC
-**Alternatives Considered**: NAT gateway fallback (adds cost/security risk), direct internet (violates security)
+### 3. RDS Multi-AZ vs Aurora Serverless
 
-## Decision: Secret Rotation Automation
-**Chosen**: Manual rotation for PoC, automated in production
-**Rationale**: Manual sufficient for demo, automated requires additional infrastructure
-**Alternatives Considered**: Always automated (overkill for PoC), no rotation (insecure)
+**Decision**: RDS PostgreSQL Multi-AZ with RDS Proxy  
+**Rationale**:
+- RDS Multi-AZ meets RPO 15min/RTO 30min requirements (synchronous replication, automatic failover)
+- RDS Proxy provides connection pooling (essential for Lambda/Fargate burst scaling)
+- Simpler operational model for PoC (no cluster management, straightforward backup/restore)
+- Cost-effective for predictable workloads (Aurora Serverless V2 ACU costs can exceed provisioned RDS for steady-state)
 
-## Decision: Configurable Infrastructure Parameters
-**Chosen**: Environment (dev/staging/prod), region, CIDR blocks, instance sizes
-**Rationale**: Common parameters for multi-environment deployment
-**Alternatives Considered**: All hardcoded (not flexible), everything configurable (overly complex)
+**Alternatives Considered**:
+- **Aurora Serverless V2**: Rejected - higher cost for steady-state workloads, ACU scaling complexity, overkill for PoC
+- **Aurora PostgreSQL provisioned cluster**: Rejected - more expensive (3 instances minimum for HA), operational complexity
+- **DynamoDB**: Rejected - data model includes relational entities (Agent-Model relationships), graph-like associations
 
-## Decision: Environment-Specific Requirements
-**Chosen**: Dev (minimal resources), Staging (full stack), Prod (high availability, monitoring)
-**Rationale**: Standard deployment pipeline progression
-**Alternatives Considered**: Single environment (not realistic), custom environments (unnecessary)
+**Failover Testing**:
+- RDS Multi-AZ automatic failover: typically 60-120 seconds
+- RDS Proxy maintains connection pool during failover (application-transparent)
+- Planned chaos test: `aws rds failover-db-cluster` in staging environment
+
+### 4. OpenSearch Sizing Strategy
+
+**Decision**: 3-node cluster (2 in AZ-1, 1 in AZ-2) with dedicated master nodes for prod, 2-node for dev  
+**Rationale**:
+- 3 nodes minimum for production quorum (prevents split-brain scenarios)
+- Dedicated master nodes (3×t3.small.search) provide cluster stability for >10 data nodes (future scale)
+- 2-node dev cluster acceptable (no HA requirement for development environment)
+- Instance type: r6g.large.search (memory-optimized for indexing, Graviton2 cost savings)
+
+**Alternatives Considered**:
+- **Single-node domain**: Rejected - no HA, violates multi-AZ requirement for prod
+- **Elasticsearch on EC2**: Rejected - operational overhead (patching, upgrades), violates "managed services first" principle
+- **CloudSearch**: Rejected - limited vector search capabilities needed for Bedrock agent embeddings
+
+**Indexing Strategy**:
+- Primary index: Agent runtime logs (timestamp, agent_id, conversation_id, tokens_used)
+- Secondary index: Bedrock invocation metrics (model_id, latency_ms, input_tokens, output_tokens)
+- Retention: 30 days hot storage (UltraWarm for long-term analytics deferred to prod optimization)
+
+### 5. WAF Rule Configuration
+
+**Decision**: AWS Managed Rules (Core, Known Bad Inputs) + custom rate limiting  
+**Rationale**:
+- Core Rule Set protects against OWASP Top 10 (SQL injection, XSS, path traversal)
+- Known Bad Inputs blocks requests with malicious patterns (known CVE exploits)
+- Rate limiting: 2000 requests per 5 minutes per IP (prevents DDoS, credential stuffing)
+- Managed rules auto-update (AWS threat intelligence integration)
+
+**Alternatives Considered**:
+- **CloudFront with AWS WAF**: Deferred - adds CDN layer complexity, not required for API-first platform
+- **Third-party WAF (Cloudflare, Imperva)**: Rejected - vendor lock-in, additional integration complexity, cost
+- **Application-level rate limiting (Kong, Envoy)**: Rejected - shifts security left, operational overhead
+
+**Cost**: ~$5/month base + $1/million requests (negligible for PoC traffic volume)
+
+### 6. Secrets Management Pattern
+
+**Decision**: AWS Secrets Manager with automatic rotation for RDS, Parameter Store for non-sensitive config  
+**Rationale**:
+- Secrets Manager supports automatic password rotation for RDS (Lambda function auto-generated)
+- Versioning enables safe rollback (previous secret versions retained for 7 days)
+- VPC endpoint ensures private subnet access (no NAT gateway required)
+- Parameter Store for environment config (region, CIDR blocks) - no rotation overhead
+
+**Alternatives Considered**:
+- **Parameter Store SecureString only**: Rejected - manual rotation, no integration with RDS/Aurora
+- **HashiCorp Vault**: Rejected - operational complexity (HA Vault cluster), over-engineered for PoC
+- **Environment variables in ECS task definitions**: Rejected - violates "no secrets in code/config" principle
+
+**Rotation Schedule**:
+- RDS master password: 90 days (configurable via CDK `automaticallyAfter` property)
+- Application API keys: Manual rotation (deferred to production security hardening)
+
+### 7. CDK Testing Strategy
+
+**Decision**: Three-tier testing (contract, integration, unit) with CDK Assertions  
+**Rationale**:
+- Contract tests validate stack outputs (VPC ID, subnet IDs, security group IDs) - critical for cross-stack references
+- Integration tests use CDK `Template.fromStack()` to assert resource properties (encryption enabled, multi-AZ configured)
+- Unit tests for custom constructs (L3 constructs wrapping common patterns)
+
+**Test Framework**:
+```python
+# Contract test example
+def test_network_stack_exports_vpc_id():
+    app = cdk.App()
+    stack = NetworkStack(app, "TestStack")
+    template = Template.from_stack(stack)
+    
+    # Assert VPC exists with correct CIDR
+    template.has_resource_properties("AWS::EC2::VPC", {
+        "CidrBlock": "10.0.0.0/16"
+    })
+    
+    # Assert VPC ID exported for cross-stack reference
+    outputs = template.find_outputs("*", {})
+    assert "VpcId" in outputs
+```
+
+**Alternatives Considered**:
+- **CloudFormation template snapshots**: Rejected - brittle tests (breaks on unrelated changes), poor error messages
+- **Manual testing only**: Rejected - violates code quality principle (80% coverage requirement)
+- **End-to-end deployment tests**: Deferred to CI/CD pipeline (requires AWS account, slow feedback loop)
+
+### 8. Environment Parameterization
+
+**Decision**: CDK context variables + environment-specific configuration files  
+**Rationale**:
+- CDK context (`cdk.json`) for deployment-time parameters (account, region)
+- Python dataclasses for environment-specific configs (instance sizes, retention periods)
+- Type-safe configuration (Pydantic validation) prevents misconfigurations
+- Supports local development (`cdk synth --context env=dev`), CI/CD (`cdk deploy --context env=prod`)
+
+**Configuration Structure**:
+```python
+from dataclasses import dataclass
+from typing import Literal
+
+@dataclass
+class EnvironmentConfig:
+    env_name: Literal["dev", "staging", "prod"]
+    vpc_cidr: str
+    rds_instance_class: str
+    opensearch_instance_type: str
+    opensearch_instance_count: int
+    cloudtrail_retention_days: int
+
+dev_config = EnvironmentConfig(
+    env_name="dev",
+    vpc_cidr="10.0.0.0/16",
+    rds_instance_class="db.t4g.medium",
+    opensearch_instance_type="t3.small.search",
+    opensearch_instance_count=2,
+    cloudtrail_retention_days=30
+)
+
+prod_config = EnvironmentConfig(
+    env_name="prod",
+    vpc_cidr="10.0.0.0/16",
+    rds_instance_class="db.r6g.xlarge",
+    opensearch_instance_type="r6g.large.search",
+    opensearch_instance_count=3,
+    cloudtrail_retention_days=2555  # 7 years
+)
+```
+
+**Alternatives Considered**:
+- **AWS AppConfig**: Rejected - runtime configuration service, not deployment-time IaC parameters
+- **Hardcoded values per environment branch**: Rejected - violates DRY principle, merge conflicts, drift risk
+- **AWS CDK Environment context lookup**: Rejected - asynchronous lookups slow synthesis, CloudFormation dependency
+
+### 9. Cognito User Pool for Authentication
+
+**Decision**: Cognito User Pool with ALB authentication integration using OAuth 2.0 flow  
+**Rationale**:
+- Native ALB integration eliminates need for custom authentication middleware in application code
+- Supports OAuth 2.0/OIDC standard flows (authorization code grant for web apps)
+- Managed user directory with built-in security features (MFA, password policies, account recovery)
+- Session management handled entirely by ALB (no application-level session store required)
+- Scales automatically with user load (managed service, no capacity planning)
+- Supports identity federation (can add Google, Facebook, SAML providers later without code changes)
+
+**Alternatives Considered**:
+- **Custom JWT validation in application**: Rejected - requires authentication middleware in every service, increases attack surface, difficult to audit
+- **Third-party IdP only (e.g., Okta, Auth0)**: Deferred - Cognito can federate to external IdPs later, avoiding vendor lock-in while maintaining ALB integration
+- **AWS IAM for user authentication**: Rejected - IAM designed for AWS resource access, not end-user authentication, no session management
+- **API Gateway Lambda authorizer**: Rejected - requires API Gateway (not using for this architecture), adds latency vs ALB native auth
+
+**Implementation Approach**:
+```python
+# Security stack creates User Pool and App Client
+user_pool = cognito.UserPool(self, "UserPool",
+    user_pool_name="bedrock-agents-users",
+    password_policy=cognito.PasswordPolicy(
+        min_length=12,
+        require_uppercase=True,
+        require_lowercase=True,
+        require_digits=True,
+        require_symbols=True
+    ),
+    mfa=cognito.Mfa.OPTIONAL,
+    account_recovery=cognito.AccountRecovery.EMAIL_ONLY
+)
+
+user_pool_client = user_pool.add_client("ALBClient",
+    o_auth=cognito.OAuthSettings(
+        flows=cognito.OAuthFlows(authorization_code_grant=True),
+        scopes=[cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        callback_urls=[f"https://{alb.load_balancer_dns_name}/oauth2/idpresponse"]
+    )
+)
+
+# Compute stack uses Cognito action in ALB listener rules
+listener.add_action("AuthenticateCognito",
+    action=elbv2.ListenerAction.authenticate_cognito(
+        user_pool=user_pool,
+        user_pool_client=user_pool_client,
+        user_pool_domain=user_pool_domain,
+        next=elbv2.ListenerAction.forward([target_group])
+    )
+)
+```
+
+**Security Considerations**:
+- User Pool domain: Use custom domain with ACM certificate (not Cognito prefix domain) for production
+- Token validation: ALB validates ID token signature automatically, no application logic needed
+- Session duration: ALB session cookie TTL configurable (default 7 days, recommend 24 hours for security)
+- Logout: Requires custom logout endpoint to invalidate Cognito session and ALB cookie
+
+## Best Practices & Patterns
+
+### CDK L2 Construct Preferences
+- Use L2 constructs (e.g., `ec2.Vpc`, `rds.DatabaseInstance`) for readability and safety
+- L1 constructs (e.g., `CfnVpc`) only when L2 missing (rare) or fine-grained control required (escape hatch)
+- Custom L3 constructs for repeated patterns (e.g., `MultiAzVpcEndpoint` wrapping endpoint + security group)
+
+### Security Group Design
+- **Principle of least privilege**: Deny all by default, explicit allow rules only
+- **Layered security groups**: ALB SG → ECS Service SG → RDS SG (progressive restriction)
+- **No wildcard source IPs**: Use security group references (e.g., `sources=[alb_sg]`) instead of `0.0.0.0/0`
+- **Separate management and data plane**: Dedicated SG for VPC endpoints, avoid reuse across tiers
+
+### Tagging Strategy
+All resources tagged with:
+- `Project: "AgentCore"`
+- `Environment: "dev|staging|prod"`
+- `ManagedBy: "CDK"`
+- `CostCenter: "Engineering"` (future allocation)
+- Stack-specific tags: `Stack: "NetworkStack"` (auto-applied by CDK)
+
+### CloudFormation Stack Dependencies
+- Explicit dependencies via `add_dependency()` when implicit dependencies insufficient
+- Avoid circular dependencies: Network → Security → Compute → Database (directed acyclic graph)
+- Use `Fn.import_value()` sparingly (tight coupling, difficult stack deletion)
+
+## Open Questions (Resolved)
+All technical unknowns from specification have been resolved:
+- ✅ RPO/RTO targets: 15min/30min (spec session 2025-10-07)
+- ✅ S3 encryption: AWS managed KMS keys (spec session 2025-10-07)
+- ✅ WAF protection: AWS Managed Rules + rate limiting (spec session 2025-10-07)
+- ✅ CloudTrail retention: 7 years (spec session 2025-10-07)
+- ✅ Configurable parameters: Environment name, region, CIDR, instance sizes (spec session 2025-10-07)
+- ✅ CDK stack organization: Modular stacks with cross-stack references (this research)
+- ✅ RDS vs Aurora: RDS Multi-AZ with RDS Proxy (this research)
+- ✅ OpenSearch sizing: 3-node prod, 2-node dev (this research)
+
+## References
+- [AWS CDK Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/best-practices.html)
+- [AWS Well-Architected Framework - Reliability Pillar](https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html)
+- [VPC Endpoints Pricing](https://aws.amazon.com/privatelink/pricing/)
+- [RDS Multi-AZ Deployments](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html)
+- [OpenSearch Best Practices](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/bp.html)
+- [AWS Managed Rules for WAF](https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups.html)
+
+---
+**Research Complete** - Ready for Phase 1 (Design & Contracts)

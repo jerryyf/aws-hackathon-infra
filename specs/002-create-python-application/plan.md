@@ -1,8 +1,8 @@
 
 # Implementation Plan: AWS CDK Infrastructure for Bedrock Agent Platform
 
-**Branch**: `002-create-python-application` | **Date**: 2025-10-03 | **Spec**: /Users/jerrlin/repos/personal/aws-hackathon-infra/specs/002-create-python-application/spec.md
-**Input**: Feature specification from /Users/jerrlin/repos/personal/aws-hackathon-infra/specs/002-create-python-application/spec.md
+**Branch**: `002-create-python-application` | **Date**: 2025-10-07 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/002-create-python-application/spec.md`
 
 ## Execution Flow (/plan command scope)
 ```
@@ -31,30 +31,68 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-Provision foundational AWS infrastructure for Bedrock agents using Python CDK, including VPC, subnets, security groups, ALB, DNS, ACM, and AgentCore runtimes across multi-AZ deployment as per architecture diagram. Technical approach leverages AWS CDK v2 for IaC with automated testing and security best practices.
+Provision complete AWS infrastructure foundation using CDK for Bedrock agent platform with multi-AZ deployment (us-east-1a/1b), VPC isolation, managed services integration (RDS, OpenSearch, S3, ECR), and comprehensive security controls. Infrastructure supports three-tier architecture (public ALB → BFF/Backend in private subnets → AgentCore → data layer) with VPC endpoints for AWS service access, WAF/Shield protection, encryption at rest/transit, and CloudWatch/CloudTrail observability.
 
 ## Technical Context
-**Language/Version**: Python 3.11 with AWS CDK v2  
-**Primary Dependencies**: aws-cdk-lib, constructs, boto3  
-**Storage**: N/A (infrastructure provisioning)  
-**Testing**: pytest with CDK assertions  
-**Target Platform**: AWS (us-east-1 region)
-**Project Type**: single (infrastructure IaC)  
-**Performance Goals**: Infrastructure deployment <10 minutes, high availability with <5min failover  
-**Constraints**: Multi-AZ deployment, least privilege security, encryption at rest/transit  
-**Scale/Scope**: Hackathon PoC with production-ready foundations
+**Language/Version**: Python 3.11  
+**Primary Dependencies**: aws-cdk-lib (2.x), constructs, boto3, pytest  
+**Storage**: RDS PostgreSQL (multi-AZ), OpenSearch Service (3-node), S3 (KMS encrypted), ECR (image scanning)  
+**Testing**: pytest with CDK assertions, contract tests for stack outputs  
+**Target Platform**: AWS us-east-1 (multi-AZ deployment across us-east-1a, us-east-1b)  
+**Project Type**: single (IaC repository with modular CDK stacks)  
+**Performance Goals**: <10min full stack deployment, <5min failover (RPO 15min/RTO 30min), ALB <100ms p95 latency  
+**Constraints**: Multi-AZ required, encryption at rest/transit mandatory, VPC isolation for all compute, no public internet access for private resources, least privilege IAM  
+**Scale/Scope**: 8 CDK stacks (network, compute, database, storage, security, monitoring), ~20 AWS resource types, support for dev/staging/prod environments
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **AWS Well-Architected Framework**: All 6 pillars addressed - Operational Excellence (IaC automation), Security (defense in depth, encryption), Reliability (multi-AZ, failover), Performance Efficiency (right-sizing), Cost Optimization (tagging, budgets), Sustainability (efficient resource use)
-- **Infrastructure as Code Excellence**: CDK v2 used for all resources, modular constructs, no manual changes allowed
-- **Security & Compliance First**: Least privilege IAM, encryption everywhere, VPC isolation, audit trails enabled
-- **Code Quality & Maintainability**: Python type hints, linting, testing with pytest, peer review required
-- **Extensibility & Modularity**: CDK constructs designed for reuse, event-driven where appropriate
-- **Observability & Operational Excellence**: CloudWatch monitoring, structured logging, health checks, runbooks
+### I. AWS Well-Architected Framework ✅ PASS
+- **Operational Excellence**: CDK IaC enables automated deployments, CloudWatch/CloudTrail provide operational visibility
+- **Security**: VPC isolation, encryption at rest/transit, Secrets Manager, WAF/Shield, least privilege IAM - all aligned
+- **Reliability**: Multi-AZ deployment, RDS failover (RPO 15min/RTO 30min), NAT gateway redundancy
+- **Performance Efficiency**: Managed services (RDS, OpenSearch, Bedrock), ALB for traffic distribution, VPC endpoints reduce latency
+- **Cost Optimization**: Tagging strategy defined, right-sized resources (2-node OpenSearch dev, 3-node prod), reserved capacity evaluation deferred to production
+- **Sustainability**: Serverless where possible (Lambda potential), managed services reduce over-provisioning
 
-**Status**: PASS - Design aligns with all constitutional principles
+### II. Infrastructure as Code Excellence ✅ PASS
+- All infrastructure defined in CDK (Python)
+- Version controlled, modular stack design (network, compute, database, storage, security, monitoring)
+- No hardcoded secrets (Secrets Manager/Parameter Store via VPC endpoints)
+- Environment parameterization (region, CIDR, instance sizes) per spec clarifications
+
+### III. Security & Compliance First ✅ PASS
+- Least privilege IAM (stack-specific roles, service-linked roles)
+- Defense in depth (WAF, Security Groups, NACLs, private subnets, VPC endpoints)
+- Encryption: KMS for S3, RDS encryption at rest, TLS 1.2+ for ALB
+- Audit trail: CloudTrail 7-year retention, VPC Flow Logs enabled
+- Secrets management: Secrets Manager for DB credentials, no hardcoded values
+- Vulnerability scanning: ECR image scanning enabled
+- Network isolation: Private subnets for compute, VPC endpoints for AWS services
+
+### IV. Code Quality & Maintainability ✅ PASS
+- Python type hints required (PEP 484)
+- Linting enforced (ruff/pylint in CI/CD per AGENTS.md)
+- Contract tests for stack outputs (VPC ID, subnet IDs, security group IDs)
+- Code review required before merge (Git flow per constitution)
+- Consistent CDK patterns (L2 constructs preferred, L1 only when necessary)
+
+### V. Extensibility & Modularity ✅ PASS
+- Microservices support via modular stacks (network → compute → database)
+- API-first: ALB endpoints defined before service implementation
+- Event-driven ready: EventBridge/SNS/SQS integration patterns available
+- Stack outputs enable cross-stack references (no tight coupling)
+- Environment parameterization supports dev/staging/prod without code changes
+
+### VI. Observability & Operational Excellence ✅ PASS
+- Structured logging: CloudWatch Logs with VPC endpoint
+- Distributed tracing: X-Ray integration planned (FR-042)
+- Metrics & alarms: CloudWatch metrics for ALB, RDS, OpenSearch (FR-039 to FR-041)
+- Health checks: ALB health check endpoints required for target groups
+- Runbooks: Quickstart.md will document deployment and validation procedures
+- Chaos testing: Deferred to post-PoC (AZ failure scenarios documented in spec edge cases)
+
+**GATE STATUS**: ✅ PASS - No violations, ready for Phase 0 research
 
 ## Project Structure
 
@@ -72,23 +110,38 @@ specs/[###-feature]/
 ### Source Code (repository root)
 ```
 cdk/
-├── app.py                    # CDK app entry point
-├── cdk.json                  # CDK configuration
-├── requirements.txt          # Python dependencies
-└── stacks/
-    ├── network_stack.py      # VPC, subnets, security groups
-    ├── database_stack.py     # RDS, OpenSearch
-    ├── compute_stack.py      # ECS/Fargate for services
-    ├── storage_stack.py      # S3 buckets
-    ├── security_stack.py     # Secrets Manager, SSM
-    └── monitoring_stack.py   # CloudWatch, CloudTrail
+├── stacks/
+│   ├── network_stack.py       # VPC, subnets, NAT, IGW, VPC endpoints
+│   ├── security_stack.py      # Security groups, NACLs, WAF, Shield, Cognito User Pool
+│   ├── compute_stack.py       # ALB (public/internal), ECS/Fargate placeholder, ALB Cognito auth
+│   ├── database_stack.py      # RDS PostgreSQL, RDS Proxy, OpenSearch
+│   ├── storage_stack.py       # S3 buckets, ECR repositories
+│   └── monitoring_stack.py    # CloudWatch, CloudTrail, X-Ray
+├── app.py                     # CDK app entry point
+├── cdk.json                   # CDK configuration
+└── requirements.txt           # Python dependencies
 
 tests/
-├── unit/                     # Unit tests for CDK constructs
-└── integration/              # Integration tests for stacks
+├── contract/                  # Stack output contract tests
+│   ├── test_vpc_contract.py
+│   ├── test_alb_contract.py
+│   └── test_rds_contract.py
+├── integration/               # Cross-stack integration tests
+└── unit/                      # CDK construct unit tests
+
+specs/002-create-python-application/
+├── plan.md                    # This file
+├── research.md                # Phase 0 output
+├── data-model.md              # Phase 1 output
+├── quickstart.md              # Phase 1 output
+├── contracts/                 # Phase 1 output
+│   ├── network-stack.yaml
+│   ├── database-stack.yaml
+│   └── storage-stack.yaml
+└── tasks.md                   # Phase 2 output (/tasks command)
 ```
 
-**Structure Decision**: Single CDK project with modular stacks for infrastructure components, following AWS CDK best practices for separation of concerns and reusability.
+**Structure Decision**: Single project (IaC repository). CDK stacks in `cdk/stacks/` follow modular design with clear separation of concerns (network, security, compute, database, storage, monitoring). Tests organized by type (contract, integration, unit) with contract tests validating stack outputs per constitutional requirements.
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
@@ -148,19 +201,63 @@ tests/
 *This section describes what the /tasks command will do - DO NOT execute during /plan*
 
 **Task Generation Strategy**:
-- Load `.specify/templates/tasks-template.md` as base
-- Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- Each contract → contract test task [P]
-- Each entity → model creation task [P] 
-- Each user story → integration test task
-- Implementation tasks to make tests pass
+- Load `.specify/templates/tasks-template.md` as base structure
+- Generate tasks from Phase 1 design artifacts:
+  - Each stack contract (`contracts/*.yaml`) → contract test implementation task [P]
+  - Each stack contract → CDK stack implementation task (depends on contract test)
+  - Each infrastructure entity (from `data-model.md`) → CDK construct task [P]
+  - Integration test scenarios (from `quickstart.md` validation procedures)
+  - Documentation tasks (update AGENTS.md, README.md with deployment commands)
 
-**Ordering Strategy**:
-- TDD order: Tests before implementation 
-- Dependency order: Models before services before UI
-- Mark [P] for parallel execution (independent files)
+**Ordering Strategy** (addressing critical issue from analysis):
+1. **Contract tests FIRST** (fix TDD violation from analysis findings)
+   - `test_vpc_contract.py` [P]
+   - `test_security_groups_contract.py` [P]
+   - `test_database_contract.py` [P]
+   - `test_storage_contract.py` [P]
+   - `test_compute_contract.py` [P]
+   - `test_monitoring_contract.py` [P]
 
-**Estimated Output**: 25-30 numbered, ordered tasks in tasks.md
+2. **CDK stack implementations SECOND** (make contract tests pass)
+   - `network_stack.py` (dependency: test_vpc_contract.py)
+   - `security_stack.py` [P - parallel with network if outputs mocked]
+   - `database_stack.py` (dependency: network_stack.py, security_stack.py)
+   - `storage_stack.py` [P - minimal network dependencies]
+   - `compute_stack.py` (dependency: network_stack.py, security_stack.py, storage_stack.py)
+   - `monitoring_stack.py` (dependency: all other stacks for log group creation)
+
+3. **Integration tests THIRD** (validate cross-stack functionality)
+   - VPC endpoint connectivity test (Bedrock, Secrets Manager, S3)
+   - RDS Proxy connection test (from ECS security group)
+   - Multi-AZ resilience test (simulate AZ failure per quickstart.md DR scenario)
+
+4. **Documentation & CI/CD FOURTH**
+   - Update README.md with `cdk deploy` commands
+   - Create GitHub Actions workflow for CDK synth/deploy validation (address missing CI/CD from analysis)
+   - Update AGENTS.md with finalized stack structure
+
+**Parallelization Opportunities**:
+- All 6 contract tests can run in parallel [P]
+- Storage stack and security stack implementation (minimal dependencies)
+- Contract test execution during CI (independent validation)
+
+**Estimated Output**: 40-50 tasks
+- 6 contract test tasks
+- 6 CDK stack implementation tasks
+- 12-15 supporting construct tasks (VPC endpoints, security groups, RDS Proxy)
+- 6 integration test tasks
+- 4-6 documentation/CI tasks
+- 6-12 validation/troubleshooting tasks
+
+**Dependencies Management**:
+- Use task dependency notation: `(depends: task-###)`
+- Mark truly parallel tasks with `[P]` to optimize execution
+- Group related tasks (e.g., all network-related, all database-related)
+
+**TDD Compliance** (critical fix):
+- All contract tests written BEFORE stack implementations
+- Integration tests written BEFORE feature implementations
+- No implementation task starts until corresponding test exists
 
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
@@ -187,15 +284,15 @@ tests/
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
-- [x] Phase 3: Tasks generated (/tasks command)
-- [x] Phase 4: Implementation complete
-- [x] Phase 5: Validation passed
+- [ ] Phase 3: Tasks generated (/tasks command)
+- [ ] Phase 4: Implementation complete
+- [ ] Phase 5: Validation passed
 
 **Gate Status**:
 - [x] Initial Constitution Check: PASS
-- [x] Post-Design Constitution Check: PASS
-- [x] All NEEDS CLARIFICATION resolved
-- [x] Complexity deviations documented
+- [x] Post-Design Constitution Check: PASS (re-evaluated after Phase 1)
+- [x] All NEEDS CLARIFICATION resolved (12 items clarified on 2025-10-07)
+- [x] Complexity deviations documented (none - all principles satisfied)
 
 ---
 *Based on Constitution v2.1.1 - See `/memory/constitution.md`*

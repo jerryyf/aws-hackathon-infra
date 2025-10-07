@@ -1,0 +1,99 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "edit": "ask",
+    "bash": "ask"
+  },
+  "instructions": [
+    "AGENTS.md",
+    ".specify/memory/constitution.md",
+    "docs/deployment-readiness-analysis.md"
+  ],
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-3-5-haiku-20241022",
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "YOUR_API_KEY"
+      },
+      "enabled": true
+    }
+  },
+  "mode": {
+    "build": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.3,
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "read": true,
+        "grep": true,
+        "glob": true
+      }
+    },
+    "fix": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.2,
+      "prompt": "You are in fix mode. Focus on resolving the CRITICAL blockers identified in docs/deployment-readiness-analysis.md. Always verify fixes by running contract tests.",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "read": true,
+        "grep": true
+      }
+    },
+    "analyze": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.1,
+      "prompt": "You are in analysis mode. Investigate code, review architecture, identify issues. Do not make changes.",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": true,
+        "read": true,
+        "grep": true,
+        "glob": true
+      }
+    },
+    "docs": {
+      "model": "anthropic/claude-3-5-haiku-20241022",
+      "temperature": 0.4,
+      "prompt": "You are in documentation mode. Create clear, comprehensive documentation following project standards.",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": false,
+        "read": true,
+        "grep": true
+      }
+    }
+  },
+  "command": {
+    "synth": {
+      "template": "Run AWS CDK synthesis to validate all stacks: cd cdk && npx aws-cdk synth --all"
+    },
+    "test-contract": {
+      "template": "Run contract tests to verify infrastructure contracts: pytest tests/contract/ -v"
+    },
+    "fix-blockers": {
+      "template": "Fix all CRITICAL blockers (C1-C11, H2) documented in docs/deployment-readiness-analysis.md. Start with C1 (stack dependencies), then C2-C3 (S3 buckets), then remaining issues. Run contract tests after each fix to verify."
+    },
+    "validate": {
+      "template": "Validate the infrastructure is ready for deployment by: 1) Running all contract tests, 2) Running CDK synth, 3) Checking all CRITICAL blockers are resolved"
+    }
+  },
+  "formatter": {
+    "black": {
+      "command": ["black", "$FILE"],
+      "extensions": [".py"]
+    },
+    "ruff": {
+      "command": ["ruff", "check", "--fix", "$FILE"],
+      "extensions": [".py"]
+    }
+  }
+}

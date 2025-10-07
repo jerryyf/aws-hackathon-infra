@@ -36,7 +36,7 @@ Provision complete AWS infrastructure foundation using CDK for Bedrock agent pla
 ## Technical Context
 **Language/Version**: Python 3.11  
 **Primary Dependencies**: aws-cdk-lib (2.x), constructs, boto3, pytest  
-**Storage**: RDS PostgreSQL (multi-AZ), OpenSearch Service (3-node), S3 (KMS encrypted), ECR (image scanning)  
+**Storage**: Aurora PostgreSQL cluster (multi-AZ), OpenSearch Service (3-node), S3 (KMS encrypted), ECR (image scanning)  
 **Testing**: pytest with CDK assertions, contract tests for stack outputs  
 **Target Platform**: AWS us-east-1 (multi-AZ deployment across us-east-1a, us-east-1b)  
 **Project Type**: single (IaC repository with modular CDK stacks)  
@@ -114,7 +114,7 @@ cdk/
 │   ├── network_stack.py       # VPC, subnets, NAT, IGW, VPC endpoints
 │   ├── security_stack.py      # Security groups, NACLs, WAF, Shield, Cognito User Pool
 │   ├── compute_stack.py       # ALB (public/internal), ECS/Fargate placeholder, ALB Cognito auth
-│   ├── database_stack.py      # RDS PostgreSQL, RDS Proxy, OpenSearch
+│   ├── database_stack.py      # Aurora PostgreSQL cluster, RDS Proxy, OpenSearch
 │   ├── storage_stack.py       # S3 buckets, ECR repositories
 │   └── monitoring_stack.py    # CloudWatch, CloudTrail, X-Ray
 ├── app.py                     # CDK app entry point

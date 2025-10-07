@@ -310,43 +310,75 @@ This document defines the infrastructure entities and their relationships as CDK
 
 ### Database Layer
 
-#### 13. RDSInstance
-**AWS Resource**: `AWS::RDS::DBInstance`  
-**CDK Construct**: `rds.DatabaseInstance`
+#### 13. AuroraCluster
+**AWS Resource**: `AWS::RDS::DBCluster`  
+**CDK Construct**: `rds.DatabaseCluster`
 
 **Properties**:
-- `engine`: enum (postgres)
+- `engine`: enum (aurora-postgresql)
 - `engine_version`: string (15.4)
-- `instance_class`: string (e.g., db.t4g.medium for dev, db.r6g.xlarge for prod)
-- `allocated_storage`: integer (GB, min 20)
+- `engine_mode`: enum (provisioned)
+- `database_name`: string (e.g., "bedrock_agents")
+- `master_username`: string (e.g., "postgres")
 - `storage_encrypted`: boolean (true, mandatory)
 - `kms_key_id`: string (AWS managed KMS key for PoC)
-- `multi_az`: boolean (true for production)
 - `backup_retention_period`: integer (days, 7 for PoC, 30 for prod)
 - `preferred_backup_window`: string (e.g., "03:00-04:00")
 - `preferred_maintenance_window`: string (e.g., "sun:04:00-sun:05:00")
+- `enable_http_endpoint`: boolean (false, not needed for this use case)
+- `backtrack_window`: integer (seconds, 86400 for 24-hour point-in-time recovery)
+
+**Cluster Writer/Reader Instances**:
+- Writer instance: `db.t4g.medium` (dev), `db.r6g.xlarge` (prod) in us-east-1a
+- Reader instance: `db.t4g.medium` (dev), `db.r6g.xlarge` (prod) in us-east-1b
+- Auto-scaling read replicas: 1-15 replicas based on CPU/connections
 
 **Validation Rules**:
-- Multi-AZ required for production (automatic failover, synchronous replication)
+- Minimum 1 writer + 1 reader for HA (automatic failover to reader)
 - Storage encryption mandatory (constitution: encryption at rest)
 - Master credentials stored in Secrets Manager (no hardcoded passwords)
-- Backup retention ≥ 7 days (RPO 15min requires point-in-time recovery)
+- Backup retention ≥ 7 days (RPO <1min via Aurora continuous backups)
+- Backtrack enabled for instant point-in-time recovery (no restore required)
 
 **Relationships**:
-- DeployedIn: [Subnet] (many:many, private data subnets, one per AZ)
-- ProtectedBy: [SecurityGroup] (many:1, `rds-sg`)
+- DeployedIn: [Subnet] (many:many, private data subnets via DB subnet group)
+- ProtectedBy: [SecurityGroup] (many:1, `aurora-sg`)
 - AccessedVia: [RDSProxy] (1:many)
 - StoresCredentialsIn: [Secret] (1:1)
+- Contains: [AuroraInstance] (1:many, writer + readers)
 
 **State Transitions**:
 - Creating → Available → Modifying → Available
-- Available → Backing-up → Available (automated backups)
-- Available → Failing-over → Available (Multi-AZ failover, 60-120 seconds)
+- Available → Backing-up → Available (automated continuous backups)
+- Available → Failing-over → Available (Aurora failover, 30-60 seconds)
+- Available → Backtracking → Available (instant PITR, no downtime)
 
 **Failover Behavior**:
-- Primary in us-east-1a → Standby in us-east-1b (synchronous replication)
-- Automatic failover triggers: AZ failure, instance failure, storage failure
+- Writer in us-east-1a → Reader promoted to writer in us-east-1b (automatic)
+- Storage-level replication: 6 copies across 3 AZs (survives loss of 1 entire AZ)
+- Automatic failover triggers: AZ failure, writer instance failure, storage failure
 - RDS Proxy maintains connection pool during failover (application-transparent)
+- Failover priority: tier-0 (highest) for designated reader replica
+
+#### 13a. AuroraInstance
+**AWS Resource**: `AWS::RDS::DBInstance` (part of Aurora cluster)  
+**CDK Construct**: `rds.ClusterInstance`
+
+**Properties**:
+- `cluster_identifier`: string (foreign key to Aurora cluster)
+- `instance_class`: string (e.g., db.t4g.medium for dev, db.r6g.xlarge for prod)
+- `availability_zone`: string (us-east-1a for writer, us-east-1b for reader)
+- `promotion_tier`: integer (0 for primary reader, 1+ for secondary readers)
+- `publicly_accessible`: boolean (false, private subnet only)
+
+**Validation Rules**:
+- Writer and reader instances must be in different AZs
+- All instances use same instance class for predictable failover performance
+- Promotion tier determines failover order (tier-0 promoted first)
+
+**Relationships**:
+- BelongsTo: [AuroraCluster] (many:1)
+- DeployedIn: [Subnet] (1:1, private data subnet in specific AZ)
 
 #### 14. RDSProxy
 **AWS Resource**: `AWS::RDS::DBProxy`  
@@ -362,21 +394,22 @@ This document defines the infrastructure entities and their relationships as CDK
 - `idle_client_timeout`: integer (seconds, 1800 default)
 
 **Validation Rules**:
-- Deployed in same subnets as RDS instance (private data subnets)
+- Deployed in same subnets as Aurora cluster (private data subnets)
 - TLS required for client connections (constitution: encryption in transit)
 - Auth config references Secrets Manager secret (no hardcoded credentials)
 
 **Relationships**:
-- ProxiesFor: [RDSInstance] (1:many, supports read replicas)
+- ProxiesFor: [AuroraCluster] (1:1, connects to cluster endpoint)
 - DeployedIn: [Subnet] (many:many, private data subnets)
 - ProtectedBy: [SecurityGroup] (many:1, `rds-proxy-sg`)
 - AuthenticatesUsing: [Secret] (1:1)
 - AccessedBy: [ECSService] (many:many via security group)
 
 **Connection Pooling**:
-- Max connections per proxy endpoint: based on RDS instance `max_connections` parameter
-- Connection multiplexing: reduces RDS connections for bursty Lambda/Fargate workloads
-- Failover handling: transparent reconnection to standby replica (no application retry logic)
+- Max connections per proxy endpoint: based on Aurora cluster `max_connections` parameter
+- Connection multiplexing: reduces Aurora connections for bursty Lambda/Fargate workloads
+- Failover handling: transparent reconnection to promoted reader (no application retry logic)
+- Read/write splitting: proxy routes to cluster writer endpoint (automatic after failover)
 
 #### 15. OpenSearchDomain
 **AWS Resource**: `AWS::OpenSearchService::Domain`  
@@ -519,12 +552,12 @@ This document defines the infrastructure entities and their relationships as CDK
 **CDK Construct**: `secretsmanager.Secret`
 
 **Properties**:
-- `secret_name`: string (e.g., "bedrock-agent/rds-master-password")
+- `secret_name`: string (e.g., "bedrock-agent/aurora-master-password")
 - `description`: string
 - `generate_secret_string`: GenerateSecretStringConfig
 - `replica_regions`: list[RegionConfig] (for multi-region DR)
 
-**Generate Secret String Config** (for RDS passwords):
+**Generate Secret String Config** (for Aurora passwords):
 - `secret_string_template`: JSON ({"username": "postgres"})
 - `generate_string_key`: string ("password")
 - `password_length`: integer (32)
@@ -532,16 +565,16 @@ This document defines the infrastructure entities and their relationships as CDK
 - `require_each_included_type`: boolean (true, includes uppercase, lowercase, digits, symbols)
 
 **Validation Rules**:
-- RDS master password auto-generated (no hardcoded values)
+- Aurora master password auto-generated (no hardcoded values)
 - Rotation enabled (90 days for production)
 - Accessed via Secrets Manager VPC endpoint (private subnet access)
 
 **Relationships**:
 - AccessedVia: [VPCEndpoint] (many:1, Secrets Manager interface endpoint)
-- UsedBy: [RDSInstance, RDSProxy] (1:many)
-- RotatedBy: [LambdaFunction] (1:1, auto-generated by RDS integration)
+- UsedBy: [AuroraCluster, RDSProxy] (1:many)
+- RotatedBy: [LambdaFunction] (1:1, auto-generated by Aurora integration)
 
-**Rotation Configuration** (automatic for RDS):
+**Rotation Configuration** (automatic for Aurora):
 - Schedule: 90 days (cdk.Duration.days(90))
 - Rotation function: auto-created Lambda with VPC access
 - Rotation strategy: Single user (master password rotation)
@@ -737,7 +770,7 @@ graph TB
     
     Subnet -->|public| NAT[NAT Gateway<br/>2 per AZ]
     Subnet -->|private-app| ECS[ECS Service<br/>BFF + Backend]
-    Subnet -->|private-data| RDS[RDS Multi-AZ<br/>PostgreSQL]
+    Subnet -->|private-data| Aurora[Aurora PostgreSQL<br/>Writer + Reader]
     Subnet -->|private-data| OpenSearch[OpenSearch<br/>3-node cluster]
     
     ALB[Public ALB] -->|authenticates| Cognito[Cognito User Pool]
@@ -745,11 +778,11 @@ graph TB
     ALBInternal[Internal ALB] -->|routes| ECS
     
     ECS -->|queries| RDSProxy[RDS Proxy]
-    RDSProxy -->|connects| RDS
+    RDSProxy -->|connects| Aurora
     ECS -->|searches| OpenSearch
     ECS -->|invokes| VPCEndpoint
     
-    RDS -->|credentials| Secret[Secrets Manager]
+    Aurora -->|credentials| Secret[Secrets Manager]
     ECS -->|pulls images| ECR[ECR Repository]
     
     SecurityGroup[Security Groups<br/>8 layered SGs] -->|protects| ALB
@@ -797,9 +830,10 @@ Each CDK stack exports specific outputs for cross-stack references:
 
 ### DatabaseStack Outputs
 - `RdsProxyEndpoint`: RDS Proxy connection endpoint
-- `RdsInstanceEndpoint`: RDS instance direct endpoint (for admin access)
+- `AuroraClusterEndpoint`: Aurora cluster writer endpoint (for admin access)
+- `AuroraClusterReadEndpoint`: Aurora cluster reader endpoint (for read queries)
 - `OpenSearchDomainEndpoint`: OpenSearch HTTPS endpoint
-- `RdsMasterSecretArn`: Secrets Manager secret ARN for RDS credentials
+- `RdsMasterSecretArn`: Secrets Manager secret ARN for Aurora credentials
 
 ### StorageStack Outputs
 - `DataBucketName`: S3 data bucket name

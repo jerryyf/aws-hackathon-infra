@@ -55,22 +55,25 @@ database_stack = DatabaseStack(
 - Data processing: $0.01/GB (typically negligible for control plane operations)
 - S3 gateway endpoint: $0 (free)
 
-### 3. RDS Multi-AZ vs Aurora Serverless
+### 3. Aurora PostgreSQL vs RDS Multi-AZ
 
-**Decision**: RDS PostgreSQL Multi-AZ with RDS Proxy  
+**Decision**: Aurora PostgreSQL with RDS Proxy  
 **Rationale**:
-- RDS Multi-AZ meets RPO 15min/RTO 30min requirements (synchronous replication, automatic failover)
+- **AWS Bedrock AgentCore requirement**: Bedrock Agents with memory feature requires Aurora PostgreSQL for conversational context storage (AWS managed service limitation)
+- Aurora provides superior availability with 6-way replication across 3 AZs (storage-level redundancy)
+- Aurora meets RPO <1min/RTO 30min requirements (faster recovery than RDS Multi-AZ)
 - RDS Proxy provides connection pooling (essential for Lambda/Fargate burst scaling)
-- Simpler operational model for PoC (no cluster management, straightforward backup/restore)
-- Cost-effective for predictable workloads (Aurora Serverless V2 ACU costs can exceed provisioned RDS for steady-state)
+- Aurora auto-scaling storage (10GB to 128TB) eliminates capacity planning
+- Better performance for read-heavy workloads (up to 15 read replicas, low-latency read scaling)
+- Aurora backtrack capability for point-in-time recovery without restore operations
 
 **Alternatives Considered**:
-- **Aurora Serverless V2**: Rejected - higher cost for steady-state workloads, ACU scaling complexity, overkill for PoC
-- **Aurora PostgreSQL provisioned cluster**: Rejected - more expensive (3 instances minimum for HA), operational complexity
-- **DynamoDB**: Rejected - data model includes relational entities (Agent-Model relationships), graph-like associations
+- **RDS PostgreSQL Multi-AZ**: Rejected - not supported by Bedrock AgentCore memory feature, single standby replica (vs Aurora's 6 copies), slower failover (60-120s vs 30s), no storage auto-scaling
+- **Aurora Serverless V2**: Rejected - higher cost for steady-state workloads, ACU scaling complexity, unpredictable billing
+- **DynamoDB**: Rejected - data model includes relational entities (Agent-Model relationships), graph-like associations, not supported by Bedrock AgentCore
 
 **Failover Testing**:
-- RDS Multi-AZ automatic failover: typically 60-120 seconds
+- Aurora automatic failover: typically 30-60 seconds (faster than RDS Multi-AZ)
 - RDS Proxy maintains connection pool during failover (application-transparent)
 - Planned chaos test: `aws rds failover-db-cluster` in staging environment
 
@@ -297,14 +300,15 @@ All technical unknowns from specification have been resolved:
 - ✅ CloudTrail retention: 7 years (spec session 2025-10-07)
 - ✅ Configurable parameters: Environment name, region, CIDR, instance sizes (spec session 2025-10-07)
 - ✅ CDK stack organization: Modular stacks with cross-stack references (this research)
-- ✅ RDS vs Aurora: RDS Multi-AZ with RDS Proxy (this research)
+- ✅ RDS vs Aurora: Aurora PostgreSQL with RDS Proxy (this research)
 - ✅ OpenSearch sizing: 3-node prod, 2-node dev (this research)
 
 ## References
 - [AWS CDK Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/best-practices.html)
 - [AWS Well-Architected Framework - Reliability Pillar](https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html)
 - [VPC Endpoints Pricing](https://aws.amazon.com/privatelink/pricing/)
-- [RDS Multi-AZ Deployments](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html)
+- [Aurora PostgreSQL Documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.AuroraPostgreSQL.html)
+- [Aurora High Availability](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Concepts.AuroraHighAvailability.html)
 - [OpenSearch Best Practices](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/bp.html)
 - [AWS Managed Rules for WAF](https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups.html)
 

@@ -87,8 +87,9 @@ pytest -v --tb=short
 # Simulate AZ failure
 aws ec2 describe-instances --filters "Name=availability-zone,Values=us-east-1a"
 
-# Verify RDS Multi-AZ failover
-aws rds describe-db-instances --db-instance-identifier <db-id> --query 'DBInstances[0].MultiAZ'
+# Verify Aurora cluster multi-AZ failover
+aws rds describe-db-clusters --db-cluster-identifier <cluster-id> \
+  --query 'DBClusters[0].[DBClusterIdentifier,MultiAZ,DBClusterMembers[*].DBInstanceIdentifier]'
 
 # Verify OpenSearch domain resilience
 aws opensearch describe-domain --domain-name <domain-name> --query 'DomainStatus.ClusterConfig.ZoneAwarenessEnabled'
@@ -201,10 +202,10 @@ curl -I https://$ALB_DNS/
 RDS_PROXY_ENDPOINT=$(aws cloudformation describe-stacks --stack-name DatabaseStack \
   --query 'Stacks[0].Outputs[?OutputKey==`RdsProxyEndpoint`].OutputValue' --output text)
 
-# Validate RDS Multi-AZ configuration
-aws rds describe-db-instances \
-  --query 'DBInstances[*].[DBInstanceIdentifier,MultiAZ,Engine,EngineVersion]' --output table
-# Expected: MultiAZ=True, Engine=postgres
+# Validate Aurora cluster configuration
+aws rds describe-db-clusters \
+  --query 'DBClusters[*].[DBClusterIdentifier,Engine,EngineVersion,DBClusterMembers[*].[DBInstanceIdentifier,IsClusterWriter]]' --output table
+# Expected: Engine=aurora-postgresql, at least 1 writer + 1 reader instance
 
 # Validate OpenSearch domain configuration
 aws opensearch describe-domain --domain-name hackathon-opensearch \
@@ -269,7 +270,7 @@ pytest --html=report.html --self-contained-html
 
 ### High Availability
 - Resources distributed across us-east-1a and us-east-1b
-- RDS Multi-AZ enabled with automatic failover
+- Aurora PostgreSQL cluster with writer and reader instances in different AZs
 - OpenSearch 3-node cluster with zone awareness
 - NAT Gateway redundancy (one per AZ)
 

@@ -95,11 +95,11 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 - **FR-014**: Public ALB MUST integrate with AWS Shield Standard for DDoS protection
 
 **Database & Data Services**
-- **FR-015**: System MUST provision RDS PostgreSQL with primary instance in us-east-1a and synchronous standby in us-east-1b
+- **FR-015**: System MUST provision Aurora PostgreSQL cluster with writer instance in us-east-1a and reader instance in us-east-1b (required for AWS Bedrock AgentCore memory feature)
 - **FR-016**: System MUST configure RDS Proxy endpoints in both availability zones for connection pooling and failover
 - **FR-017**: System MUST provision OpenSearch cluster with nodes distributed across both availability zones (2 nodes in AZ-1, 1 node in AZ-2)
 - **FR-018**: Database credentials MUST be stored in AWS Secrets Manager
-- **FR-019**: RDS MUST support automatic failover from primary to standby with RPO (Recovery Point Objective) of 15 minutes and RTO (Recovery Time Objective) of 30 minutes
+- **FR-019**: Aurora MUST support automatic failover from writer to reader with RPO (Recovery Point Objective) of <1 minute and RTO (Recovery Time Objective) of 30 seconds
 
 **Storage**
 - **FR-020**: System MUST provision S3 bucket for Bedrock knowledge base source data
@@ -155,10 +155,10 @@ Platform operators need to provision a complete AWS infrastructure foundation fo
 - **Public Subnets**: Internet-facing subnets hosting ALB nodes, NAT gateways, and internet gateway in each AZ
 - **Private Application Subnets**: Isolated subnets hosting BFF (Next.js frontend) and backend (GraphQL API) containers without direct internet access
 - **Private AgentCore Subnets**: Dedicated isolated subnets for Bedrock agent runtime with streaming capabilities
-- **Private Data Subnets**: Isolated subnets hosting RDS PostgreSQL (primary/standby), RDS Proxy endpoints, and OpenSearch cluster nodes
+- **Private Data Subnets**: Isolated subnets hosting Aurora PostgreSQL cluster (writer/reader instances), RDS Proxy endpoints, and OpenSearch cluster nodes
 - **Public Application Load Balancer**: Internet-facing load balancer with SSL/TLS termination, WAF, and Shield integration
 - **Internal Application Load Balancer**: Private load balancer for backend service communication
-- **RDS PostgreSQL Cluster**: Relational database with primary instance, synchronous standby replica, and multi-AZ proxy endpoints
+- **Aurora PostgreSQL Cluster**: Relational database cluster with writer and reader instances distributed across AZs, integrated with RDS Proxy for connection pooling
 - **OpenSearch Cluster**: Search and analytics service with nodes distributed across AZs
 - **VPC Endpoints**: Gateway and interface endpoints enabling private AWS service access (S3, Bedrock, Secrets Manager, SSM, ECR, CloudWatch)
 - **S3 Buckets**: Object storage for knowledge base data, logs, and BDA input/output

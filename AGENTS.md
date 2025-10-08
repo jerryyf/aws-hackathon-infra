@@ -1,27 +1,28 @@
 # Agent Development Guidelines
 
 ## Project Context
-Infrastructure-as-Code repository for AWS Hackathon AgentCore using AWS CDK (Python). Architecture documented in `docs/arch.md`, data model in `docs/er.md`.
+Infrastructure-as-Code for AWS Hackathon AgentCore using AWS CDK (Python). Architecture in `docs/arch.mermaid`, ER diagrams in `docs/er.mermaid`. Constitution in `.specify/memory/constitution.md` defines AWS Well-Architected Framework compliance requirements. **Development platform: macOS**.
 
-## Build/Test Commands
-- No build/test commands yet - infrastructure code not implemented
-- When implemented: `pytest` for Python tests, `cdk synth` to validate stacks, `cdk deploy` to provision
-- Run single test: `pytest path/to/test_file.py::test_function_name`
+## Build/Test/Lint Commands
+- **Test all**: `PYTHONPATH=. pytest` (from repo root)
+- **Single test**: `PYTHONPATH=. pytest tests/unit/test_vpc_construct.py::test_vpc_construct`
+- **CDK synth**: `cd cdk && cdk synth` (validates CloudFormation templates)
+- **Format**: `cd cdk && black .` (88 char line length)
+- **Lint**: `cd cdk && pylint cdk/` (docstrings disabled, see pyproject.toml)
 
-## Specification Workflow (.specify framework)
-- Check prerequisites: `.specify/scripts/bash/check-prerequisites.sh --json`
-- Custom slash commands available: `/constitution`, `/spec`, `/plan`, `/tasks`, `/implement`, `/analyze`, `/clarify`
-- Feature branches: `001-feature-name` format (3-digit prefix)
+## Code Style (Python 3.11+, AWS CDK v2)
+- **Imports**: Group stdlib → third-party → aws_cdk → constructs → local (alphabetical within groups). Use `from aws_cdk import (..., aws_x as x)` style.
+- **Types**: Type hints required on all functions/methods (e.g., `def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None`)
+- **Naming**: `snake_case` (functions/vars), `PascalCase` (classes), `UPPER_SNAKE` (constants)
+- **Formatting**: Black (88 chars), no manual docstrings (pylint disabled C0114/C0115/C0116)
+- **Error Handling**: Use AWS CDK exceptions, no bare try/except, always validate stack dependencies
+- **Security**: NEVER hardcode secrets—use Secrets Manager/SSM. All S3 buckets KMS-encrypted, VPC endpoints for AWS services.
+- **Architecture**: Multi-AZ (2 AZs min), VPC 10.0.0.0/16, 4 subnet tiers (Public/24, PrivateApp/24, PrivateAgent/24, PrivateData/24)
 
-## Code Style (When CDK Code is Added)
-- **Language**: Python 3.x with AWS CDK v2
-- **Imports**: Group stdlib, third-party, aws-cdk, local (alphabetical within groups)
-- **Types**: Use type hints for all functions and class methods
-- **Naming**: snake_case for functions/variables, PascalCase for classes, UPPER_SNAKE for constants
-- **Architecture**: Multi-AZ deployment (us-east-1a, us-east-1b), VPC 10.0.0.0/16, private subnets for services
-- **Security**: No secrets in code - use AWS Secrets Manager/SSM Parameter Store, reference via VPC endpoints
+## .specify Workflow
+- Feature branches: `00X-feature-name` (3-digit prefix). Check prerequisites: `.specify/scripts/bash/check-prerequisites.sh --json`
+- Slash commands: `/constitution`, `/spec`, `/plan`, `/tasks`, `/implement`, `/analyze`, `/clarify`
 
-## Documentation
-- Architecture diagrams in Mermaid format (see `docs/arch.md`)
-- ER diagrams for data model (see `docs/er.md`)
-- Constitution/principles in `.specify/memory/constitution.md` (currently template)
+## Constitution Compliance (NON-NEGOTIABLE)
+- All code MUST pass AWS Well-Architected Framework checks (6 pillars: Operational Excellence, Security, Reliability, Performance, Cost, Sustainability)
+- Tagging: All resources tagged with Project/Environment/Owner/CostCenter. Encryption at rest/transit (TLS 1.2+). Multi-AZ failover tested.

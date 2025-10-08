@@ -12,10 +12,10 @@ from constructs import Construct
 
 class DatabaseStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
-        super().__init__(scope, construct_id, **kwargs)
-
         # Get VPC from network stack
         network_stack = kwargs.pop('network_stack', None)
+
+        super().__init__(scope, construct_id, **kwargs)
         if network_stack:
             vpc = network_stack.vpc
             data_subnets = [subnet for subnet in vpc.private_subnets if "PrivateData" in subnet.node.id]
@@ -42,16 +42,15 @@ class DatabaseStack(Stack):
                 version=rds.AuroraPostgresEngineVersion.VER_15_4
             ),
             credentials=rds.Credentials.from_secret(self.rds_secret, "username"),
-            instance_props=rds.InstanceProps(
-                vpc=vpc,
-                vpc_subnets=ec2.SubnetSelection(subnets=data_subnets),
-                publicly_accessible=False
-            ),
+            writer=rds.ClusterInstance.serverless_v2("writer"),
+            readers=[rds.ClusterInstance.serverless_v2("reader")],
+            vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(subnets=data_subnets),
             default_database_name="hackathon",
-            instances=2,
             backup=rds.BackupProps(
                 retention=Duration.days(7)
-            )
+            ),
+            storage_encrypted=True
         )
 
         # RDS Proxy

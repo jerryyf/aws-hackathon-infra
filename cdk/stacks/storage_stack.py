@@ -15,8 +15,7 @@ class StorageStack(Stack):
         # S3 Buckets
         self.knowledge_base_bucket = s3.Bucket(
             self, "KnowledgeBaseBucket",
-            bucket_name="hackathon-knowledge-base",
-            encryption=s3.BucketEncryption.S3_MANAGED,
+            encryption=s3.BucketEncryption.KMS_MANAGED,
             versioned=True,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.DESTROY
@@ -24,8 +23,7 @@ class StorageStack(Stack):
 
         self.logs_bucket = s3.Bucket(
             self, "LogsBucket",
-            bucket_name="hackathon-logs",
-            encryption=s3.BucketEncryption.S3_MANAGED,
+            encryption=s3.BucketEncryption.KMS_MANAGED,
             versioned=True,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.DESTROY
@@ -33,8 +31,7 @@ class StorageStack(Stack):
 
         self.bda_bucket = s3.Bucket(
             self, "BdaBucket",
-            bucket_name="hackathon-bda",
-            encryption=s3.BucketEncryption.S3_MANAGED,
+            encryption=s3.BucketEncryption.KMS_MANAGED,
             versioned=True,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.DESTROY
@@ -45,6 +42,7 @@ class StorageStack(Stack):
             self, "EcrRepository",
             repository_name="hackathon/app",
             image_scan_on_push=True,
+            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
             removal_policy=RemovalPolicy.DESTROY
         )
 

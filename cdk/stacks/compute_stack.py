@@ -9,10 +9,10 @@ from constructs import Construct
 
 class ComputeStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
-        super().__init__(scope, construct_id, **kwargs)
-
         # Get VPC from network stack
         network_stack = kwargs.pop('network_stack', None)
+
+        super().__init__(scope, construct_id, **kwargs)
         if network_stack:
             vpc = network_stack.vpc
             app_subnets = [subnet for subnet in vpc.private_subnets if "PrivateApp" in subnet.node.id]

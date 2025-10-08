@@ -18,11 +18,11 @@ env = cdk.Environment(
 
 # Create stacks
 network_stack = NetworkStack(app, "NetworkStack", env=env)
-database_stack = DatabaseStack(app, "DatabaseStack", env=env)
-compute_stack = ComputeStack(app, "ComputeStack", env=env)
+database_stack = DatabaseStack(app, "DatabaseStack", env=env, network_stack=network_stack)
+compute_stack = ComputeStack(app, "ComputeStack", env=env, network_stack=network_stack)
 storage_stack = StorageStack(app, "StorageStack", env=env)
 security_stack = SecurityStack(app, "SecurityStack", env=env)
-monitoring_stack = MonitoringStack(app, "MonitoringStack", env=env)
+monitoring_stack = MonitoringStack(app, "MonitoringStack", env=env, logs_bucket=storage_stack.logs_bucket)
 
 # Add dependencies between stacks
 database_stack.add_dependency(network_stack)

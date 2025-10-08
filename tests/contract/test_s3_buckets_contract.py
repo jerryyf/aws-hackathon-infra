@@ -53,9 +53,9 @@ def test_s3_bucket_properties():
         "BucketEncryption": {
             "ServerSideEncryptionConfiguration": [
                 {
-                    "ServerSideEncryptionByDefault": {
-                        "SSEAlgorithm": "AES256"
-                    }
+                        "ServerSideEncryptionByDefault": {
+                            "SSEAlgorithm": "aws:kms"
+                        }
                 }
             ]
         },

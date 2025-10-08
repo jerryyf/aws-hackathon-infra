@@ -12,9 +12,6 @@
 2. Extract key concepts from description
    → ✅ COMPLETED: AWS AgentCore Runtime, CDK deployment, MVP infrastructure
 3. For each unclear aspect:
-   → [NEEDS CLARIFICATION: Authentication method - Cognito, API Key, or OAuth?]
-   → [NEEDS CLARIFICATION: Network mode - PUBLIC or VPC-based?]
-   → [NEEDS CLARIFICATION: Observability requirements - CloudWatch only or X-Ray tracing?]
    → [NEEDS CLARIFICATION: Memory/state persistence requirements?]
 4. Fill User Scenarios & Testing section
    → ✅ COMPLETED: Deployment and invocation scenarios defined
@@ -62,7 +59,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 - **FR-001**: System MUST create an Amazon ECR repository for storing agent container images
 - **FR-002**: System MUST provision an IAM execution role with permissions for Bedrock AgentCore, CloudWatch Logs, and ECR access
 - **FR-003**: System MUST create an AgentCore Runtime resource with the specified container URI
-- **FR-004**: System MUST configure network settings for [NEEDS CLARIFICATION: network mode - PUBLIC vs VPC-isolated deployment?]
+- **FR-004**: System MUST configure network settings for VPC-based deployment in existing private subnets
 - **FR-005**: System MUST tag all AWS resources with Project, Environment, Owner, and CostCenter tags per constitution requirements
 
 **Container Management**
@@ -81,17 +78,17 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 - **FR-016**: System MUST expose /ping endpoint for health checks
 
 **Authentication & Authorization**
-- **FR-017**: System MUST configure inbound authentication via [NEEDS CLARIFICATION: Cognito User Pool, API Key, or OAuth 2.0?]
-- **FR-018**: System MUST support JWT bearer token validation if using Cognito
+- **FR-017**: System MUST configure inbound authentication via Amazon Cognito User Pool
+- **FR-018**: System MUST support JWT bearer token validation using Cognito-issued tokens
 - **FR-019**: System MUST reject unauthenticated requests with 401 status codes
 - **FR-020**: System MUST apply least-privilege IAM policies per constitution security requirements
 
 **Observability**
 - **FR-021**: System MUST send agent logs to CloudWatch Logs with structured JSON formatting
 - **FR-022**: System MUST create CloudWatch alarms for runtime failures and error rates
-- **FR-023**: System MUST enable [NEEDS CLARIFICATION: AWS X-Ray tracing for distributed tracing?]
+- **FR-023**: System MUST log invocation metadata (session ID, latency, payload size) to CloudWatch
 - **FR-024**: System MUST expose runtime status via AgentCore control plane APIs
-- **FR-025**: System MUST log invocation metadata (session ID, latency, payload size)
+- **FR-025**: System MUST retain CloudWatch Logs for minimum 30 days per compliance requirements
 
 **Deployment & Operations**
 - **FR-026**: System MUST support `cdk deploy` for initial provisioning and updates
@@ -104,7 +101,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 - **FR-031**: System MUST encrypt ECR images at rest using AWS-managed KMS keys
 - **FR-032**: System MUST store secrets (API keys, credentials) in AWS Secrets Manager or Parameter Store SecureString
 - **FR-033**: System MUST enable CloudTrail logging for AgentCore API calls
-- **FR-034**: System MUST apply security group rules restricting inbound traffic if VPC-based
+- **FR-034**: System MUST apply security group rules restricting inbound traffic to ALB only for VPC-based deployment
 - **FR-035**: System MUST comply with AWS Well-Architected Framework security pillar per constitution
 
 **Memory & State Management**
@@ -132,7 +129,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
-- [ ] No [NEEDS CLARIFICATION] markers remain (4 clarifications required)
+- [ ] No [NEEDS CLARIFICATION] markers remain (1 clarification required)
 - [x] Requirements are testable and unambiguous (except clarified items)
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded (MVP for AgentCore Runtime deployment)
@@ -144,7 +141,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 
 - [x] User description parsed
 - [x] Key concepts extracted
-- [x] Ambiguities marked (4 clarification points remaining)
+- [x] Ambiguities marked (1 clarification point remaining)
 - [x] User scenarios defined
 - [x] Requirements generated (37 functional requirements)
 - [x] Entities identified (7 key entities)
@@ -157,12 +154,12 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 Before proceeding to planning phase, the following decisions must be made:
 
 1. ✅ **Agent Framework** (RESOLVED): AWS Strands framework selected for MVP (optimized for Bedrock models, simpler than LangGraph)
-2. **Authentication**: Should MVP use Amazon Cognito User Pool (production-ready), API Key (simple), or defer authentication for initial MVP?
-3. **Network Mode**: PUBLIC (simpler, internet-facing) or VPC-based (more secure, requires VPC endpoints)?
-4. **Observability**: CloudWatch Logs only (sufficient for MVP) or include AWS X-Ray distributed tracing?
+2. ✅ **Authentication** (RESOLVED): Amazon Cognito User Pool with JWT bearer token validation
+3. ✅ **Network Mode** (RESOLVED): VPC-based deployment in existing private subnets with ALB access
+4. ✅ **Observability** (RESOLVED): CloudWatch Logs with structured JSON, alarms for failures/errors, 30-day retention
 5. **Memory/State**: Stateless HTTP (simpler MVP) or integrate AgentCore Memory service for conversation history?
 
-**Recommendation for MVP**: Strands framework ✅ + Cognito auth + PUBLIC network + CloudWatch only + Stateless HTTP = fastest path to working deployment
+**Recommendation for MVP**: Strands framework ✅ + Cognito auth ✅ + VPC-based ✅ + CloudWatch only ✅ + Stateless HTTP = production-ready deployment
 
 ---
 
@@ -170,3 +167,6 @@ Before proceeding to planning phase, the following decisions must be made:
 
 **Session 2025-10-08**:
 - **Q1: Agent Framework** → **A: Strands** (selected for simplicity and Bedrock optimization)
+- **Q2: Authentication** → **A: Cognito** (production-ready JWT validation with User Pool)
+- **Q3: Network Mode** → **B: VPC-based** (private subnets, ALB access, VPC endpoints required)
+- **Q4: Observability** → **A: CloudWatch Logs only** (structured JSON, alarms, 30-day retention)

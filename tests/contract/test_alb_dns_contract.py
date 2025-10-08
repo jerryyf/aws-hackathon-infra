@@ -19,7 +19,7 @@ def test_alb_dns_contract():
     outputs = template.find_outputs("AlbDnsName")
     assert len(outputs) == 1
     alb_output = outputs["AlbDnsName"]
-    assert alb_output["Description"] == "ALB DNS name"
+    assert alb_output["Description"] == "Public ALB DNS name"
     assert alb_output["Export"]["Name"] == "AlbDnsName"
     assert "Value" in alb_output
 

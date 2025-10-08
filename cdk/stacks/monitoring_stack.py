@@ -11,6 +11,9 @@ from constructs import Construct
 
 class MonitoringStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        # Get logs bucket from storage stack
+        logs_bucket = kwargs.pop('logs_bucket', None)
+
         super().__init__(scope, construct_id, **kwargs)
 
         # CloudWatch Log Groups
@@ -51,7 +54,7 @@ class MonitoringStack(Stack):
         self.cloudtrail = cloudtrail.Trail(
             self, "CloudTrail",
             trail_name="hackathon-trail",
-            bucket=kwargs.get('logs_bucket'),  # From storage stack
+            bucket=logs_bucket,  # From storage stack
             is_multi_region_trail=True,
             enable_file_validation=True,
             include_global_service_events=True,

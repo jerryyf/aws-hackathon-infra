@@ -57,7 +57,7 @@ class NetworkStack(Stack):
             ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "Allow HTTPS"
         )
 
-        # ALB
+        # Public ALB
         self.alb = elbv2.ApplicationLoadBalancer(
             self, "Alb",
             vpc=self.vpc,
@@ -65,11 +65,50 @@ class NetworkStack(Stack):
             security_group=self.alb_security_group
         )
 
+        # Internal ALB Security Group
+        self.internal_alb_security_group = ec2.SecurityGroup(
+            self, "InternalAlbSecurityGroup",
+            vpc=self.vpc,
+            description="Security group for internal ALB"
+        )
+        self.internal_alb_security_group.add_ingress_rule(
+            ec2.Peer.ipv4(self.vpc.vpc_cidr_block), ec2.Port.tcp(80), "Allow HTTP from VPC"
+        )
+        self.internal_alb_security_group.add_ingress_rule(
+            ec2.Peer.ipv4(self.vpc.vpc_cidr_block), ec2.Port.tcp(443), "Allow HTTPS from VPC"
+        )
+
+        # Internal ALB
+        self.internal_alb = elbv2.ApplicationLoadBalancer(
+            self, "InternalAlb",
+            vpc=self.vpc,
+            internet_facing=False,
+            security_group=self.internal_alb_security_group
+        )
+
         # WAF
         self.waf = wafv2.CfnWebACL(
             self, "WafAcl",
             default_action=wafv2.CfnWebACL.DefaultActionProperty(allow={}),
             scope="REGIONAL",
+            rules=[
+                wafv2.CfnWebACL.RuleProperty(
+                    name="AWSManagedRulesCommonRuleSet",
+                    priority=1,
+                    override_action=wafv2.CfnWebACL.OverrideActionProperty(none={}),
+                    statement=wafv2.CfnWebACL.StatementProperty(
+                        managed_rule_group_statement=wafv2.CfnWebACL.ManagedRuleGroupStatementProperty(
+                            vendor_name="AWS",
+                            name="AWSManagedRulesCommonRuleSet"
+                        )
+                    ),
+                    visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
+                        cloud_watch_metrics_enabled=True,
+                        metric_name="AWSManagedRulesCommonRuleSetMetric",
+                        sampled_requests_enabled=True
+                    )
+                )
+            ],
             visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
                 cloud_watch_metrics_enabled=True,
                 metric_name="WafAcl",
@@ -84,11 +123,19 @@ class NetworkStack(Stack):
             web_acl_arn=self.waf.attr_arn
         )
 
-        # Shield Advanced
-        self.shield_protection = shield.CfnProtection(
-            self, "ShieldProtection",
-            resource_arn=self.alb.load_balancer_arn,
-            name="AlbProtection"
+        # Shield Standard is enabled by default for ALBs
+
+        # Route 53 Hosted Zone
+        self.hosted_zone = route53.HostedZone(
+            self, "HostedZone",
+            zone_name="hackathon.local"
+        )
+
+        # ACM Certificate
+        self.certificate = acm.Certificate(
+            self, "Certificate",
+            domain_name="hackathon.local",
+            validation=acm.CertificateValidation.from_dns(self.hosted_zone)
         )
 
         # VPC Endpoints
@@ -97,10 +144,10 @@ class NetworkStack(Stack):
             service=ec2.GatewayVpcEndpointAwsService.S3
         )
 
-        # Bedrock endpoint - using custom service name
+        # Bedrock endpoint
         self.vpc.add_interface_endpoint(
             "BedrockEndpoint",
-            service=ec2.InterfaceVpcEndpointService("bedrock-runtime", 443)
+            service=ec2.InterfaceVpcEndpointService("bedrock-runtime")
         )
 
         self.vpc.add_interface_endpoint(
@@ -167,6 +214,27 @@ class NetworkStack(Stack):
         CfnOutput(
             self, "AlbDnsName",
             value=self.alb.load_balancer_dns_name,
-            description="ALB DNS name",
+            description="Public ALB DNS name",
             export_name="AlbDnsName"
+        )
+
+        CfnOutput(
+            self, "InternalAlbDnsName",
+            value=self.internal_alb.load_balancer_dns_name,
+            description="Internal ALB DNS name",
+            export_name="InternalAlbDnsName"
+        )
+
+        CfnOutput(
+            self, "HostedZoneId",
+            value=self.hosted_zone.hosted_zone_id,
+            description="Route 53 hosted zone ID",
+            export_name="HostedZoneId"
+        )
+
+        CfnOutput(
+            self, "CertificateArn",
+            value=self.certificate.certificate_arn,
+            description="ACM certificate ARN",
+            export_name="CertificateArn"
         )

@@ -52,8 +52,6 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 ### Edge Cases
 - What happens when the container build fails during deployment?
 - How does the system handle agent runtime crashes or timeouts?
-- What happens if ECR storage limits are exceeded?
-- How are secrets rotated without service interruption?
 - What happens when the IAM execution role lacks required permissions?
 - How does the system handle concurrent invocations exceeding runtime capacity?
 

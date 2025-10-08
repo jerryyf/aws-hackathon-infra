@@ -12,7 +12,6 @@
 2. Extract key concepts from description
    → ✅ COMPLETED: AWS AgentCore Runtime, CDK deployment, MVP infrastructure
 3. For each unclear aspect:
-   → [NEEDS CLARIFICATION: Agent framework preference - Strands, LangGraph, CrewAI, or custom?]
    → [NEEDS CLARIFICATION: Authentication method - Cognito, API Key, or OAuth?]
    → [NEEDS CLARIFICATION: Network mode - PUBLIC or VPC-based?]
    → [NEEDS CLARIFICATION: Observability requirements - CloudWatch only or X-Ray tracing?]
@@ -76,7 +75,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 **Agent Configuration**
 - **FR-011**: System MUST accept a Python entrypoint file path as configuration
 - **FR-012**: System MUST support environment variable injection into the runtime (e.g., API keys, model IDs)
-- **FR-013**: System MUST configure [NEEDS CLARIFICATION: agent framework - Strands, LangGraph, custom FastAPI?]
+- **FR-013**: System MUST configure agent runtime using AWS Strands framework
 - **FR-014**: System MUST support requirements.txt for Python dependencies
 - **FR-015**: System MUST expose /invocations endpoint for agent requests
 - **FR-016**: System MUST expose /ping endpoint for health checks
@@ -115,7 +114,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 ### Key Entities
 
 - **AgentRuntime**: The deployed container-based runtime hosting the AI agent, managed by Bedrock AgentCore control plane, with attributes including ARN, name, status, container URI, and network configuration
-- **Container**: Docker image stored in ECR containing the agent code, dependencies, and FastAPI/uvicorn server, built for ARM64 architecture
+- **Container**: Docker image stored in ECR containing the agent code, Strands framework dependencies, and FastAPI/uvicorn server, built for ARM64 architecture
 - **ExecutionRole**: IAM role assumed by the AgentCore Runtime with permissions for CloudWatch, Bedrock models, ECR, and any external service integrations (e.g., S3, DynamoDB)
 - **EcrRepository**: Container registry for versioned agent images, with image scanning, lifecycle policies, and encryption enabled
 - **AuthorizerConfiguration**: Authentication settings for inbound requests, potentially including Cognito User Pool ID, discovery URL, and allowed client IDs
@@ -133,7 +132,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
-- [ ] No [NEEDS CLARIFICATION] markers remain (5 clarifications required)
+- [ ] No [NEEDS CLARIFICATION] markers remain (4 clarifications required)
 - [x] Requirements are testable and unambiguous (except clarified items)
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded (MVP for AgentCore Runtime deployment)
@@ -145,7 +144,7 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 
 - [x] User description parsed
 - [x] Key concepts extracted
-- [x] Ambiguities marked (5 clarification points)
+- [x] Ambiguities marked (4 clarification points remaining)
 - [x] User scenarios defined
 - [x] Requirements generated (37 functional requirements)
 - [x] Entities identified (7 key entities)
@@ -157,10 +156,17 @@ As a developer on the AgentCore hackathon team, I need to deploy AI agent runtim
 
 Before proceeding to planning phase, the following decisions must be made:
 
-1. **Agent Framework**: Which framework will the MVP support? (Strands recommended for simplicity, LangGraph for graph-based workflows, or custom FastAPI)
+1. ✅ **Agent Framework** (RESOLVED): AWS Strands framework selected for MVP (optimized for Bedrock models, simpler than LangGraph)
 2. **Authentication**: Should MVP use Amazon Cognito User Pool (production-ready), API Key (simple), or defer authentication for initial MVP?
 3. **Network Mode**: PUBLIC (simpler, internet-facing) or VPC-based (more secure, requires VPC endpoints)?
 4. **Observability**: CloudWatch Logs only (sufficient for MVP) or include AWS X-Ray distributed tracing?
 5. **Memory/State**: Stateless HTTP (simpler MVP) or integrate AgentCore Memory service for conversation history?
 
-**Recommendation for MVP**: Strands framework + Cognito auth + PUBLIC network + CloudWatch only + Stateless HTTP = fastest path to working deployment
+**Recommendation for MVP**: Strands framework ✅ + Cognito auth + PUBLIC network + CloudWatch only + Stateless HTTP = fastest path to working deployment
+
+---
+
+## Clarifications Log
+
+**Session 2025-10-08**:
+- **Q1: Agent Framework** → **A: Strands** (selected for simplicity and Bedrock optimization)

@@ -1,0 +1,272 @@
+graph TB
+    subgraph "User Layer"
+        User[User Requests]
+    end
+
+    subgraph "Global Services"
+        R53[Route 53 DNS
+bedrock-agents.example.com]
+        ACM[ACM Certificate
+TLS/SSL]
+    end
+
+    User -->|HTTPS| R53
+    R53 --> ALB
+    ACM -.->|Certificate| ALB
+    
+    subgraph "AWS Region: us-east-1"
+        subgraph "VPC: 10.0.0.0/16"
+            
+            subgraph "Public Subnets"
+                subgraph "AZ-1: us-east-1a
+10.0.1.0/24"
+                    IGW[Internet Gateway]
+                    NAT1[NAT Gateway AZ-1]
+                    ALB1A[Public ALB
+Node AZ-1]
+                end
+                
+                subgraph "AZ-2: us-east-1b
+10.0.2.0/24"
+                    NAT2[NAT Gateway AZ-2]
+                    ALB1B[Public ALB
+Node AZ-2]
+                end
+                
+                ALB{{"Public Application Load Balancer
+SSL/TLS + WAF + Shield Standard + Cognito Auth"}}
+                ALB -.-> ALB1A
+                ALB -.-> ALB1B
+                IGW --> NAT1
+                IGW --> NAT2
+            end
+            
+            subgraph "Private App Subnets"
+                subgraph "AZ-1: us-east-1a
+10.0.11.0/24"
+                    App1[BFF Services
+Next.js Frontend]
+                    Backend1[Backend Services
+GraphQL API]
+                    BackendALB1A[Internal ALB
+Node AZ-1]
+                end
+                
+                subgraph "AZ-2: us-east-1b
+10.0.12.0/24"
+                    App2[BFF Services
+Next.js Frontend]
+                    Backend2[Backend Services
+GraphQL API]
+                    BackendALB1B[Internal ALB
+Node AZ-2]
+                end
+                
+                BackendALB{{"Internal Application Load Balancer
+Backend Services"}}
+                BackendALB -.-> BackendALB1A
+                BackendALB -.-> BackendALB1B
+            end
+            
+            subgraph "Private AgentCore Subnets"
+                subgraph "AZ-1: us-east-1a
+10.0.21.0/24"
+                    Agent1[AgentCore Runtime
+Bedrock Agent]
+                end
+                
+                subgraph "AZ-2: us-east-1b
+10.0.22.0/24"
+                    Agent2[AgentCore Runtime
+Bedrock Agent]
+                end
+                
+                AgentCore["Bedrock AgentCore
+Streaming Endpoint"]
+                AgentCore -.-> Agent1
+                AgentCore -.-> Agent2
+            end
+            
+            subgraph "Private Data Subnets"
+                subgraph "AZ-1: us-east-1a
+10.0.31.0/24"
+                    RDSProxy1[RDS Proxy
+AZ-1 Endpoint]
+                    RDSWriter[(Aurora PostgreSQL
+Writer Instance)]
+                    OS1[OpenSearch
+Data Node 1]
+                    OS2[OpenSearch
+Data Node 2]
+                end
+                
+                subgraph "AZ-2: us-east-1b
+10.0.32.0/24"
+                    RDSProxy2[RDS Proxy
+AZ-2 Endpoint]
+                    RDSReader[(Aurora PostgreSQL
+Reader Instance)]
+                    OS3[OpenSearch
+Data Node 3]
+                end
+                
+                RDSWriter -.->|Synchronous Replication
+Automatic Failover| RDSReader
+            end
+            
+            subgraph "VPC Endpoints"
+                VPCE_S3[S3 Gateway Endpoint
+Private S3 Access]
+                VPCE_Bedrock[Bedrock Interface Endpoint
+Models + KB + Guardrails]
+                VPCE_Secrets[Secrets Manager
+Interface Endpoint]
+                VPCE_SSM[SSM Parameter Store
+Interface Endpoint]
+                VPCE_ECR_API[ECR API
+Interface Endpoint]
+                VPCE_ECR_DKR[ECR Docker
+Interface Endpoint]
+                VPCE_CW_Logs[CloudWatch Logs
+Interface Endpoint]
+            end
+        end
+    end
+    
+    subgraph "AWS Managed Services - Regional"
+        Bedrock[AWS Bedrock
+Claude 3 Sonnet + Knowledge Base]
+        Cognito[Amazon Cognito
+User Pool + OAuth 2.0]
+        WAF[AWS WAF
+Managed Rules + Rate Limiting]
+        Shield[AWS Shield Standard
+DDoS Protection]
+        
+        subgraph "S3 Buckets (Encrypted with AWS KMS)"
+            S3_KB[Knowledge Base Bucket
+Bedrock Source Data
+Versioned]
+            S3_Logs[Logs Bucket
+ALB + CloudWatch + CloudTrail
+7-Year Retention]
+            S3_BDA[BDA Bucket
+Input/Output Data
+Versioned]
+        end
+        
+        subgraph "Container Registry"
+            ECR[Amazon ECR
+Image Scanning + Immutable Tags]
+        end
+        
+        subgraph "Configuration & Secrets"
+            Secrets[AWS Secrets Manager
+DB Credentials + API Keys]
+            SSM[SSM Parameter Store
+App Config + Endpoints]
+        end
+        
+        subgraph "Observability & Compliance"
+            CloudWatch[Amazon CloudWatch
+Logs + Metrics + Alarms
+99.9% Availability Target]
+            CloudTrail[AWS CloudTrail
+API Audit Logs
+7-Year Retention]
+        end
+    end
+    
+    %% Traffic Flow
+    ALB1A --> App1
+    ALB1B --> App2
+    
+    App1 --> BackendALB
+    App2 --> BackendALB
+    
+    BackendALB1A --> Backend1
+    BackendALB1B --> Backend2
+    
+    App1 <-->|Streaming| AgentCore
+    App2 <-->|Streaming| AgentCore
+    
+    Backend1 --> VPCE_Bedrock
+    Backend2 --> VPCE_Bedrock
+    
+    Agent1 --> VPCE_Bedrock
+    Agent2 --> VPCE_Bedrock
+    
+    VPCE_Bedrock --> Bedrock
+    
+    %% Database Access
+    Backend1 --> RDSProxy1
+    Backend2 --> RDSProxy2
+    Agent1 --> RDSProxy1
+    Agent2 --> RDSProxy2
+    
+    RDSProxy1 --> RDSWriter
+    RDSProxy2 --> RDSWriter
+    RDSProxy1 --> RDSReader
+    RDSProxy2 --> RDSReader
+    
+    Backend1 --> OS1
+    Backend1 --> OS2
+    Backend2 --> OS3
+    
+    %% Security & Configuration
+    ALB --> Cognito
+    ALB --> WAF
+    ALB --> Shield
+    
+    Backend1 --> VPCE_Secrets
+    Backend2 --> VPCE_Secrets
+    Agent1 --> VPCE_Secrets
+    Agent2 --> VPCE_Secrets
+    
+    Backend1 --> VPCE_SSM
+    Backend2 --> VPCE_SSM
+    
+    %% Storage Access
+    VPCE_S3 --> S3_KB
+    VPCE_S3 --> S3_Logs
+    VPCE_S3 --> S3_BDA
+    
+    Bedrock --> S3_KB
+    
+    %% Container & Logging
+    App1 --> VPCE_ECR_API
+    App1 --> VPCE_ECR_DKR
+    Backend1 --> VPCE_ECR_API
+    Backend1 --> VPCE_ECR_DKR
+    
+    VPCE_ECR_API --> ECR
+    VPCE_ECR_DKR --> ECR
+    
+    VPCE_CW_Logs --> CloudWatch
+    CloudWatch --> S3_Logs
+    CloudTrail --> S3_Logs
+    
+    %% Outbound Connectivity
+    NAT1 -.->|Egress Only| App1
+    NAT1 -.->|Egress Only| Backend1
+    NAT2 -.->|Egress Only| App2
+    NAT2 -.->|Egress Only| Backend2
+    
+    %% Styling
+    classDef az1 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef az2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef alb fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    classDef data fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef managed fill:#b2ebf2,stroke:#00acc1,stroke-width:3px,stroke-dasharray: 5 5
+    classDef vpce fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
+    classDef storage fill:#f0f4c3,stroke:#9e9d24,stroke-width:2px
+    classDef security fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    
+    class App1,Backend1,RDSProxy1,RDSWriter,OS1,OS2,ALB1A,BackendALB1A,NAT1,Agent1 az1
+    class App2,Backend2,RDSProxy2,RDSReader,OS3,ALB1B,BackendALB1B,NAT2,Agent2 az2
+    class ALB,BackendALB,AgentCore alb
+    class RDSWriter,RDSReader,OS1,OS2,OS3 data
+    class Bedrock,WAF,Shield managed
+    class VPCE_S3,VPCE_Bedrock,VPCE_Secrets,VPCE_SSM,VPCE_ECR_API,VPCE_ECR_DKR,VPCE_CW_Logs vpce
+    class S3_KB,S3_Logs,S3_BDA,ECR storage
+    class Cognito,Secrets,SSM,CloudWatch,CloudTrail,IGW security

@@ -2,7 +2,8 @@
 *.env
 
 # Ignore cdk venv files
-cdk/venv/**
+cdk/venv/
+cdk/.venv/
 
 # Ignore tmp files
 *.tmp

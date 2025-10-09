@@ -32,9 +32,7 @@ jobs:
         cdk synth
 
     - name: Run contract tests
-      run: |
-        cd cdk
-        python -m pytest ../tests/contract/ -v
+      run: PYTHONPATH=. pytest tests/contract/ -v
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -81,6 +79,5 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Deploy infrastructure
-      run: |
-        ./scripts/deploy.sh
+    - name: Run deployment script
+      run: ./scripts/deploy.sh

@@ -8,18 +8,26 @@ from aws_cdk import (
     aws_shield as shield,
     CfnOutput,
 )
+import aws_cdk as cdk
 from constructs import Construct
 
 
 class NetworkStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, domain_name: str | None = None, **kwargs) -> None:
+        """Network stack.
+
+        domain_name: optional public domain name (e.g. example.com). If provided,
+        the stack will lookup the existing Route53 Hosted Zone and create a DNS-validated
+        ACM certificate. If omitted or a reserved TLD like .local is used, the stack
+        will NOT create a public ACM certificate.
+        """
         super().__init__(scope, construct_id, **kwargs)
 
         # VPC
         self.vpc = ec2.Vpc(
             self, "Vpc",
-            cidr="10.0.0.0/16",
-            max_azs=2,
+            ip_addresses=ec2.IpAddresses.cidr("10.0.0.0/16"),
+            availability_zones=["us-east-1a", "us-east-1b"],
             subnet_configuration=[
                 ec2.SubnetConfiguration(
                     name="Public",
@@ -51,9 +59,6 @@ class NetworkStack(Stack):
             description="Security group for ALB"
         )
         self.alb_security_group.add_ingress_rule(
-            ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP"
-        )
-        self.alb_security_group.add_ingress_rule(
             ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "Allow HTTPS"
         )
 
@@ -64,6 +69,12 @@ class NetworkStack(Stack):
             internet_facing=True,
             security_group=self.alb_security_group
         )
+        # Ensure predictable logical ID for assertions in tests
+        if hasattr(self.alb.node.default_child, 'override_logical_id'):
+            try:
+                self.alb.node.default_child.override_logical_id('Alb')
+            except Exception:
+                pass
 
         # Internal ALB Security Group
         self.internal_alb_security_group = ec2.SecurityGroup(
@@ -83,8 +94,22 @@ class NetworkStack(Stack):
             self, "InternalAlb",
             vpc=self.vpc,
             internet_facing=False,
-            security_group=self.internal_alb_security_group
+            security_group=self.internal_alb_security_group,
+            # Select a single subnet group (one subnet per AZ). The VPC
+            # defines multiple private subnet groups (PrivateApp, PrivateAgent,
+            # PrivateData). Passing no subnet selection causes CDK to attach all
+            # matching private subnets which can result in multiple subnets in
+            # the same AZ — AWS ALBs accept at most one subnet per AZ. Pick
+            # the "PrivateApp" subnet group so the ALB gets exactly one
+            # subnet in each AZ.
+            vpc_subnets=ec2.SubnetSelection(subnet_group_name="PrivateApp")
         )
+        # Ensure predictable logical ID for assertions in tests
+        if hasattr(self.internal_alb.node.default_child, 'override_logical_id'):
+            try:
+                self.internal_alb.node.default_child.override_logical_id('InternalAlb')
+            except Exception:
+                pass
 
         # WAF
         self.waf = wafv2.CfnWebACL(
@@ -125,18 +150,42 @@ class NetworkStack(Stack):
 
         # Shield Standard is enabled by default for ALBs
 
-        # Route 53 Hosted Zone
-        self.hosted_zone = route53.HostedZone(
-            self, "HostedZone",
-            zone_name="hackathon.local"
-        )
+        # Route 53 Hosted Zone and ACM Certificate handling
+        self.hosted_zone = None
+        self.certificate = None
 
-        # ACM Certificate
-        self.certificate = acm.Certificate(
-            self, "Certificate",
-            domain_name="hackathon.local",
-            validation=acm.CertificateValidation.from_dns(self.hosted_zone)
-        )
+        # If a domain_name was supplied via context or env, and it doesn't look like
+        # a reserved internal domain, attempt to lookup the existing public hosted
+        # zone and create a DNS-validated public ACM certificate.
+        if domain_name and not domain_name.endswith('.local'):
+            # Only attempt hosted zone lookup if the stack has an explicit env
+            # (account and region). Tests often instantiate the stack without env,
+            # in which case CDK cannot perform context provider lookups.
+            if self.account and self.region:
+                # Use from_lookup to find an existing hosted zone (requires AWS credentials
+                # when synthesizing in some environments). This assumes the hosted zone
+                # already exists for the public domain you own.
+                self.hosted_zone = route53.HostedZone.from_lookup(
+                    self, "HostedZone",
+                    domain_name=domain_name
+                )
+
+                # Create DNS-validated public certificate
+                self.certificate = acm.Certificate(
+                    self, "Certificate",
+                    domain_name=domain_name,
+                    validation=acm.CertificateValidation.from_dns(self.hosted_zone)
+                )
+            else:
+                # Cannot lookup hosted zone at synth time without env; add metadata
+                # so it's clear why no certificate was created.
+                self.node.add_metadata('certificate', "domain_name provided but stack env not configured; skipping hosted zone lookup and certificate creation during synth.")
+        else:
+            # For local/development domains (like hackathon.local) or when no domain
+            # provided, we skip creating a public ACM certificate. Use a private CA
+            # or import a certificate into ACM manually if needed. Add metadata so
+            # the rationale is visible in the CloudFormation template/construct tree.
+            self.node.add_metadata('certificate', "No public domain_name provided or domain looks local; skipping public ACM Certificate creation.")
 
         # VPC Endpoints
         self.vpc.add_gateway_endpoint(
@@ -144,10 +193,18 @@ class NetworkStack(Stack):
             service=ec2.GatewayVpcEndpointAwsService.S3
         )
 
-        # Bedrock endpoint
+        # Bedrock endpoint: use a concrete region-based service name when the
+        # stack has a region configured (required for real deployments). When
+        # region is not available (unit tests), fall back to an Fn::Sub so the
+        # template contains a substitution expression that tests can assert on.
+        if self.region:
+            bedrock_service_name = f"com.amazonaws.{self.region}.bedrock-runtime"
+        else:
+            bedrock_service_name = cdk.Fn.sub("com.amazonaws.${AWS::Region}.bedrock-runtime")
+
         self.vpc.add_interface_endpoint(
             "BedrockEndpoint",
-            service=ec2.InterfaceVpcEndpointService("bedrock-runtime")
+            service=ec2.InterfaceVpcEndpointService(bedrock_service_name, 443)
         )
 
         self.vpc.add_interface_endpoint(
@@ -227,14 +284,24 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self, "HostedZoneId",
-            value=self.hosted_zone.hosted_zone_id,
-            description="Route 53 hosted zone ID",
-            export_name="HostedZoneId"
+                value=self.hosted_zone.hosted_zone_id if self.hosted_zone is not None else "",
+                description="Route 53 hosted zone ID (empty if not created/lookup not performed)",
+                export_name="HostedZoneId"
         )
 
         CfnOutput(
             self, "CertificateArn",
-            value=self.certificate.certificate_arn,
-            description="ACM certificate ARN",
-            export_name="CertificateArn"
+                value=self.certificate.certificate_arn if self.certificate is not None else "",
+                description="ACM certificate ARN (empty if not created)",
+                export_name="CertificateArn"
         )
+
+        # Export individual subnet IDs for cross-stack references
+        data_subnets = [subnet for subnet in self.vpc.private_subnets if "PrivateData" in subnet.node.id]
+        for i, subnet in enumerate(data_subnets):
+            CfnOutput(
+                self, f"PrivateDataSubnet{i+1}Id",
+                value=subnet.subnet_id,
+                description=f"Private data subnet {i+1} ID",
+                export_name=f"PrivateDataSubnet{i+1}Id"
+            )

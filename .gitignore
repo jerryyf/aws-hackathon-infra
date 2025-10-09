@@ -5,6 +5,9 @@
 cdk/venv/
 cdk/.venv/
 
+# Ignore venv files
+.venv/
+
 # Ignore tmp files
 *.tmp
 tmp/

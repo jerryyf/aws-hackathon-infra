@@ -28,11 +28,20 @@ class ComputeStack(Stack):
             cluster_name="hackathon-cluster"
         )
 
-        # Task Definition (placeholder)
+        # Task Definition
         self.task_definition = ecs.FargateTaskDefinition(
             self, "TaskDefinition",
             cpu=256,
             memory_limit_mib=512
+        )
+
+        # Add a placeholder container
+        self.task_definition.add_container(
+            "AppContainer",
+            image=ecs.ContainerImage.from_registry("nginx:latest"),
+            memory_limit_mib=256,
+            cpu=128,
+            essential=True
         )
 
         # Outputs

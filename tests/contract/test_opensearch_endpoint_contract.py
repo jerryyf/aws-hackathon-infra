@@ -34,7 +34,7 @@ def test_opensearch_domain_properties():
     template.has_resource_properties("AWS::OpenSearchService::Domain", {
         "EngineVersion": "OpenSearch_2.11",
         "ClusterConfig": {
-            "InstanceCount": 3,
+            "InstanceCount": 2,
             "ZoneAwarenessEnabled": True,
             "ZoneAwarenessConfig": {
                 "AvailabilityZoneCount": 2

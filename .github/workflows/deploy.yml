@@ -35,6 +35,7 @@ jobs:
       run: PYTHONPATH=. pytest tests/contract/ -v
 
     - name: Configure AWS credentials
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

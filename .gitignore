@@ -1,6 +1,20 @@
 # Ignore env files
 *.env
 
+# Ignore cdk venv files
+cdk/venv/
+cdk/.venv/
+
+# Ignore venv files
+.venv/
+
 # Ignore tmp files
 *.tmp
 tmp/
+
+.pytest_cache
+__pycache__
+
+# CDK artifacts
+cdk.out/
+cdk.context.json

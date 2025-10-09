@@ -1,0 +1,182 @@
+graph TB
+    subgraph "User Layer"
+        User[User/Client
+with JWT Token]
+    end
+
+    subgraph "Global Services"
+        R53[Route 53 DNS]
+        ACM[ACM Certificate]
+    end
+
+    User -->|HTTPS + JWT| R53
+    R53 --> ALB
+    
+    subgraph "AWS Region: us-east-1"
+        subgraph "VPC: 10.0.0.0/16"
+            
+            subgraph "Public Subnets"
+                subgraph "AZ-1: us-east-1a
+10.0.1.0/24"
+                    IGW1[Internet Gateway]
+                    NAT1[NAT Gateway]
+                    ALB1A[ALB Node AZ-1]
+                end
+                
+                subgraph "AZ-2: us-east-1b
+10.0.2.0/24"
+                    ALB1B[ALB Node AZ-2]
+                end
+                
+                ALB{{"Public ALB
+Cognito Auth + WAF + Shield"}}
+                ALB -.-> ALB1A
+                ALB -.-> ALB1B
+            end
+            
+            subgraph "Private AgentCore Subnets"
+                subgraph "AZ-1: us-east-1a
+10.0.21.0/24"
+                    AgentRuntime1A[AgentCore Runtime 1
+Strands Framework
+ARM64 Container]
+                    AgentRuntime1B[AgentCore Runtime 2
+Strands Framework
+ARM64 Container]
+                end
+                
+                subgraph "AZ-2: us-east-1b
+10.0.22.0/24"
+                    AgentRuntime2A[AgentCore Runtime 3
+Strands Framework
+ARM64 Container]
+                    AgentRuntime2B[AgentCore Runtime 4
+Strands Framework
+ARM64 Container]
+                end
+            end
+            
+            subgraph "VPC Endpoints"
+                VPCE_S3[S3 Gateway
+Endpoint]
+                VPCE_Bedrock[Bedrock
+Interface Endpoint]
+                VPCE_Secrets[Secrets Manager
+Interface Endpoint]
+                VPCE_SSM[SSM Parameter Store
+Interface Endpoint]
+                VPCE_ECR_API[ECR API
+Interface Endpoint]
+                VPCE_ECR_DKR[ECR Docker
+Interface Endpoint]
+                VPCE_CW_Logs[CloudWatch Logs
+Interface Endpoint]
+            end
+        end
+    end
+    
+    subgraph "AWS Managed Services - Regional"
+        Bedrock[Bedrock Service
+Foundation Models]
+        Cognito[Cognito User Pool
+JWT Authentication]
+        
+        subgraph "Container Registry"
+            ECR[ECR Repository
+AgentCore Image
+ARM64/Scanning Enabled]
+        end
+        
+        subgraph "Configuration & Secrets"
+            Secrets[Secrets Manager
+API Keys
+Model IDs]
+            SSM[SSM Parameter Store
+Configuration
+Endpoints]
+        end
+        
+        subgraph "Observability"
+            CloudWatch[CloudWatch
+Logs + Metrics + Alarms
+30-day retention]
+            CloudTrail[CloudTrail
+AgentCore API Audit]
+        end
+    end
+    
+    %% Connections
+    ALB -->|Cognito JWT
+Validation| Cognito
+    
+    ALB1A -->|/invocations
+POST| AgentRuntime1A
+    ALB1A -->|/ping
+GET| AgentRuntime1A
+    ALB1A -->|/invocations
+POST| AgentRuntime1B
+    ALB1A -->|/ping
+GET| AgentRuntime1B
+    
+    ALB1B -->|/invocations
+POST| AgentRuntime2A
+    ALB1B -->|/ping
+GET| AgentRuntime2A
+    ALB1B -->|/invocations
+POST| AgentRuntime2B
+    ALB1B -->|/ping
+GET| AgentRuntime2B
+    
+    AgentRuntime1A -->|VPC Endpoint| VPCE_Bedrock
+    AgentRuntime1B -->|VPC Endpoint| VPCE_Bedrock
+    AgentRuntime2A -->|VPC Endpoint| VPCE_Bedrock
+    AgentRuntime2B -->|VPC Endpoint| VPCE_Bedrock
+    
+    VPCE_Bedrock --> Bedrock
+    
+    AgentRuntime1A -->|VPC Endpoint| VPCE_Secrets
+    AgentRuntime1B -->|VPC Endpoint| VPCE_Secrets
+    AgentRuntime2A -->|VPC Endpoint| VPCE_Secrets
+    AgentRuntime2B -->|VPC Endpoint| VPCE_Secrets
+    
+    VPCE_Secrets --> Secrets
+    
+    AgentRuntime1A -->|Structured
+JSON Logs| VPCE_CW_Logs
+    AgentRuntime1B -->|Structured
+JSON Logs| VPCE_CW_Logs
+    AgentRuntime2A -->|Structured
+JSON Logs| VPCE_CW_Logs
+    AgentRuntime2B -->|Structured
+JSON Logs| VPCE_CW_Logs
+    
+    VPCE_CW_Logs --> CloudWatch
+    
+    AgentRuntime1A -.->|Pull Image| VPCE_ECR_DKR
+    AgentRuntime1B -.->|Pull Image| VPCE_ECR_DKR
+    AgentRuntime2A -.->|Pull Image| VPCE_ECR_DKR
+    AgentRuntime2B -.->|Pull Image| VPCE_ECR_DKR
+    
+    VPCE_ECR_DKR --> ECR
+    VPCE_ECR_API --> ECR
+    
+    CloudTrail -.->|Audit Logs| CloudWatch
+    
+    %% Styling
+    classDef az1 fill:#4a90e2,stroke:#2c5aa0,stroke-width:2px,color:#fff
+    classDef az2 fill:#9b59b6,stroke:#6c3483,stroke-width:2px,color:#fff
+    classDef alb fill:#f39c12,stroke:#d68910,stroke-width:3px,color:#000
+    classDef runtime fill:#8e44ad,stroke:#5b2c6f,stroke-width:3px,color:#fff
+    classDef managed fill:#16a085,stroke:#117a65,stroke-width:3px,stroke-dasharray: 5 5,color:#fff
+    classDef vpce fill:#e67e22,stroke:#ba6b1a,stroke-width:2px,color:#fff
+    classDef storage fill:#27ae60,stroke:#1e8449,stroke-width:2px,color:#fff
+    classDef security fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff
+    
+    class AgentRuntime1A,AgentRuntime1B,ALB1A,NAT1,IGW1 az1
+    class AgentRuntime2A,AgentRuntime2B,ALB1B az2
+    class ALB alb
+    class AgentRuntime1A,AgentRuntime1B,AgentRuntime2A,AgentRuntime2B runtime
+    class Bedrock managed
+    class VPCE_S3,VPCE_Bedrock,VPCE_Secrets,VPCE_SSM,VPCE_ECR_API,VPCE_ECR_DKR,VPCE_CW_Logs vpce
+    class ECR storage
+    class Cognito,Secrets,SSM,CloudWatch,CloudTrail security

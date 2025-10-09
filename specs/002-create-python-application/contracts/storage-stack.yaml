@@ -1,0 +1,264 @@
+# Storage Stack Output Contract
+
+**Stack Name**: `StorageStack`  
+**Version**: 1.0.0  
+**Description**: S3 buckets for data storage and audit trails, ECR repositories for container images
+
+## Output Specifications
+
+### DataBucketName
+- **Type**: String
+- **Description**: S3 bucket name for application data storage (Bedrock artifacts, agent outputs)
+- **Export Name**: `${AWS::StackName}-DataBucketName`
+- **Validation**: Must match pattern `[a-z0-9][a-z0-9-]{1,61}[a-z0-9]` (S3 bucket naming rules)
+- **Example**: `bedrock-agent-data-us-east-1-123456789012`
+- **Encryption**: AWS managed KMS (SSE-KMS)
+- **Versioning**: Enabled
+- **Public Access**: Blocked (all 4 settings enabled)
+- **Lifecycle Rules**:
+  - Transition to Intelligent-Tiering after 30 days
+  - Expire non-current versions after 90 days
+  - Delete incomplete multipart uploads after 7 days
+- **Usage**: Store Bedrock agent session data, uploaded documents, analysis outputs
+
+### DataBucketArn
+- **Type**: String
+- **Description**: S3 data bucket ARN for IAM policies
+- **Export Name**: `${AWS::StackName}-DataBucketArn`
+- **Validation**: Must match pattern `arn:aws:s3:::[a-z0-9][a-z0-9-]{1,61}[a-z0-9]`
+- **Example**: `arn:aws:s3:::bedrock-agent-data-us-east-1-123456789012`
+- **Usage**: IAM role policies for S3 access (read/write permissions)
+
+### AuditBucketName
+- **Type**: String
+- **Description**: S3 bucket name for CloudTrail audit logs (7-year retention)
+- **Export Name**: `${AWS::StackName}-AuditBucketName`
+- **Validation**: Must match S3 bucket naming pattern
+- **Example**: `bedrock-agent-audit-us-east-1-123456789012`
+- **Encryption**: AWS managed KMS (SSE-KMS)
+- **Versioning**: Enabled (for log file integrity)
+- **Public Access**: Blocked (all 4 settings enabled)
+- **Lifecycle Rules**:
+  - Transition to Glacier after 90 days (cost optimization)
+  - Delete after 2555 days (7 years per compliance requirement)
+- **Usage**: CloudTrail log storage, access logging
+
+### AuditBucketArn
+- **Type**: String
+- **Description**: S3 audit bucket ARN for IAM policies
+- **Export Name**: `${AWS::StackName}-AuditBucketArn`
+- **Validation**: Must match pattern `arn:aws:s3:::[a-z0-9][a-z0-9-]{1,61}[a-z0-9]`
+- **Example**: `arn:aws:s3:::bedrock-agent-audit-us-east-1-123456789012`
+- **Usage**: CloudTrail bucket policy, IAM audit policies
+
+### EcrRepositoryUri
+- **Type**: String
+- **Description**: ECR repository URI for BFF container images
+- **Export Name**: `${AWS::StackName}-EcrBffRepositoryUri`
+- **Validation**: Must match pattern `\d{12}\.dkr\.ecr\.us-east-1\.amazonaws\.com/[a-z0-9-]+`
+- **Example**: `123456789012.dkr.ecr.us-east-1.amazonaws.com/bedrock-agent-bff`
+- **Image Scanning**: Enabled (scan on push)
+- **Tag Mutability**: Immutable (prevents tag overwrites)
+- **Lifecycle Policy**: Keep last 10 images, delete untagged after 7 days
+- **Usage**: ECS task definition image reference for BFF service
+
+### EcrBackendRepositoryUri
+- **Type**: String
+- **Description**: ECR repository URI for backend (GraphQL) container images
+- **Export Name**: `${AWS::StackName}-EcrBackendRepositoryUri`
+- **Validation**: Must match ECR URI pattern
+- **Example**: `123456789012.dkr.ecr.us-east-1.amazonaws.com/bedrock-agent-backend`
+- **Configuration**: Same as BFF repository (scan on push, immutable tags, lifecycle policy)
+- **Usage**: ECS task definition image reference for backend service
+
+### EcrAgentRepositoryUri
+- **Type**: String
+- **Description**: ECR repository URI for Bedrock agent runtime container images
+- **Export Name**: `${AWS::StackName}-EcrAgentRepositoryUri`
+- **Validation**: Must match ECR URI pattern
+- **Example**: `123456789012.dkr.ecr.us-east-1.amazonaws.com/bedrock-agent-runtime`
+- **Configuration**: Same as other repositories
+- **Usage**: Future agent runtime ECS task definition
+
+### S3VpcEndpointId
+- **Type**: String (imported from NetworkStack)
+- **Description**: S3 gateway VPC endpoint ID for bucket policy restrictions
+- **Export Name**: `NetworkStack-S3VpcEndpointId` (imported)
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-0a1b2c3d4e5f67890`
+- **Usage**: S3 bucket policy to enforce VPC endpoint access only
+
+### DataBucketKmsKeyArn
+- **Type**: String
+- **Description**: KMS key ARN used for S3 data bucket encryption
+- **Export Name**: `${AWS::StackName}-DataBucketKmsKeyArn`
+- **Validation**: AWS managed key: `arn:aws:kms:us-east-1:\d{12}:alias/aws/s3`
+- **Example**: `arn:aws:kms:us-east-1:123456789012:alias/aws/s3`
+- **Usage**: Cross-account access configuration (future), encryption validation
+
+## Contract Tests
+
+### Test: Data bucket has encryption, versioning, and public access block
+```python
+def test_data_bucket_security():
+    template = Template.from_stack(storage_stack)
+    template.has_resource_properties("AWS::S3::Bucket", {
+        "BucketName": Match.string_like_regexp(".*data.*"),
+        "VersioningConfiguration": {
+            "Status": "Enabled"
+        },
+        "BucketEncryption": {
+            "ServerSideEncryptionConfiguration": [
+                {
+                    "ServerSideEncryptionByDefault": {
+                        "SSEAlgorithm": "aws:kms"
+                    }
+                }
+            ]
+        },
+        "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": True,
+            "BlockPublicPolicy": True,
+            "IgnorePublicAcls": True,
+            "RestrictPublicBuckets": True
+        }
+    })
+```
+
+### Test: Data bucket has lifecycle rules for cost optimization
+```python
+def test_data_bucket_lifecycle():
+    template = Template.from_stack(storage_stack)
+    data_bucket = template.find_resources("AWS::S3::Bucket", {
+        "BucketName": Match.string_like_regexp(".*data.*")
+    })
+    
+    lifecycle_rules = data_bucket[0]["Properties"]["LifecycleConfiguration"]["Rules"]
+    
+    # Rule 1: Transition to Intelligent-Tiering after 30 days
+    assert any(
+        rule.get("Transitions", [{}])[0].get("StorageClass") == "INTELLIGENT_TIERING" and
+        rule.get("Transitions", [{}])[0].get("Days") == 30
+        for rule in lifecycle_rules
+    )
+    
+    # Rule 2: Expire non-current versions after 90 days
+    assert any(
+        rule.get("NoncurrentVersionExpiration", {}).get("NoncurrentDays") == 90
+        for rule in lifecycle_rules
+    )
+    
+    # Rule 3: Delete incomplete multipart uploads after 7 days
+    assert any(
+        rule.get("AbortIncompleteMultipartUpload", {}).get("DaysAfterInitiation") == 7
+        for rule in lifecycle_rules
+    )
+```
+
+### Test: Audit bucket has 7-year retention lifecycle
+```python
+def test_audit_bucket_retention():
+    template = Template.from_stack(storage_stack)
+    audit_bucket = template.find_resources("AWS::S3::Bucket", {
+        "BucketName": Match.string_like_regexp(".*audit.*")
+    })
+    
+    lifecycle_rules = audit_bucket[0]["Properties"]["LifecycleConfiguration"]["Rules"]
+    
+    # Transition to Glacier after 90 days
+    assert any(
+        rule.get("Transitions", [{}])[0].get("StorageClass") == "GLACIER" and
+        rule.get("Transitions", [{}])[0].get("Days") == 90
+        for rule in lifecycle_rules
+    )
+    
+    # Delete after 2555 days (7 years)
+    assert any(
+        rule.get("ExpirationInDays") == 2555
+        for rule in lifecycle_rules
+    )
+```
+
+### Test: S3 bucket policy restricts access to VPC endpoint only
+```python
+def test_s3_vpc_endpoint_policy():
+    template = Template.from_stack(storage_stack)
+    bucket_policy = template.find_resources("AWS::S3::BucketPolicy")
+    
+    # Data bucket policy should deny access if not from VPC endpoint
+    data_bucket_policy = next(
+        p for p in bucket_policy.values()
+        if "data" in str(p["Properties"]["Bucket"])
+    )
+    
+    policy_document = data_bucket_policy["Properties"]["PolicyDocument"]
+    deny_statement = next(
+        s for s in policy_document["Statement"]
+        if s["Effect"] == "Deny"
+    )
+    
+    assert deny_statement["Condition"]["StringNotEquals"]["aws:SourceVpce"] == {
+        "Fn::ImportValue": "NetworkStack-S3VpcEndpointId"
+    }
+```
+
+### Test: ECR repositories have image scanning enabled
+```python
+def test_ecr_image_scanning():
+    template = Template.from_stack(storage_stack)
+    ecr_repos = template.find_resources("AWS::ECR::Repository")
+    
+    for repo in ecr_repos.values():
+        assert repo["Properties"]["ImageScanningConfiguration"]["ScanOnPush"] == True
+        assert repo["Properties"]["ImageTagMutability"] == "IMMUTABLE"
+```
+
+### Test: ECR lifecycle policy retains last 10 images
+```python
+def test_ecr_lifecycle_policy():
+    template = Template.from_stack(storage_stack)
+    ecr_repos = template.find_resources("AWS::ECR::Repository")
+    
+    for repo in ecr_repos.values():
+        lifecycle_policy = json.loads(
+            repo["Properties"]["LifecyclePolicy"]["LifecyclePolicyText"]
+        )
+        
+        # Rule 1: Keep last 10 images
+        rule_1 = next(r for r in lifecycle_policy["rules"] if r["rulePriority"] == 1)
+        assert rule_1["selection"]["countType"] == "imageCountMoreThan"
+        assert rule_1["selection"]["countNumber"] == 10
+        
+        # Rule 2: Delete untagged after 7 days
+        rule_2 = next(r for r in lifecycle_policy["rules"] if r["rulePriority"] == 2)
+        assert rule_2["selection"]["tagStatus"] == "untagged"
+        assert rule_2["selection"]["countNumber"] == 7
+```
+
+### Test: All storage outputs are correctly exported
+```python
+def test_storage_stack_outputs():
+    template = Template.from_stack(storage_stack)
+    outputs = template.find_outputs("*")
+    
+    required_outputs = [
+        "DataBucketName",
+        "DataBucketArn",
+        "AuditBucketName",
+        "AuditBucketArn",
+        "EcrBffRepositoryUri",
+        "EcrBackendRepositoryUri",
+        "EcrAgentRepositoryUri"
+    ]
+    
+    for output_name in required_outputs:
+        assert output_name in outputs
+        assert "Export" in outputs[output_name]
+```
+
+## Dependencies
+- `NetworkStack` (requires S3 VPC endpoint ID for bucket policy)
+
+## Dependent Stacks
+- `ComputeStack` (requires ECR repository URIs for ECS task definitions)
+- `MonitoringStack` (requires audit bucket name for CloudTrail configuration)

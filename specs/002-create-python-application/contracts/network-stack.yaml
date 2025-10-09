@@ -1,0 +1,285 @@
+# Network Stack Output Contract
+
+**Stack Name**: `NetworkStack`  
+**Version**: 1.0.0  
+**Description**: VPC, subnets, internet gateway, NAT gateways, and VPC endpoints for AWS service access
+
+## Output Specifications
+
+### VpcId
+- **Type**: String
+- **Description**: VPC resource ID for cross-stack references
+- **Export Name**: `${AWS::StackName}-VpcId`
+- **Validation**: Must match pattern `vpc-[a-f0-9]{17}`
+- **Example**: `vpc-0a1b2c3d4e5f67890`
+- **Usage**: Referenced by security groups, subnets, and dependent stacks
+
+### VpcCidr
+- **Type**: String
+- **Description**: VPC CIDR block
+- **Export Name**: `${AWS::StackName}-VpcCidr`
+- **Validation**: Must be "10.0.0.0/16"
+- **Example**: `10.0.0.0/16`
+- **Usage**: Security group CIDR range validation
+
+### PublicSubnetIds
+- **Type**: CommaDelimitedList
+- **Description**: Public subnet IDs across both availability zones
+- **Export Name**: `${AWS::StackName}-PublicSubnetIds`
+- **Validation**: 
+  - Must contain exactly 2 subnet IDs
+  - Each must match pattern `subnet-[a-f0-9]{17}`
+- **Example**: `subnet-0a1b2c3d4e5f67890,subnet-1b2c3d4e5f6789012`
+- **Subnets**:
+  - `10.0.1.0/24` in us-east-1a (public-az1)
+  - `10.0.2.0/24` in us-east-1b (public-az2)
+- **Usage**: Public ALB subnet selection, NAT gateway deployment
+
+### PrivateAppSubnetIds
+- **Type**: CommaDelimitedList
+- **Description**: Private application subnet IDs for BFF and backend services
+- **Export Name**: `${AWS::StackName}-PrivateAppSubnetIds`
+- **Validation**: 
+  - Must contain exactly 2 subnet IDs
+  - Each must match pattern `subnet-[a-f0-9]{17}`
+- **Example**: `subnet-2c3d4e5f6789012ab,subnet-3d4e5f6789012abcd`
+- **Subnets**:
+  - `10.0.11.0/24` in us-east-1a (private-app-az1)
+  - `10.0.12.0/24` in us-east-1b (private-app-az2)
+- **Usage**: ECS BFF/backend task subnet selection
+
+### PrivateAgentCoreSubnetIds
+- **Type**: CommaDelimitedList
+- **Description**: Private AgentCore subnet IDs for Bedrock agent runtime isolation
+- **Export Name**: `${AWS::StackName}-PrivateAgentCoreSubnetIds`
+- **Validation**: 
+  - Must contain exactly 2 subnet IDs
+  - Each must match pattern `subnet-[a-f0-9]{17}`
+- **Example**: `subnet-4e5f6789012abcdef,subnet-5f6789012abcdef01`
+- **Subnets**:
+  - `10.0.21.0/24` in us-east-1a (private-agentcore-az1)
+  - `10.0.22.0/24` in us-east-1b (private-agentcore-az2)
+- **Usage**: Future agent runtime ECS tasks, Lambda functions
+
+### PrivateDataSubnetIds
+- **Type**: CommaDelimitedList
+- **Description**: Private data subnet IDs for RDS, OpenSearch, and data services
+- **Export Name**: `${AWS::StackName}-PrivateDataSubnetIds`
+- **Validation**: 
+  - Must contain exactly 2 subnet IDs
+  - Each must match pattern `subnet-[a-f0-9]{17}`
+- **Example**: `subnet-6789012abcdef0123,subnet-789012abcdef01234`
+- **Subnets**:
+  - `10.0.31.0/24` in us-east-1a (private-data-az1)
+  - `10.0.32.0/24` in us-east-1b (private-data-az2)
+- **Usage**: RDS subnet group, OpenSearch VPC config, RDS Proxy deployment
+
+### AvailabilityZones
+- **Type**: CommaDelimitedList
+- **Description**: Availability zones used for multi-AZ deployment
+- **Export Name**: `${AWS::StackName}-AvailabilityZones`
+- **Validation**: Must be `us-east-1a,us-east-1b`
+- **Example**: `us-east-1a,us-east-1b`
+- **Usage**: Validation of resource distribution across AZs
+
+### InternetGatewayId
+- **Type**: String
+- **Description**: Internet Gateway resource ID
+- **Export Name**: `${AWS::StackName}-InternetGatewayId`
+- **Validation**: Must match pattern `igw-[a-f0-9]{17}`
+- **Example**: `igw-0a1b2c3d4e5f67890`
+- **Usage**: Route table verification, public subnet validation
+
+### NatGatewayIds
+- **Type**: CommaDelimitedList
+- **Description**: NAT Gateway resource IDs (one per AZ)
+- **Export Name**: `${AWS::StackName}-NatGatewayIds`
+- **Validation**: 
+  - Must contain exactly 2 NAT gateway IDs
+  - Each must match pattern `nat-[a-f0-9]{17}`
+- **Example**: `nat-0a1b2c3d4e5f67890,nat-1b2c3d4e5f6789012`
+- **Usage**: Route table verification, cost tracking
+
+### S3VpcEndpointId
+- **Type**: String
+- **Description**: S3 gateway VPC endpoint ID
+- **Export Name**: `${AWS::StackName}-S3VpcEndpointId`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-0a1b2c3d4e5f67890`
+- **Usage**: S3 access from private subnets without NAT gateway
+
+### BedrockVpcEndpointId
+- **Type**: String
+- **Description**: Bedrock Runtime interface VPC endpoint ID
+- **Export Name**: `${AWS::StackName}-BedrockVpcEndpointId`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-1b2c3d4e5f6789012`
+- **Usage**: Bedrock API access from private subnets
+
+### BedrockVpcEndpointDnsName
+- **Type**: String
+- **Description**: Bedrock Runtime VPC endpoint DNS name for private access
+- **Export Name**: `${AWS::StackName}-BedrockVpcEndpointDnsName`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}-[a-z0-9]{8}\.bedrock-runtime\.us-east-1\.vpce\.amazonaws\.com`
+- **Example**: `vpce-0a1b2c3d-12345678.bedrock-runtime.us-east-1.vpce.amazonaws.com`
+- **Usage**: Bedrock SDK endpoint override configuration
+
+### SecretsManagerVpcEndpointId
+- **Type**: String
+- **Description**: Secrets Manager interface VPC endpoint ID
+- **Export Name**: `${AWS::StackName}-SecretsManagerVpcEndpointId`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-2c3d4e5f6789012ab`
+- **Usage**: RDS credentials retrieval from private subnets
+
+### SsmVpcEndpointId
+- **Type**: String
+- **Description**: SSM Parameter Store interface VPC endpoint ID
+- **Export Name**: `${AWS::StackName}-SsmVpcEndpointId`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-3d4e5f6789012abcd`
+- **Usage**: Configuration retrieval from private subnets
+
+### EcrApiVpcEndpointId
+- **Type**: String
+- **Description**: ECR API interface VPC endpoint ID
+- **Export Name**: `${AWS::StackName}-EcrApiVpcEndpointId`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-4e5f6789012abcdef`
+- **Usage**: ECR authentication from private subnets
+
+### EcrDkrVpcEndpointId
+- **Type**: String
+- **Description**: ECR Docker interface VPC endpoint ID
+- **Export Name**: `${AWS::StackName}-EcrDkrVpcEndpointId`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-5f6789012abcdef01`
+- **Usage**: Container image pulls from private subnets
+
+### CloudWatchLogsVpcEndpointId
+- **Type**: String
+- **Description**: CloudWatch Logs interface VPC endpoint ID
+- **Export Name**: `${AWS::StackName}-CloudWatchLogsVpcEndpointId`
+- **Validation**: Must match pattern `vpce-[a-f0-9]{17}`
+- **Example**: `vpce-6789012abcdef0123`
+- **Usage**: Log streaming from private subnets
+
+## Contract Tests
+
+### Test: VPC exists with correct CIDR
+```python
+def test_vpc_cidr():
+    template = Template.from_stack(network_stack)
+    template.has_resource_properties("AWS::EC2::VPC", {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsSupport": True,
+        "EnableDnsHostnames": True
+    })
+```
+
+### Test: All 8 subnets created across 2 AZs
+```python
+def test_subnet_count_and_distribution():
+    template = Template.from_stack(network_stack)
+    subnets = template.find_resources("AWS::EC2::Subnet")
+    assert len(subnets) == 8
+    
+    az_distribution = {}
+    for subnet in subnets.values():
+        az = subnet["Properties"]["AvailabilityZone"]
+        az_distribution[az] = az_distribution.get(az, 0) + 1
+    
+    assert az_distribution == {"us-east-1a": 4, "us-east-1b": 4}
+```
+
+### Test: Public subnets have correct CIDR blocks
+```python
+def test_public_subnet_cidrs():
+    template = Template.from_stack(network_stack)
+    template.has_resource_properties("AWS::EC2::Subnet", {
+        "CidrBlock": "10.0.1.0/24",
+        "AvailabilityZone": "us-east-1a",
+        "MapPublicIpOnLaunch": True
+    })
+    template.has_resource_properties("AWS::EC2::Subnet", {
+        "CidrBlock": "10.0.2.0/24",
+        "AvailabilityZone": "us-east-1b",
+        "MapPublicIpOnLaunch": True
+    })
+```
+
+### Test: VPC endpoints created for required AWS services
+```python
+def test_vpc_endpoints():
+    template = Template.from_stack(network_stack)
+    
+    # S3 gateway endpoint
+    template.has_resource_properties("AWS::EC2::VPCEndpoint", {
+        "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.s3"},
+        "VpcEndpointType": "Gateway"
+    })
+    
+    # Interface endpoints
+    required_services = [
+        "bedrock-runtime",
+        "secretsmanager",
+        "ssm",
+        "ecr.api",
+        "ecr.dkr",
+        "logs"
+    ]
+    
+    for service in required_services:
+        template.has_resource_properties("AWS::EC2::VPCEndpoint", {
+            "ServiceName": {"Fn::Sub": f"com.amazonaws.${{AWS::Region}}.{service}"},
+            "VpcEndpointType": "Interface",
+            "PrivateDnsEnabled": True
+        })
+```
+
+### Test: NAT gateways deployed in public subnets (one per AZ)
+```python
+def test_nat_gateways():
+    template = Template.from_stack(network_stack)
+    nat_gateways = template.find_resources("AWS::EC2::NatGateway")
+    assert len(nat_gateways) == 2
+    
+    # Verify NAT gateways reference public subnets
+    for nat_gw in nat_gateways.values():
+        subnet_ref = nat_gw["Properties"]["SubnetId"]["Ref"]
+        subnet = template.find_resources("AWS::EC2::Subnet", {"Ref": subnet_ref})
+        assert subnet["Properties"]["MapPublicIpOnLaunch"] == True
+```
+
+### Test: Outputs are correctly exported
+```python
+def test_network_stack_outputs():
+    template = Template.from_stack(network_stack)
+    outputs = template.find_outputs("*")
+    
+    required_outputs = [
+        "VpcId",
+        "VpcCidr",
+        "PublicSubnetIds",
+        "PrivateAppSubnetIds",
+        "PrivateAgentCoreSubnetIds",
+        "PrivateDataSubnetIds",
+        "AvailabilityZones",
+        "S3VpcEndpointId",
+        "BedrockVpcEndpointDnsName"
+    ]
+    
+    for output_name in required_outputs:
+        assert output_name in outputs
+        assert "Export" in outputs[output_name]
+```
+
+## Dependencies
+- **None** (foundation stack, no external dependencies)
+
+## Dependent Stacks
+- `SecurityStack` (requires VPC ID for security group creation)
+- `ComputeStack` (requires subnet IDs for ALB and ECS deployment)
+- `DatabaseStack` (requires private data subnet IDs for RDS and OpenSearch)
+- `StorageStack` (requires S3 VPC endpoint ID for bucket policies)
+- `MonitoringStack` (requires CloudWatch Logs VPC endpoint ID)

@@ -3,6 +3,7 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_elasticloadbalancingv2 as elbv2,
     aws_route53 as route53,
+    aws_route53_targets as route53_targets,
     aws_certificatemanager as acm,
     aws_wafv2 as wafv2,
     aws_shield as shield,
@@ -60,6 +61,9 @@ class NetworkStack(Stack):
         )
         self.alb_security_group.add_ingress_rule(
             ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "Allow HTTPS"
+        )
+        self.alb_security_group.add_ingress_rule(
+            ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP"
         )
 
         # Public ALB
@@ -187,6 +191,43 @@ class NetworkStack(Stack):
             # the rationale is visible in the CloudFormation template/construct tree.
             self.node.add_metadata('certificate', "No public domain_name provided or domain looks local; skipping public ACM Certificate creation.")
 
+        # ALB Listeners Configuration
+        if self.certificate is not None:
+            # HTTPS Listener (port 443) with SSL certificate
+            self.https_listener = self.alb.add_listener(
+                "HttpsListener",
+                port=443,
+                certificates=[self.certificate],
+                default_action=elbv2.ListenerAction.fixed_response(
+                    status_code=200,
+                    content_type="text/html",
+                    message_body="<html><body><h1>Welcome to bidopsai.com</h1><p>HTTPS is working!</p></body></html>"
+                )
+            )
+
+        # HTTP Listener (port 80) - redirect to HTTPS
+        self.http_listener = self.alb.add_listener(
+            "HttpListener",
+            port=80,
+            default_action=elbv2.ListenerAction.redirect(
+                protocol="HTTPS",
+                port="443",
+                permanent=True
+            )
+        )
+
+        # DNS Record Creation
+        if self.hosted_zone is not None and domain_name:
+            # Create DNS A record (alias) pointing to the ALB
+            self.dns_record = route53.ARecord(
+                self, "DnsRecord",
+                zone=self.hosted_zone,
+                record_name=domain_name,
+                target=route53.RecordTarget.from_alias(
+                    route53_targets.LoadBalancerTarget(self.alb)
+                )
+            )
+
         # VPC Endpoints
         self.vpc.add_gateway_endpoint(
             "S3Endpoint",
@@ -294,6 +335,13 @@ class NetworkStack(Stack):
                 value=self.certificate.certificate_arn if self.certificate is not None else "",
                 description="ACM certificate ARN (empty if not created)",
                 export_name="CertificateArn"
+        )
+
+        CfnOutput(
+            self, "DomainName",
+            value=domain_name if domain_name else "",
+            description="Domain name configured for the ALB (empty if not configured)",
+            export_name="DomainName"
         )
 
         # Export individual subnet IDs for cross-stack references

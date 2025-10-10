@@ -34,14 +34,6 @@ jobs:
     - name: Run contract tests
       run: PYTHONPATH=. pytest tests/contract/ -v
 
-    - name: Configure AWS credentials
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-
     - name: Run deployment tests
       run: |
         # This would run integration tests, but for CI we skip actual deployment

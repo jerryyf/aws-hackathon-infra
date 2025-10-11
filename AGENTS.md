@@ -6,7 +6,9 @@ Infrastructure-as-Code for AWS Hackathon AgentCore using AWS CDK (Python). Archi
 ## Build/Test/Lint Commands
 - **Test all**: `PYTHONPATH=. pytest` (from repo root)
 - **Single test**: `PYTHONPATH=. pytest tests/unit/test_vpc_construct.py::test_vpc_construct`
+- **Contract tests**: `PYTHONPATH=. pytest tests/contract/` (validates CloudFormation outputs)
 - **CDK synth**: `cd cdk && cdk synth` (validates CloudFormation templates)
+- **CDK synth single stack**: `cd cdk && cdk synth hackathon-agentcore-stack`
 - **Format**: `cd cdk && black .` (88 char line length)
 - **Lint**: `cd cdk && pylint cdk/` (docstrings disabled, see pyproject.toml)
 
@@ -18,6 +20,9 @@ Infrastructure-as-Code for AWS Hackathon AgentCore using AWS CDK (Python). Archi
 - **Error Handling**: Use AWS CDK exceptions, no bare try/except, always validate stack dependencies
 - **Security**: NEVER hardcode secrets—use Secrets Manager/SSM. All S3 buckets KMS-encrypted, VPC endpoints for AWS services.
 - **Architecture**: Multi-AZ (2 AZs min), VPC 10.0.0.0/16, 4 subnet tiers (Public/24, PrivateApp/24, PrivateAgent/24, PrivateData/24)
+
+## AWS Services
+- **AWS Bedrock AgentCore**: Deploy containerized AI agents via `aws_cdk.aws_bedrockagentcore.CfnRuntime` (L1 construct). Requires ECR container URI, IAM execution role with `bedrock-agentcore.amazonaws.com` trust policy. Supports VPC mode (PrivateAgent subnets) or PUBLIC mode. Runtime status must reach ACTIVE before invocation.
 
 ## .specify Workflow
 - Feature branches: `00X-feature-name` (3-digit prefix). Check prerequisites: `.specify/scripts/bash/check-prerequisites.sh --json`

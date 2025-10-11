@@ -1,0 +1,78 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BedrockModelAccess",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "${AWS::Region}"
+        }
+      }
+    },
+    {
+      "Sid": "ECRImageAccess",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchLogsAccess",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/*"
+      ]
+    },
+    {
+      "Sid": "SecretsManagerAccess",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:agentcore/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "secretsmanager:ResourceTag/Project": "aws-hackathon"
+        }
+      }
+    },
+    {
+      "Sid": "KMSDecryptAccess",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey"
+      ],
+      "Resource": [
+        "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": [
+            "ecr.${AWS::Region}.amazonaws.com",
+            "secretsmanager.${AWS::Region}.amazonaws.com"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Implementation Plan: AWS AgentCore Runtime Infrastructure
 
-**Branch**: `007-add-aws-agentcore` | **Date**: 2025-10-10 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/007-add-aws-agentcore/spec.md`
+**Branch**: `008-add-aws-agentcore` | **Date**: 2025-10-10 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/008-add-aws-agentcore/spec.md`
 
 ## Summary
 
@@ -41,7 +41,7 @@ Add AWS Bedrock AgentCore runtime infrastructure to enable containerized AI agen
 ### Documentation (this feature)
 
 ```
-specs/007-add-aws-agentcore/
+specs/008-add-aws-agentcore/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (existing research summary)
 ├── data-model.md        # Phase 1 output (runtime entity model)
@@ -155,7 +155,7 @@ tests/
 **Prerequisites**:
 - All Phase 1 deliverables completed and approved
 - tasks.md generated via `/speckit.tasks`
-- Feature branch `007-add-aws-agentcore` created
+- Feature branch `008-add-aws-agentcore` created
 
 **Implementation Order** (follows CDK dependency graph):
 1. **Config + Storage** (no dependencies): Update config.py, add ECR repo to storage_stack.py

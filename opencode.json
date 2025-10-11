@@ -15,19 +15,5 @@
       "url": "https://mcp.context7.com/mcp",
       "enabled": true
     }
-  },
-  "command": {
-    "synth": {
-      "template": "Run AWS CDK synthesis to validate all stacks: cd cdk && npx aws-cdk synth --all"
-    },
-    "test-contract": {
-      "template": "Run contract tests to verify infrastructure contracts: pytest tests/contract/ -v"
-    },
-    "fix-blockers": {
-      "template": "Fix all CRITICAL blockers (C1-C11, H2) documented in docs/deployment-readiness-analysis.md. Start with C1 (stack dependencies), then C2-C3 (S3 buckets), then remaining issues. Run contract tests after each fix to verify."
-    },
-    "validate": {
-      "template": "Validate the infrastructure is ready for deployment by: 1) Running all contract tests, 2) Running CDK synth, 3) Checking all CRITICAL blockers are resolved"
-    }
   }
 }

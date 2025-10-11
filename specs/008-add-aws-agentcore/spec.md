@@ -1,6 +1,6 @@
 # Feature Specification: AWS AgentCore Runtime Infrastructure
 
-**Feature Branch**: `007-add-aws-agentcore`  
+**Feature Branch**: `008-add-aws-agentcore`  
 **Created**: 2025-10-10  
 **Status**: Draft  
 **Input**: User description: "add aws agentcore runtime. use context7 to get more information on aws agentcore"

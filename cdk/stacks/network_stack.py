@@ -2,6 +2,7 @@ from aws_cdk import (
     Stack,
     aws_ec2 as ec2,
     aws_elasticloadbalancingv2 as elbv2,
+    aws_iam as iam,
     aws_route53 as route53,
     aws_route53_targets as route53_targets,
     aws_certificatemanager as acm,
@@ -273,7 +274,81 @@ class NetworkStack(Stack):
             service=ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS
         )
 
+        # Bedrock AgentCore endpoints: use region-based service names when available
+        if self.region:
+            agentcore_service_name = f"com.amazonaws.{self.region}.bedrock-agentcore"
+            agentcore_gateway_service_name = f"com.amazonaws.{self.region}.bedrock-agentcore.gateway"
+        else:
+            agentcore_service_name = cdk.Fn.sub("com.amazonaws.${AWS::Region}.bedrock-agentcore")
+            agentcore_gateway_service_name = cdk.Fn.sub("com.amazonaws.${AWS::Region}.bedrock-agentcore.gateway")
+
+        # VPC endpoint policy for Bedrock AgentCore
+        agentcore_policy_statements = [
+            iam.PolicyStatement(
+                sid="AllowAgentRuntimeInvocation",
+                effect=iam.Effect.ALLOW,
+                principals=[iam.AnyPrincipal()],
+                actions=[
+                    "bedrock-agentcore:InvokeAgentRuntime",
+                    "bedrock-agentcore:InvokeAgentRuntimeWithResponseStream"
+                ],
+                resources=[cdk.Fn.sub("arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:runtime/*")],
+                conditions={
+                    "StringEquals": {
+                        "aws:PrincipalAccount": cdk.Fn.ref("AWS::AccountId")
+                    }
+                }
+            ),
+            iam.PolicyStatement(
+                sid="AllowRuntimeManagement",
+                effect=iam.Effect.ALLOW,
+                principals=[iam.AnyPrincipal()],
+                actions=[
+                    "bedrock-agentcore:GetAgentRuntime",
+                    "bedrock-agentcore:ListAgentRuntimes"
+                ],
+                resources=["*"],
+                conditions={
+                    "StringEquals": {
+                        "aws:SourceVpc": self.vpc.vpc_id
+                    }
+                }
+            )
+        ]
+
+        agentcore_policy_document = iam.PolicyDocument(statements=agentcore_policy_statements)
+
+        # Main Bedrock AgentCore endpoint
+        self.bedrock_agentcore_endpoint = self.vpc.add_interface_endpoint(
+            "BedrockAgentCoreEndpoint",
+            service=ec2.InterfaceVpcEndpointService(agentcore_service_name, 443),
+            private_dns_enabled=True,
+            subnets=ec2.SubnetSelection(subnet_group_name="PrivateAgent")
+        )
+
+        # Bedrock AgentCore Gateway endpoint
+        self.bedrock_agentcore_gateway_endpoint = self.vpc.add_interface_endpoint(
+            "BedrockAgentCoreGatewayEndpoint", 
+            service=ec2.InterfaceVpcEndpointService(agentcore_gateway_service_name, 443),
+            private_dns_enabled=True,
+            subnets=ec2.SubnetSelection(subnet_group_name="PrivateAgent")
+        )
+
         # Outputs
+        CfnOutput(
+            self, "BedrockAgentCoreEndpointId",
+            value=self.bedrock_agentcore_endpoint.vpc_endpoint_id,
+            description="Bedrock AgentCore VPC Endpoint ID",
+            export_name="BedrockAgentCoreEndpointId"
+        )
+
+        CfnOutput(
+            self, "BedrockAgentCoreGatewayEndpointId", 
+            value=self.bedrock_agentcore_gateway_endpoint.vpc_endpoint_id,
+            description="Bedrock AgentCore Gateway VPC Endpoint ID",
+            export_name="BedrockAgentCoreGatewayEndpointId"
+        )
+
         CfnOutput(
             self, "VpcId",
             value=self.vpc.vpc_id,

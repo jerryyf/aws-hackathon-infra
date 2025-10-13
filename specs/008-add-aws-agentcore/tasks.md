@@ -1,265 +1,258 @@
-# Task List: AWS AgentCore Runtime Infrastructure
+# Tasks: AWS AgentCore Runtime Infrastructure
 
-**Feature**: Add AWS Bedrock AgentCore Runtime Infrastructure
-**Branch**: `008-add-aws-agentcore`
-**Status**: Draft
+**Input**: Design documents from `/specs/008-add-aws-agentcore/`  
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/  
+**Tech Stack**: Python 3.11, AWS CDK v2, L1 constructs, pytest  
 
-## Overview
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-This task list organizes the implementation of AWS Bedrock AgentCore runtime infrastructure following the feature specification. Tasks are organized by user story priority with clear dependencies and parallel execution opportunities.
-
-## Feature Summary
-
-Add AWS Bedrock AgentCore runtime infrastructure to enable containerized AI agent deployments. Implementation creates a new CDK stack (`AgentCoreStack`) using L1 constructs (`CfnRuntime`) to deploy agent containers from ECR within existing VPC infrastructure, with proper IAM roles, network configuration, and multi-AZ support.
-
-## Task Dependencies
-
-1. Config + Storage (no dependencies)
-2. Security (no dependencies)
-3. Network (no dependencies)
-4. AgentCore (depends on Network, Security, Storage)
-5. App wiring (depends on all stacks)
-6. Tests (depend on implementation)
-
-## Task Execution Order
-
-- Phase 1: Setup (project initialization)
-- Phase 2: Foundational (blocking prerequisites for all user stories)
-- Phase 3: User Story 1 (Deploy Agent Runtime Container - P1)
-- Phase 4: User Story 2 (Configure VPC Networking - P2)
-- Phase 5: User Story 3 (Manage IAM Permissions - P2)
-- Phase 6: User Story 4 (Enable VPC Interface Endpoints - P3)
-- Phase 7: Polish & Cross-Cutting Concerns
+## Format: `[ID] [P?] [Story] Description`
+- **[P]**: Can run in parallel (different files, no dependencies)  
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3, US4)  
+- Include exact file paths in descriptions
 
 ---
 
-## Phase 1: Setup Tasks
+## Phase 1: Setup (Shared Infrastructure)
 
-### T001: Update feature configuration
+**Purpose**: Project initialization and configuration updates needed for all user stories
 
-- **Description**: Add AgentCore stack configuration to config.py
-- **File**: `cdk/config.py`
-- **Story**: [Setup]
-- **Type**: Implementation
+- [ ] T001 Add AgentCore stack import to `cdk/stacks/__init__.py`
+- [ ] T002 Add AgentCore configuration to `cdk/config.py` with environment-based resource allocation
+- [ ] T003 Create `cdk/stacks/agentcore_stack.py` skeleton with basic CDK stack structure
+- [ ] T004 Update `cdk/app.py` to wire up AgentCoreStack dependencies (Network → Security → Storage → AgentCore)
 
-### T002: Create ECR repository for agent images
+**Checkpoint**: Basic project structure ready for implementation
 
-- **Description**: Add ECR repository for storing agent container images with KMS encryption at rest
-- **File**: `cdk/stacks/storage_stack.py`
-- **Story**: [Setup]
-- **Type**: Implementation
+---
 
-### T003: Create IAM execution role
+## Phase 2: Foundational (Blocking Prerequisites)
 
-- **Description**: Add IAM execution role with trust policy allowing bedrock-agentcore.amazonaws.com
-- **File**: `cdk/stacks/security_stack.py`
-- **Story**: [Setup]
-- **Type**: Implementation
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-## Phase 2: Foundational Tasks
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-### T004: Add VPC interface endpoint for AgentCore
+- [ ] T005 [P] Add ECR repository for agent images to `cdk/stacks/storage_stack.py`
+- [ ] T006 [P] Create IAM execution role in `cdk/stacks/security_stack.py` with trust policy from `contracts/execution-role-trust.json`
+- [ ] T007 [P] Add IAM permissions policy to execution role using `contracts/execution-role-permissions.json`
+- [ ] T008 Add VPC interface endpoint for bedrock-agentcore service to `cdk/stacks/network_stack.py`
+- [ ] T009 Create security group for agent runtime traffic in `cdk/stacks/network_stack.py`
+- [ ] T010 Export all required outputs from modified stacks (ECR repository ARN, execution role ARN, VPC endpoint ID, security group ID)
 
-- **Description**: Create VPC interface endpoint for bedrock-agentcore service
-- **File**: `cdk/stacks/network_stack.py`
-- **Story**: [Foundational]
-- **Type**: Implementation
+**Checkpoint**: Foundation ready - user story implementation can now begin
 
-## Phase 3: User Story 1 - Deploy Agent Runtime Container (Priority: P1)
+---
 
-### US1: Deploy Agent Runtime Container
+## Phase 3: User Story 1 - Deploy Agent Runtime Container (Priority: P1) 🎯 MVP
 
-**Goal**: Deploy AWS AgentCore runtime containers to enable AI agent execution within existing infrastructure
+**Goal**: Deploy AWS AgentCore runtime containers so that AI agents can run in a managed, scalable environment
 
-**Independent Test Criteria**: Can be fully tested by deploying a simple agent container to ECR, creating the agent runtime using AWS CDK, and verifying the runtime status is ACTIVE
+**Independent Test**: Deploy simple agent container to ECR, create agent runtime using CDK, verify runtime status is ACTIVE
 
-### T005: Create CfnRuntime resource
+### Implementation for User Story 1
 
-- **Description**: Create CfnRuntime resource in new stack with required properties
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [US1]
-- **Type**: Implementation
-- **Dependencies**: T001, T003, T004
+- [ ] T011 [US1] Implement CfnRuntime resource in `cdk/stacks/agentcore_stack.py` with PUBLIC network mode
+- [ ] T012 [US1] Configure container artifact with ECR image URI and basic resource allocation (512 CPU, 1024 MiB)
+- [ ] T013 [US1] Add runtime ARN output to stack per `contracts/agentcore-stack.yaml`
+- [ ] T014 [US1] Add runtime endpoint URL output to stack per `contracts/agentcore-stack.yaml`
+- [ ] T015 [US1] Add runtime status output to stack per `contracts/agentcore-stack.yaml`
+- [ ] T016 [US1] Add runtime ID output to stack per `contracts/agentcore-stack.yaml`
+- [ ] T017 [US1] Add execution role ARN output to stack per `contracts/agentcore-stack.yaml`
+- [ ] T018 [US1] Add runtime version output to stack per `contracts/agentcore-stack.yaml`
+- [ ] T019 [US1] Apply required resource tags (Project, Environment, Owner, CostCenter) per FR-009
 
-### T006: Configure runtime properties
+**Checkpoint**: User Story 1 complete - basic agent runtime deployment functional
 
-- **Description**: Configure runtime properties including container URI, execution role, and network mode
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [US1]
-- **Type**: Implementation
-- **Dependencies**: T005
+---
 
-### T007: Define runtime outputs
+## Phase 4: User Story 2 - Configure VPC Networking for Agent Runtimes (Priority: P2)
 
-- **Description**: Define CloudFormation outputs as per contract including RuntimeArn, RuntimeId, RuntimeEndpointUrl, ExecutionRoleArn
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [US1]
-- **Type**: Implementation
-- **Dependencies**: T006
+**Goal**: Enable agent runtimes to run within VPC with proper network isolation for secure access to internal resources
 
-### T008: Implement runtime status validation
+**Independent Test**: Deploy agent runtime with VPC network mode, verify it can access resources in private subnets, confirm it cannot be accessed from public internet
 
-- **Description**: Validate that runtime status is ACTIVE upon successful deployment
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [US1]
-- **Type**: Implementation
-- **Dependencies**: T007
+### Implementation for User Story 2
 
-### T009: Add integration tests for runtime deployment
+- [ ] T020 [US2] Add VPC network mode configuration to `cdk/stacks/agentcore_stack.py`
+- [ ] T021 [US2] Reference PrivateAgent subnets from Network Stack in runtime configuration
+- [ ] T022 [US2] Reference agent runtime security group in runtime configuration
+- [ ] T023 [US2] Configure security group rules for agent runtime outbound access to AWS services
+- [ ] T024 [US2] Add network configuration validation logic to ensure VPC mode has required subnets and security groups
+- [ ] T025 [US2] Update runtime deployment to use multi-AZ subnet selection (us-east-1a, us-east-1b)
 
-- **Description**: Write integration test to verify runtime deployment to ACTIVE status
-- **File**: `tests/integration/test_agentcore_deployment.py`
-- **Story**: [US1]
-- **Type**: Testing
-- **Dependencies**: T005
+**Checkpoint**: User Story 2 complete - VPC networking functional and secure
 
-## Phase 4: User Story 2 - Configure VPC Networking (Priority: P2)
+---
 
-### US2: Configure VPC Networking for Agent Runtimes
-
-**Goal**: Enable secure access to internal resources while maintaining compliance with network security policies
-
-**Independent Test Criteria**: Can be tested by deploying an agent runtime with VPC network mode, verifying it can access resources in private subnets, and confirming it cannot be accessed from public internet
-
-### T010: Configure VPC network mode
-
-- **Description**: Configure agent runtime to operate within existing VPC infrastructure using designated subnets and security groups
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [US2]
-- **Type**: Implementation
-- **Dependencies**: T005
-
-### T011: Configure network configuration
-
-- **Description**: Integrate network configuration with existing VPC private subnets
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [US2]
-- **Type**: Implementation
-- **Dependencies**: T010
-
-### T012: Add VPC access test
-
-- **Description**: Write integration test to verify VPC-mode runtime access to private resources
-- **File**: `tests/integration/test_agentcore_vpc_access.py`
-- **Story**: [US2]
-- **Type**: Testing
-- **Dependencies**: T010
-
-## Phase 5: User Story 3 - Manage IAM Permissions (Priority: P2)
-
-### US3: Manage IAM Permissions for Agent Runtime Execution
+## Phase 5: User Story 3 - Manage IAM Permissions for Agent Runtime Execution (Priority: P2)
 
 **Goal**: Configure IAM roles and policies for agent runtimes with least-privilege principles
 
-**Independent Test Criteria**: Can be tested by creating an execution role with specific permissions, attaching it to an agent runtime, and verifying the agent can only access permitted resources
+**Independent Test**: Create execution role with specific permissions, attach to agent runtime, verify agent can only access permitted resources
 
-### T013: Implement execution role permissions
+### Implementation for User Story 3
 
-- **Description**: Implement IAM permissions for Bedrock, ECR, and CloudWatch access
-- **File**: `cdk/stacks/security_stack.py`
-- **Story**: [US3]
-- **Type**: Implementation
-- **Dependencies**: T003
+- [ ] T026 [US3] Add Bedrock model access permissions to execution role using policy from `contracts/execution-role-permissions.json`
+- [ ] T027 [US3] Add CloudWatch logs permissions for agent runtime logging using policy from `contracts/execution-role-permissions.json`
+- [ ] T028 [US3] Add Secrets Manager access permissions for agent configuration using policy from `contracts/execution-role-permissions.json`
+- [ ] T029 [US3] Add KMS decrypt permissions for encrypted resources using policy from `contracts/execution-role-permissions.json`
+- [ ] T030 [US3] Implement conditional access controls with source account and ARN restrictions
+- [ ] T031 [US3] Add policy validation to ensure all required permissions are attached before runtime deployment
 
-### T014: Add IAM permission validation
-
-- **Description**: Validate that IAM permissions work correctly during CDK synthesis
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [US3]
-- **Type**: Implementation
-- **Dependencies**: T013
-
-### T015: Add contract test for execution role
-
-- **Description**: Write contract test to verify IAM role trust and permissions
-- **File**: `tests/contract/test_agentcore_execution_role_contract.py`
-- **Story**: [US3]
-- **Type**: Testing
-- **Dependencies**: T014
-
-## Phase 6: User Story 4 - Enable VPC Interface Endpoints (Priority: P3)
-
-### US4: Enable VPC Interface Endpoints for AgentCore
-
-**Goal**: Enable private connectivity for compliance requirements and data residency
-
-**Independent Test Criteria**: Can be tested by creating VPC endpoints for bedrock-agentcore service, configuring endpoint policies, and verifying agent runtime invocations route through the private endpoint
-
-### T016: Configure VPC endpoint policy
-
-- **Description**: Configure VPC endpoint policy for bedrock-agentcore service
-- **File**: `cdk/stacks/network_stack.py`
-- **Story**: [US4]
-- **Type**: Implementation
-- **Dependencies**: T004
-
-### T017: Add VPC endpoint contract test
-
-- **Description**: Write contract test to verify VPC endpoint configuration
-- **File**: `tests/contract/test_vpc_endpoint_contract.py`
-- **Story**: [US4]
-- **Type**: Testing
-- **Dependencies**: T016
-
-## Phase 7: Polish & Cross-Cutting Concerns
-
-### T018: Update README documentation
-
-- **Description**: Update README with AgentCore deployment instructions
-- **File**: `README.md`
-- **Story**: [Polish]
-- **Type**: Documentation
-
-### T019: Add runtime invocation examples
-
-- **Description**: Document runtime invocation examples (synchronous + streaming)
-- **File**: `docs/quickstart.md`
-- **Story**: [Polish]
-- **Type**: Documentation
-
-### T020: Update AGENTS.md with build/test commands
-
-- **Description**: Update AGENTS.md with AgentCore-specific build/test commands
-- **File**: `AGENTS.md`
-- **Story**: [Polish]
-- **Type**: Documentation
-
-### T021: Add resource tagging
-
-- **Description**: Apply resource tags (Project, Environment, Owner, CostCenter) to all AgentCore-related resources
-- **File**: `cdk/stacks/agentcore_stack.py`
-- **Story**: [Polish]
-- **Type**: Implementation
-- **Dependencies**: T005
-
+**Checkpoint**: User Story 3 complete - IAM permissions properly configured with least-privilege access
 
 ---
 
-## Parallel Execution Examples
+## Phase 6: User Story 4 - Enable VPC Interface Endpoints for AgentCore (Priority: P3)
 
-### User Story 1 (P1) Parallel Tasks:
-- T005, T006, T007, T008 (Creating CfnRuntime and configuring properties)
+**Goal**: Ensure AgentCore traffic remains within AWS's private network for regulatory compliance
 
-### User Story 2 (P2) Parallel Tasks:
-- T010, T011 (VPC configuration tasks)
+**Independent Test**: Create VPC endpoints, configure endpoint policies, verify agent runtime invocations route through private endpoint
 
-### Setup Phase Parallel Tasks:
-- T001, T002, T003 (Config, Storage, Security setup)
+### Implementation for User Story 4
+
+- [ ] T032 [US4] Configure VPC endpoint policy using `contracts/vpc-endpoint-policy.json` in `cdk/stacks/network_stack.py`
+- [ ] T033 [US4] Enable private DNS for VPC endpoint to support transparent service access
+- [ ] T034 [US4] Add VPC endpoint security group rules to allow ingress from agent runtime security group
+- [ ] T035 [US4] Configure multi-AZ VPC endpoint deployment for high availability
+- [ ] T036 [US4] Add endpoint policy validation to restrict access to specific IAM principals
+- [ ] T037 [US4] Export VPC endpoint DNS names as stack outputs for runtime configuration
+
+**Checkpoint**: User Story 4 complete - private network connectivity established
+
+---
+
+## Phase 7: Contract Validation & Integration
+
+**Purpose**: Ensure all components work together and meet contract specifications
+
+- [ ] T038 [P] Create contract test `tests/contract/test_agentcore_runtime_contract.py` to validate runtime outputs per `contracts/agentcore-stack.yaml`
+- [ ] T039 [P] Create contract test `tests/contract/test_agentcore_execution_role_contract.py` to validate IAM role configuration
+- [ ] T040 [P] Create contract test `tests/contract/test_vpc_endpoint_contract.py` to validate VPC endpoint configuration
+- [ ] T041 Create integration test `tests/integration/test_agentcore_deployment.py` for E2E deployment to ACTIVE status
+- [ ] T042 Create integration test `tests/integration/test_agentcore_vpc_access.py` for VPC-mode runtime access validation
+- [ ] T043 Create unit test `tests/unit/test_agentcore_stack_synth.py` for CDK synthesis validation
+
+**Checkpoint**: All contract tests passing, deployment validated
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+**Purpose**: Improvements that affect multiple user stories and production readiness
+
+- [ ] T044 [P] Add CloudWatch monitoring integration per FR-010 (runtime status, invocation count, error rate, latency)
+- [ ] T045 [P] Add comprehensive error handling and logging throughout all stacks
+- [ ] T046 [P] Implement environment-based resource allocation (dev: 512/1024, prod: 2048/4096) per research findings
+- [ ] T047 [P] Add runtime deployment timeout configuration (10 minute limit per SC-001)
+- [ ] T048 Add stack dependency validation to ensure proper deployment order
+- [ ] T049 Run quickstart.md validation to ensure deployment guide accuracy
+- [ ] T050 Validate all resource tagging compliance with AWS Well-Architected Framework requirements
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories  
+- **User Stories (Phase 3-6)**: All depend on Foundational phase completion
+  - User stories can proceed in parallel (if staffed) or sequentially by priority (P1 → P2 → P3)
+  - US2 and US3 are both P2 priority - can be done in either order
+- **Contract Validation (Phase 7)**: Depends on all desired user stories being complete
+- **Polish (Phase 8)**: Depends on contract validation passing
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
+- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - Independent of other stories  
+- **User Story 3 (P2)**: Can start after Foundational (Phase 2) - Independent of other stories
+- **User Story 4 (P3)**: Can start after Foundational (Phase 2) - May benefit from US2 VPC setup but not strictly dependent
+
+### Within Each User Story
+
+- Stack modification tasks follow dependency order within AgentCore stack
+- Output tasks depend on resource creation tasks
+- Validation tasks depend on configuration tasks
+- Tagging tasks can be done in parallel with functional implementation
+
+### Parallel Opportunities
+
+- **Setup Phase**: T001-T004 can be done in parallel (different files)
+- **Foundational Phase**: T005-T007 can be done in parallel (different stacks), T008-T010 sequential  
+- **User Stories**: Once foundational complete, US1-US4 can start in parallel if team capacity allows
+- **Contract Tests**: T038-T040 can be written and run in parallel
+- **Polish Tasks**: T044-T047 can be done in parallel (different concerns)
+
+---
+
+## Parallel Example: Foundational Phase
+
+```bash
+# Launch foundational infrastructure together:
+Task: "Add ECR repository for agent images to cdk/stacks/storage_stack.py"
+Task: "Create IAM execution role in cdk/stacks/security_stack.py"  
+Task: "Add IAM permissions policy to execution role"
+```
+
+---
+
+## Parallel Example: User Story 1
+
+```bash
+# Launch User Story 1 output tasks together:
+Task: "Add runtime ARN output to stack"
+Task: "Add runtime endpoint URL output to stack"
+Task: "Add runtime status output to stack"
+Task: "Add runtime ID output to stack"
+Task: "Add execution role ARN output to stack"
+Task: "Add runtime version output to stack"
+```
+
+---
 
 ## Implementation Strategy
 
-- MVP First: Focus on User Story 1 (P1) to enable basic deployment
-- Incremental Delivery: Add VPC networking, permissions, and VPC endpoints in subsequent phases
-- Independent Testing: Each user story can be tested independently
+### MVP First (User Story 1 Only)
 
-## Task Summary
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
+3. Complete Phase 3: User Story 1  
+4. **STOP and VALIDATE**: Test User Story 1 independently with PUBLIC mode
+5. Deploy/demo basic agent runtime functionality
 
-- Total Tasks: 21
-- Tasks by User Story:
-  - US1 (Deploy Agent Runtime Container): 5 tasks
-  - US2 (Configure VPC Networking): 3 tasks
-  - US3 (Manage IAM Permissions): 3 tasks
-  - US4 (Enable VPC Interface Endpoints): 3 tasks
-  - Setup/Foundational/Polish: 7 tasks
-- Parallel Opportunities: Multiple tasks can run in parallel
-- Independent Test Criteria: Each user story has independent test criteria
+### Incremental Delivery
+
+1. Complete Setup + Foundational → Foundation ready
+2. Add User Story 1 → Test independently → Deploy/Demo (MVP - PUBLIC mode agent runtime)
+3. Add User Story 2 → Test independently → Deploy/Demo (VPC networking)
+4. Add User Story 3 → Test independently → Deploy/Demo (Enhanced IAM security)  
+5. Add User Story 4 → Test independently → Deploy/Demo (Full private networking)
+6. Each story adds security/compliance value without breaking previous stories
+
+### Parallel Team Strategy
+
+With multiple developers:
+
+1. Team completes Setup + Foundational together
+2. Once Foundational is done:
+   - Developer A: User Story 1 (P1 - highest priority)
+   - Developer B: User Story 2 (P2 - VPC networking)
+   - Developer C: User Story 3 (P2 - IAM permissions)
+   - Developer D: User Story 4 (P3 - VPC endpoints)
+3. Stories complete and integrate independently
+
+---
+
+## Notes
+
+- **[P] tasks**: Different files, no dependencies - can run in parallel
+- **[Story] label**: Maps task to specific user story for traceability  
+- **Each user story**: Independently completable and testable
+- **CDK synthesis**: Run `cdk synth` after each major change to validate CloudFormation
+- **Stack dependencies**: Follow Network → Security → Storage → AgentCore deployment order
+- **Resource allocation**: Environment-based sizing per research.md recommendations
+- **No tests requested**: Focus on implementation and contract validation
+- **Commit strategy**: Commit after each task or logical group of parallel tasks
+- **Avoid**: Cross-story dependencies that break independence, same-file conflicts when marked [P]

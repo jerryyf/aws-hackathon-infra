@@ -1,6 +1,6 @@
 # Implementation Plan: AWS AgentCore Runtime Infrastructure
 
-**Branch**: `008-add-aws-agentcore` | **Date**: 2025-10-10 | **Spec**: [spec.md](./spec.md)
+**Branch**: `008-add-aws-agentcore` | **Date**: 2025-10-13 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/008-add-aws-agentcore/spec.md`
 
 ## Summary
@@ -86,150 +86,28 @@ tests/
 
 ---
 
-## Implementation Phases
+## Phase Status
 
-### Phase 0: Research ✅ COMPLETE
+### ✅ Phase 0: Research - COMPLETED (2025-10-13)
+- Researched container resource sizing (dev vs prod)
+- Investigated VPC endpoint configuration for bedrock-agentcore service
+- Analyzed IAM trust policy requirements with source account/ARN restrictions
+- Generated comprehensive research.md with decisions and recommendations
 
-**Completed Artifacts**:
-- Research summary confirming L1 `CfnRuntime` construct availability
-- VPC integration pattern identified (network_configuration.network_mode)
-- IAM role requirements documented (bedrock-agentcore.amazonaws.com trust policy)
-- ECR integration pattern confirmed (container_uri property)
+### ✅ Phase 1: Design - COMPLETED (2025-10-13)
+- Updated data-model.md with minor date corrections
+- Verified contracts/ directory with 4 API contracts:
+  - agentcore-stack.yaml (CloudFormation outputs contract)
+  - execution-role-trust.json (IAM trust policy)
+  - execution-role-permissions.json (IAM permissions policy) 
+  - vpc-endpoint-policy.json (VPC endpoint access policy)
+- Verified quickstart.md deployment guide (15-minute deployment walkthrough)
+- Updated agent context via .specify/scripts/bash/update-agent-context.sh
 
-**Key Findings**:
-- `aws_cdk.aws_bedrockagentcore.CfnRuntime` is the primary construct (no L2 available)
-- VPC endpoint service name: `com.amazonaws.<region>.bedrock-agentcore`
-- Required outputs: AgentRuntimeArn, AgentRuntimeId, AgentRuntimeVersion, Status
-- Network mode: PUBLIC or VPC (VPC requires subnet/security group configuration)
+**Phase 1 Deliverables Generated**:
+- `/specs/008-add-aws-agentcore/data-model.md` ✅
+- `/specs/008-add-aws-agentcore/contracts/` ✅ (4 files)
+- `/specs/008-add-aws-agentcore/quickstart.md` ✅ 
+- Updated AGENTS.md context ✅
 
-### Phase 1: Design (NEXT PHASE)
-
-**Objective**: Define data model, contracts, and quickstart deployment guide.
-
-**Deliverables**:
-1. **data-model.md**: Entity definitions for AgentRuntime, ExecutionRole, NetworkConfiguration, VPCEndpoint
-2. **contracts/agentcore-stack.yaml**: CloudFormation outputs contract
-   ```yaml
-   outputs:
-     AgentRuntimeArn:
-       description: ARN of the deployed agent runtime
-       exportName: ${Environment}-AgentRuntimeArn
-     AgentRuntimeId:
-       description: Unique ID for the agent runtime
-     AgentRuntimeEndpointUrl:
-       description: HTTPS endpoint for invoking the runtime
-     ExecutionRoleArn:
-       description: ARN of the IAM execution role
-   ```
-3. **contracts/execution-role-trust.json**: IAM trust policy allowing bedrock-agentcore.amazonaws.com
-4. **contracts/execution-role-permissions.json**: IAM permissions for bedrock:InvokeModel, ecr:GetAuthorizationToken, logs:CreateLogGroup
-5. **quickstart.md**: Step-by-step deployment guide (build container → push to ECR → deploy stack → verify runtime status)
-
-**Design Questions to Resolve**:
-- Container resource limits (CPU/memory) - needed for Sustainability pillar
-- Security group ingress/egress rules for VPC mode
-- CloudWatch log group naming convention
-- VPC endpoint DNS configuration (PrivateDnsEnabled: true/false?)
-- Agent runtime naming convention (include environment/region?)
-
-### Phase 2: Tasks
-
-**Objective**: Generate actionable task list using `/speckit.tasks` command.
-
-**Inputs**: spec.md, plan.md (this file), data-model.md, contracts/, quickstart.md
-
-**Expected Output**: tasks.md with sequenced tasks for:
-1. Modify config.py (add agentcore stack name + runtime config)
-2. Modify storage_stack.py (add ECR repository)
-3. Modify security_stack.py (add execution role)
-4. Modify network_stack.py (add VPC endpoint)
-5. Create agentcore_stack.py (CfnRuntime resource)
-6. Modify app.py (wire dependencies)
-7. Write contract tests (runtime outputs, IAM role, VPC endpoint)
-8. Write integration tests (deployment, VPC access)
-9. Write unit tests (CDK synth validation)
-10. Update README with AgentCore deployment instructions
-
-### Phase 3: Implementation
-
-**Prerequisites**:
-- All Phase 1 deliverables completed and approved
-- tasks.md generated via `/speckit.tasks`
-- Feature branch `008-add-aws-agentcore` created
-
-**Implementation Order** (follows CDK dependency graph):
-1. **Config + Storage** (no dependencies): Update config.py, add ECR repo to storage_stack.py
-2. **Security** (depends on nothing): Add execution role to security_stack.py
-3. **Network** (depends on nothing): Add VPC endpoint to network_stack.py
-4. **AgentCore** (depends on Network, Security, Storage): Create agentcore_stack.py
-5. **App wiring** (depends on all stacks): Update app.py
-6. **Tests** (depends on implementation): Contract → Unit → Integration
-
-**Success Criteria for Phase Completion**:
-- All tests pass: `PYTHONPATH=. pytest`
-- CDK synth succeeds: `cd cdk && cdk synth`
-- Black formatting passes: `cd cdk && black .`
-- pylint passes: `cd cdk && pylint cdk/`
-- Contract tests verify all outputs defined in contracts/agentcore-stack.yaml
-- Integration test deploys runtime to ACTIVE status
-- Deployment report generated in docs/deployments/deployment_reports/
-
-### Phase 4: Testing & Validation
-
-**Test Execution Plan**:
-1. **Unit tests** (fast feedback): `pytest tests/unit/test_agentcore_stack_synth.py`
-2. **Contract tests** (validate outputs): `pytest tests/contract/test_agentcore_*`
-3. **Integration tests** (E2E deployment): `pytest tests/integration/test_agentcore_*`
-   - Requires: Sample agent container image in ECR (use bedrock-agentcore-starter-toolkit or minimal test image)
-   - Duration: ~10 minutes (runtime deployment time)
-   - Cleanup: Automatic via CDK destroy in test teardown
-
-**Acceptance Validation** (maps to spec.md scenarios):
-- User Story 1, Scenario 1: Integration test verifies runtime.status == "ACTIVE"
-- User Story 1, Scenario 2: Contract test verifies RuntimeArn/EndpointUrl outputs exist
-- User Story 2, Scenario 1: Integration test attempts public access (should fail in VPC mode)
-- User Story 3, Scenario 1: Integration test invokes Bedrock model via runtime
-- User Story 4, Scenario 1: Network traffic analysis confirms VPC endpoint usage
-
-### Phase 5: Documentation & Handoff
-
-**Deliverables**:
-1. Update README.md with AgentCore deployment section (reference quickstart.md)
-2. Generate deployment report in docs/deployments/deployment_reports/
-3. Update AGENTS.md with AgentCore-specific build/test commands
-4. Create example agent container Dockerfile (optional, for testing)
-5. Document runtime invocation examples (synchronous + streaming)
-
-**Handoff Checklist**:
-- [ ] All tests passing in CI/CD (GitHub Actions)
-- [ ] Code reviewed and approved
-- [ ] Constitution compliance verified (tagging, encryption, multi-AZ)
-- [ ] Deployment tested in test environment
-- [ ] Documentation complete (README, quickstart, contracts)
-- [ ] Feature branch merged to main
-
----
-
-## Risk Assessment
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| AgentCore service not available in us-east-1 | Low | High | Verify service availability before Phase 3; spec assumes availability |
-| VPC endpoint for bedrock-agentcore doesn't exist | Medium | Medium | Phase 1 research will test endpoint creation; fallback to PUBLIC mode |
-| Container image exceeds AgentCore limits | Low | Medium | Document size/timeout limits in quickstart.md; validate in integration test |
-| IAM permissions insufficient for runtime | Medium | Low | Contract tests validate trust policy; integration tests catch permission issues early |
-| Multi-AZ subnet configuration errors | Low | Medium | Leverage existing network_stack subnet selection pattern; unit tests validate config |
-
-## Open Questions for Phase 1
-
-1. **Container resource limits**: What CPU/memory should be allocated to agent runtimes? (Sustainability pillar requirement)
-2. **VPC endpoint policy**: Should we restrict access to specific IAM principals or allow full VPC access?
-3. **Agent container source**: Use bedrock-agentcore-starter-toolkit for testing, or create minimal test image?
-4. **Runtime naming**: Include environment/region in runtime name? (e.g., `hackathon-agent-test-us-east-1`)
-5. **Monitoring integration**: Should agent runtime metrics flow to existing CloudWatch dashboard or separate dashboard?
-6. **Security group rules**: What ingress/egress ports are required for VPC-mode runtimes?
-7. **Session management**: How will session IDs (33+ chars) be generated for testing?
-
----
-
-**Next Command**: `/speckit.plan` (to trigger Phase 1 data-model.md and contracts generation)
+**Ready for**: `/tasks` command to generate implementation task breakdown

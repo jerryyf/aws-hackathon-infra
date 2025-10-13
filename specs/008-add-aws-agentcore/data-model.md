@@ -1,7 +1,7 @@
 # Data Model: AWS AgentCore Runtime Infrastructure
 
 **Feature**: AWS AgentCore Runtime Infrastructure  
-**Date**: 2025-10-10  
+**Date**: 2025-10-13  
 **References**: [spec.md](./spec.md), [plan.md](./plan.md)
 
 ## Overview

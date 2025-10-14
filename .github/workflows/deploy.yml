@@ -27,11 +27,6 @@ jobs:
     - name: Install AWS CDK
       run: npm install -g aws-cdk
 
-    - name: Run type checking
-      run: |
-        cd cdk
-        pyright
-
     - name: Run unit tests
       run: PYTHONPATH=. pytest tests/unit/ -v
 

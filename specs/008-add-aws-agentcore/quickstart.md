@@ -5,6 +5,8 @@
 **Time to Complete**: ~15 minutes (10 min CDK deploy + 5 min verification)  
 **Prerequisites**: AWS account, CDK bootstrapped, Docker installed
 
+> **Note**: This guide uses `<project-root>` as a placeholder for your repository directory (e.g., `/path/to/aws-hackathon-infra`). Replace with your actual path or navigate to the repository root before running commands.
+
 ---
 
 ## Overview
@@ -39,7 +41,7 @@ aws cloudformation describe-stacks --stack-name CDKToolkit
 The AgentCore stack depends on network, security, and storage stacks:
 
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra
+cd <project-root>  # Navigate to your aws-hackathon-infra repository
 
 # Check existing stacks
 aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
@@ -82,7 +84,7 @@ REPOSITORY_NAME="agent-images"
 IMAGE_TAG="v1.0.0"
 
 # Create ECR repository (if deploying storage stack for first time)
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra/cdk
+cd <project-root>/cdk
 cdk deploy hackathon-storage-stack --require-approval never
 
 # Login to ECR
@@ -99,42 +101,62 @@ aws ecr describe-images --repository-name $REPOSITORY_NAME --image-ids imageTag=
 
 ### Step 2: Configure Runtime Settings
 
-Edit `cdk/config.py` to add AgentCore runtime configuration:
+Runtime configuration is already set in `cdk/config.py`:
 
 ```python
-# Add to cdk/config.py
+# cdk/config.py (already configured)
 AGENTCORE_CONFIG = {
-    "stack_name": "hackathon-agentcore-stack",
-    "runtime_name": f"hackathon-agent-{ENVIRONMENT}-{AWS_REGION}",
-    "container_image_tag": "v1.0.0",  # Must match ECR image tag
-    "container_cpu": 512,              # 0.5 vCPU (testing), 1024 for prod
-    "container_memory": 1024,          # 1 GB (testing), 2048 for prod
-    "network_mode": "VPC",             # VPC (recommended) or PUBLIC
+    'dev': {
+        'cpu': '512',
+        'memory': '1024',
+        'network_mode': 'PUBLIC'
+    },
+    'test': {
+        'cpu': '1024',
+        'memory': '2048',
+        'network_mode': 'VPC'
+    },
+    'prod': {
+        'cpu': '2048',
+        'memory': '4096',
+        'network_mode': 'VPC'
+    }
 }
+```
+
+The environment is controlled by the `ENVIRONMENT` variable (defaults to `test`). To deploy in a different environment:
+
+```bash
+# For production configuration (2 vCPU, 4 GB, VPC mode)
+export ENVIRONMENT=prod
+
+# For development configuration (0.5 vCPU, 1 GB, PUBLIC mode)
+export ENVIRONMENT=dev
 ```
 
 ### Step 3: Deploy AgentCore Stack
 
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra/cdk
+cd <project-root>/cdk
 
 # Synthesize CloudFormation template
-cdk synth hackathon-agentcore-stack
+cdk synth AgentCoreStack
 
 # Preview changes
-cdk diff hackathon-agentcore-stack
+cdk diff AgentCoreStack
 
 # Deploy stack
-cdk deploy hackathon-agentcore-stack --require-approval never
+cdk deploy AgentCoreStack --require-approval never
 
 # Expected output:
-# ✅  hackathon-agentcore-stack
+# ✅  AgentCoreStack
 # 
 # Outputs:
-# hackathon-agentcore-stack.AgentRuntimeArn = arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/xyz123
-# hackathon-agentcore-stack.AgentRuntimeEndpointUrl = https://xyz123.runtime.bedrock-agentcore.us-east-1.amazonaws.com
-# hackathon-agentcore-stack.AgentRuntimeStatus = ACTIVE
-# hackathon-agentcore-stack.ExecutionRoleArn = arn:aws:iam::123456789012:role/hackathon-agent-execution-role-test
+# AgentCoreStack.AgentRuntimeArn = arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/xyz123
+# AgentCoreStack.AgentRuntimeEndpointUrl = https://xyz123.runtime.bedrock-agentcore.us-east-1.amazonaws.com
+# AgentCoreStack.AgentRuntimeStatus = ACTIVE
+# AgentCoreStack.ExecutionRoleArn = arn:aws:iam::123456789012:role/AgentCoreExecutionRole-xxx
+# AgentCoreStack.NetworkMode = VPC
 ```
 
 **Deployment Time**: ~10 minutes (runtime status: CREATING → ACTIVE)
@@ -226,7 +248,7 @@ aws logs tail /aws/bedrock-agentcore/hackathon-agent-test-us-east-1 --follow
 Run contract tests to verify stack outputs match specifications:
 
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra
+cd <project-root>
 
 # Run AgentCore contract tests
 PYTHONPATH=. pytest tests/contract/test_agentcore_runtime_contract.py -v

@@ -14,63 +14,71 @@ class StorageStack(Stack):
 
         # S3 Buckets
         self.knowledge_base_bucket = s3.Bucket(
-            self, "KnowledgeBaseBucket",
+            self,
+            "KnowledgeBaseBucket",
             encryption=s3.BucketEncryption.KMS_MANAGED,
             versioned=True,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
-            removal_policy=RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         self.logs_bucket = s3.Bucket(
-            self, "LogsBucket",
+            self,
+            "LogsBucket",
             encryption=s3.BucketEncryption.KMS_MANAGED,
             versioned=True,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
-            removal_policy=RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         self.bda_bucket = s3.Bucket(
-            self, "BdaBucket",
+            self,
+            "BdaBucket",
             encryption=s3.BucketEncryption.KMS_MANAGED,
             versioned=True,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
-            removal_policy=RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         # ECR Repositories
         self.ecr_repo = ecr.Repository(
-            self, "EcrRepository",
+            self,
+            "EcrRepository",
             repository_name="hackathon/app",
             image_scan_on_push=True,
             image_tag_mutability=ecr.TagMutability.IMMUTABLE,
-            removal_policy=RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         # Outputs
         CfnOutput(
-            self, "KnowledgeBaseBucketName",
+            self,
+            "KnowledgeBaseBucketName",
             value=self.knowledge_base_bucket.bucket_name,
             description="Knowledge base bucket name",
-            export_name="KnowledgeBaseBucketName"
+            export_name="KnowledgeBaseBucketName",
         )
 
         CfnOutput(
-            self, "LogsBucketName",
+            self,
+            "LogsBucketName",
             value=self.logs_bucket.bucket_name,
             description="Logs bucket name",
-            export_name="LogsBucketName"
+            export_name="LogsBucketName",
         )
 
         CfnOutput(
-            self, "BdaBucketName",
+            self,
+            "BdaBucketName",
             value=self.bda_bucket.bucket_name,
             description="BDA bucket name",
-            export_name="BdaBucketName"
+            export_name="BdaBucketName",
         )
 
         CfnOutput(
-            self, "EcrRepositoryUri",
+            self,
+            "EcrRepositoryUri",
             value=self.ecr_repo.repository_uri,
             description="ECR repository URI",
-            export_name="EcrRepositoryUri"
+            export_name="EcrRepositoryUri",
         )

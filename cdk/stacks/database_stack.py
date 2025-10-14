@@ -2,7 +2,6 @@ import aws_cdk as cdk
 from aws_cdk import (
     Stack,
     Duration,
-        aws_iam as iam,
     aws_rds as rds,
     aws_opensearchservice as opensearch,
     aws_secretsmanager as secretsmanager,
@@ -15,7 +14,7 @@ from constructs import Construct
 class DatabaseStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         # Get VPC from network stack
-        network_stack = kwargs.pop('network_stack', None)
+        network_stack = kwargs.pop("network_stack", None)
 
         super().__init__(scope, construct_id, **kwargs)
         if network_stack:
@@ -25,7 +24,8 @@ class DatabaseStack(Stack):
             # private subnets for the "PrivateData" group created by
             # NetworkStack.
             data_subnets = [
-                subnet for subnet in vpc.private_subnets
+                subnet
+                for subnet in vpc.private_subnets
                 if "PrivateData" in subnet.node.id
             ]
 
@@ -39,18 +39,24 @@ class DatabaseStack(Stack):
                     data_subnet_1_id = cdk.Fn.import_value("PrivateDataSubnet1Id")
                     data_subnet_2_id = cdk.Fn.import_value("PrivateDataSubnet2Id")
                     data_subnets = [
-                        ec2.Subnet.from_subnet_attributes(self, "DataSubnet1",
+                        ec2.Subnet.from_subnet_attributes(
+                            self,
+                            "DataSubnet1",
                             subnet_id=data_subnet_1_id,
-                            availability_zone="us-east-1a"
+                            availability_zone="us-east-1a",
                         ),
-                        ec2.Subnet.from_subnet_attributes(self, "DataSubnet2",
+                        ec2.Subnet.from_subnet_attributes(
+                            self,
+                            "DataSubnet2",
                             subnet_id=data_subnet_2_id,
-                            availability_zone="us-east-1b"
-                        )
+                            availability_zone="us-east-1b",
+                        ),
                     ]
                 except Exception:
                     # Last-resort: create a small test VPC so unit tests can run
-                    vpc = ec2.Vpc(self, "TestVpcFromFallback", cidr="10.0.0.0/16", max_azs=2)
+                    vpc = ec2.Vpc(
+                        self, "TestVpcFromFallback", cidr="10.0.0.0/16", max_azs=2
+                    )
                     data_subnets = vpc.private_subnets
         else:
             # For testing, create minimal VPC
@@ -62,18 +68,20 @@ class DatabaseStack(Stack):
         # We skip creating it here to avoid AlreadyExists errors
 
         self.rds_secret = secretsmanager.Secret(
-            self, "RdsSecret",
+            self,
+            "RdsSecret",
             secret_name="hackathon/rds/credentials",
             generate_secret_string=secretsmanager.SecretStringGenerator(
                 secret_string_template='{"username": "postgres"}',
                 generate_string_key="password",
-                exclude_characters="/@\""
-            )
+                exclude_characters='/@"',
+            ),
         )
 
         # RDS PostgreSQL
         self.rds_cluster = rds.DatabaseCluster(
-            self, "RdsCluster",
+            self,
+            "RdsCluster",
             engine=rds.DatabaseClusterEngine.aurora_postgres(
                 version=rds.AuroraPostgresEngineVersion.VER_15_4
             ),
@@ -83,61 +91,58 @@ class DatabaseStack(Stack):
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnets=data_subnets),
             default_database_name="hackathon",
-            backup=rds.BackupProps(
-                retention=Duration.days(7)
-            ),
-            storage_encrypted=True
+            backup=rds.BackupProps(retention=Duration.days(7)),
+            storage_encrypted=True,
         )
 
         # RDS Proxy
         self.rds_proxy = rds.DatabaseProxy(
-            self, "RdsProxy",
+            self,
+            "RdsProxy",
             proxy_target=rds.ProxyTarget.from_cluster(self.rds_cluster),
             secrets=[self.rds_secret],
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnets=data_subnets),
-            security_groups=[self.rds_cluster.connections.security_groups[0]]
+            security_groups=[self.rds_cluster.connections.security_groups[0]],
         )
 
         # OpenSearch
         self.opensearch_domain = opensearch.Domain(
-            self, "OpenSearchDomain",
+            self,
+            "OpenSearchDomain",
             version=opensearch.EngineVersion.OPENSEARCH_2_11,
             capacity=opensearch.CapacityConfig(
                 master_nodes=0,
                 # For a two Availability Zone deployment, OpenSearch requires
                 # an even number of data nodes. Use 2 data nodes for 2 AZs.
                 data_nodes=2,
-                data_node_instance_type="t3.small.search"
+                data_node_instance_type="t3.small.search",
             ),
             vpc=vpc,
             vpc_subnets=[ec2.SubnetSelection(subnets=data_subnets)],
-            zone_awareness=opensearch.ZoneAwarenessConfig(
-                availability_zone_count=2
-            ),
+            zone_awareness=opensearch.ZoneAwarenessConfig(availability_zone_count=2),
             encryption_at_rest=opensearch.EncryptionAtRestOptions(enabled=True),
             node_to_node_encryption=True,
-            enforce_https=True
+            enforce_https=True,
         )
 
         # Outputs
         CfnOutput(
-            self, "RdsEndpoint",
+            self,
+            "RdsEndpoint",
             value=self.rds_proxy.endpoint,
             description="RDS proxy endpoint",
-            export_name="RdsEndpoint"
+            export_name="RdsEndpoint",
         )
 
         CfnOutput(
-            self, "RdsPort",
-            value="5432",
-            description="RDS port",
-            export_name="RdsPort"
+            self, "RdsPort", value="5432", description="RDS port", export_name="RdsPort"
         )
 
         CfnOutput(
-            self, "OpenSearchEndpoint",
+            self,
+            "OpenSearchEndpoint",
             value=self.opensearch_domain.domain_endpoint,
             description="OpenSearch endpoint",
-            export_name="OpenSearchEndpoint"
+            export_name="OpenSearchEndpoint",
         )

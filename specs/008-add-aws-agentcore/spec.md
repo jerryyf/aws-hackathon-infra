@@ -2,7 +2,8 @@
 
 **Feature Branch**: `008-add-aws-agentcore`  
 **Created**: 2025-10-10  
-**Status**: Draft  
+**Status**: Implemented  
+**Implemented**: 2025-10-14  
 **Input**: User description: "add aws agentcore runtime. use context7 to get more information on aws agentcore"
 
 ## Clarifications
@@ -12,8 +13,8 @@
 - Q: The spec assumes AWS Bedrock AgentCore deployment in us-west-2, but existing infrastructure (VPC, RDS, OpenSearch) is in us-east-1 according to AGENTS.md and deployment reports. Which region should be used? → A: us-east-1 (match existing infrastructure)
 - Q: For runtime deployment failure due to insufficient IAM permissions, what should the system do? → A: Fail CDK deployment with descriptive error message during synthesis/deploy
 - Q: FR-010 states "integrate with existing monitoring stack" but doesn't specify which metrics or alerts are required. What specific AgentCore metrics should be monitored? → A: Runtime status, invocation count, error rate, latency (p50/p99)
-- Q: The spec mentions "PrivateAgent subnets" for VPC mode but doesn't specify how many agent runtimes can be deployed concurrently. What is the maximum number of concurrent agent runtimes? → A: 2 concurrent runtimes maximum
-- Q: User Story 2 Scenario 2 tests agent access to "private RDS instance" but doesn't specify if this requires additional security group rules. Should agent runtime security groups allow outbound access to RDS security groups? → A: Deferred to implementation phase
+- Q: The spec mentions "PrivateAgent subnets" for VPC mode but doesn't specify how many agent runtimes can be deployed concurrently. What is the maximum number of concurrent agent runtimes? → A: 2 concurrent runtimes maximum (system capacity limit for future scaling; initial implementation deploys 1 runtime)
+- Q: User Story 2 Scenario 2 tests agent access to "private RDS instance" but doesn't specify if this requires additional security group rules. Should agent runtime security groups allow outbound access to RDS security groups? → A: Yes, agent runtime security groups require egress on port 443 (HTTPS) to AWS service endpoints; RDS-specific access rules (port 5432/3306) are application-specific and should be configured per deployment requirements
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -97,14 +98,14 @@ As a compliance officer, I need AgentCore traffic to remain within AWS's private
 - **FR-001**: System MUST create ECR repositories for storing agent container images with KMS encryption at rest
 - **FR-002**: System MUST deploy agent runtimes using AWS CDK with configurable network modes (PUBLIC or VPC)
 - **FR-003**: System MUST create IAM execution roles with trust policies allowing bedrock-agentcore.amazonaws.com service principal
-- **FR-004**: System MUST configure agent runtimes to operate within existing VPC infrastructure using designated subnets and security groups
+- **FR-004**: System MUST configure agent runtimes to operate within existing VPC infrastructure using designated subnets and security groups; agent runtime security groups MUST allow egress on port 443 (HTTPS) to AWS service endpoints (Bedrock, ECR, CloudWatch, Secrets Manager)
 - **FR-005**: System MUST enable agent runtimes to access AWS Bedrock models through IAM permissions
 - **FR-006**: System MUST provide agent runtime ARNs and endpoint URLs as CDK stack outputs for downstream consumption
-- **FR-007**: System MUST support both synchronous and streaming invocation patterns for agent runtimes
+- **FR-007**: System MUST support synchronous invocation patterns for agent runtimes; streaming invocation support is a future enhancement (deferred to post-MVP)
 - **FR-008**: System MUST configure VPC interface endpoints for bedrock-agentcore service to enable private connectivity
 - **FR-009**: System MUST apply resource tags (Project, Environment, Owner, CostCenter) to all AgentCore-related resources
 - **FR-010**: System MUST integrate with existing monitoring stack for agent runtime observability, tracking: runtime status (ACTIVE/FAILED), invocation count, error rate, and invocation latency (p50/p99 percentiles)
-- **FR-011**: System MUST deploy agent runtimes across multiple availability zones for high availability (maximum 2 concurrent agent runtimes supported)
+- **FR-011**: System MUST deploy agent runtimes across multiple availability zones for high availability (runtime subnet configuration spans multiple AZs; system supports maximum 2 concurrent runtime deployments for future scaling)
 - **FR-012**: System MUST enforce encryption in transit using TLS 1.2 or higher for all agent runtime communications
 
 ### Key Entities *(include if feature involves data)*
@@ -120,7 +121,7 @@ As a compliance officer, I need AgentCore traffic to remain within AWS's private
 ### Measurable Outcomes
 
 - **SC-001**: Infrastructure can deploy an agent runtime from container image to ACTIVE status in under 10 minutes
-- **SC-002**: Agent runtimes can handle invocations with payloads up to 100 MB without errors
+- **SC-002**: Agent runtimes can handle invocations with payloads up to 100 MB without errors (AWS service limit, validated in integration tests)
 - **SC-003**: Agent runtime endpoints respond to health check invocations within 2 seconds
 - **SC-004**: VPC-mode agent runtimes can access resources in private subnets with sub-100ms latency overhead compared to PUBLIC mode
 - **SC-005**: Agent runtime infrastructure survives single AZ failure without service interruption

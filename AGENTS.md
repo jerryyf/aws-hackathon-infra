@@ -11,10 +11,11 @@ Infrastructure-as-Code for AWS Hackathon AgentCore using AWS CDK (Python). Archi
 - **CDK synth single stack**: `cd cdk && cdk synth hackathon-agentcore-stack`
 - **Format**: `cd cdk && black .` (88 char line length)
 - **Lint**: `cd cdk && pylint cdk/` (docstrings disabled, see pyproject.toml)
+- **Type check**: `cd cdk && python -m pyright stacks/ app.py config.py` (static type analysis)
 
 ## Code Style (Python 3.11+, AWS CDK v2)
 - **Imports**: Group stdlib → third-party → aws_cdk → constructs → local (alphabetical within groups). Use `from aws_cdk import (..., aws_x as x)` style.
-- **Types**: Type hints required on all functions/methods (e.g., `def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None`)
+- **Types**: Type hints required on all functions/methods (e.g., `def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None`). Run `pyright` for type checking.
 - **Naming**: `snake_case` (functions/vars), `PascalCase` (classes), `UPPER_SNAKE` (constants)
 - **Formatting**: Black (88 chars), no manual docstrings (pylint disabled C0114/C0115/C0116)
 - **Error Handling**: Use AWS CDK exceptions, no bare try/except, always validate stack dependencies

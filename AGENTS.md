@@ -5,6 +5,7 @@
 Set AWS profile before running CDK commands:
 ```bash
 export AWS_PROFILE=hackathon
+export AWS_REGION=us-east-1
 ```
 
 ## Commands

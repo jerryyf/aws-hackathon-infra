@@ -231,7 +231,7 @@ class NetworkStack(Stack):
 
             # HTTP Listener (port 80) - redirect to HTTPS
             self.http_listener = self.alb.add_listener(
-                "HttpListener",
+                "HttpRedirectListener",
                 port=80,
                 default_action=elbv2.ListenerAction.redirect(
                     protocol="HTTPS", port="443", permanent=True
@@ -240,7 +240,7 @@ class NetworkStack(Stack):
         else:
             # HTTP Listener (port 80) - serve directly when no certificate
             self.http_listener = self.alb.add_listener(
-                "HttpListener",
+                "HttpDirectListener",
                 port=80,
                 default_action=elbv2.ListenerAction.fixed_response(
                     status_code=200,

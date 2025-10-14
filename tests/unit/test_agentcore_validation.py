@@ -6,24 +6,26 @@ from cdk.stacks.security_stack import SecurityStack
 from cdk.stacks.storage_stack import StorageStack
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def app():
-    return App()
+    app_instance = App()
+    yield app_instance
+    del app_instance
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def network_stack(app):
-    return NetworkStack(app, "TestNetworkStack")
+    return NetworkStack(app, "ValidationTestNetworkStack")
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def security_stack(app):
-    return SecurityStack(app, "TestSecurityStack")
+    return SecurityStack(app, "ValidationTestSecurityStack")
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def storage_stack(app):
-    return StorageStack(app, "TestStorageStack")
+    return StorageStack(app, "ValidationTestStorageStack")
 
 
 def test_invalid_environment_empty(app, network_stack, security_stack, storage_stack):

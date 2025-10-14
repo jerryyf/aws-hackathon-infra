@@ -18,3 +18,6 @@ __pycache__
 # CDK artifacts
 cdk.out/
 cdk.context.json
+
+# opencode
+.opencode

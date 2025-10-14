@@ -229,14 +229,25 @@ class NetworkStack(Stack):
                 ),
             )
 
-        # HTTP Listener (port 80) - redirect to HTTPS
-        self.http_listener = self.alb.add_listener(
-            "HttpListener",
-            port=80,
-            default_action=elbv2.ListenerAction.redirect(
-                protocol="HTTPS", port="443", permanent=True
-            ),
-        )
+            # HTTP Listener (port 80) - redirect to HTTPS
+            self.http_listener = self.alb.add_listener(
+                "HttpListener",
+                port=80,
+                default_action=elbv2.ListenerAction.redirect(
+                    protocol="HTTPS", port="443", permanent=True
+                ),
+            )
+        else:
+            # HTTP Listener (port 80) - serve directly when no certificate
+            self.http_listener = self.alb.add_listener(
+                "HttpListener",
+                port=80,
+                default_action=elbv2.ListenerAction.fixed_response(
+                    status_code=200,
+                    content_type="text/html",
+                    message_body="<html><body><h1>Welcome</h1></body></html>",
+                ),
+            )
 
         # DNS Record Creation
         if self.hosted_zone is not None and domain_name:

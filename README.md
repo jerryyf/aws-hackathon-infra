@@ -4,11 +4,10 @@
 
 Repository for AWS Hackathon AgentCore infrastructure. See docs/SETUP.md for detailed setup instructions.
 
-## Prerequisites
-- opencode
-- access to a model with strong coding capabilities and tool use (e.g. Claude Sonnet 4, OpenAI Codex)
+## Spec-driven Development Toolkit
+
+- opencode, copilot
 - spec-kit
-- aws-cdk
 
 ### Running Tests
 
@@ -76,7 +75,7 @@ $env:AWS_PROFILE="hackathon"
 **Deployment Example:**
 ```bash
 # Deploy to production environment with custom domain
-ENVIRONMENT=prod DOMAIN_NAME=api.example.com cdk deploy --all --profile hackathon
+ENVIRONMENT=prod DOMAIN_NAME=bidopsai.com cdk deploy --all --profile hackathon
 
 # Deploy to test environment (default)
 cdk deploy NetworkStack --profile hackathon

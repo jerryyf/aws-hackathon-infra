@@ -1,5 +1,9 @@
 # Agent Guidelines
 
+## Research First
+
+Always use context7 to fetch up-to-date documentation.
+
 ## Environment Variables
 
 Set AWS profile before running CDK commands:

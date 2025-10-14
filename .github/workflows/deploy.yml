@@ -27,18 +27,21 @@ jobs:
     - name: Install AWS CDK
       run: npm install -g aws-cdk
 
-    - name: Run CDK synth
+    - name: Run type checking
       run: |
         cd cdk
-        cdk synth
+        pyright
+
+    - name: Run unit tests
+      run: PYTHONPATH=. pytest tests/unit/ -v
 
     - name: Run contract tests
       run: PYTHONPATH=. pytest tests/contract/ -v
 
-    - name: Run deployment tests
+    - name: Run CDK synth
       run: |
-        # This would run integration tests, but for CI we skip actual deployment
-        echo "Skipping actual deployment in CI - would run post-deployment tests here"
+        cd cdk
+        cdk synth
 
   deploy:
     runs-on: ubuntu-latest

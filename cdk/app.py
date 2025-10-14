@@ -1,14 +1,25 @@
 #!/usr/bin/env python3
 import os
 import aws_cdk as cdk
-from stacks.network_stack import NetworkStack
-from stacks.database_stack import DatabaseStack
-from stacks.compute_stack import ComputeStack
-from stacks.storage_stack import StorageStack
-from stacks.security_stack import SecurityStack
-from stacks.monitoring_stack import MonitoringStack
-from stacks.agentcore_stack import AgentCoreStack
-from config import AGENTCORE_CONFIG, ENVIRONMENT
+
+try:
+    from cdk.stacks.network_stack import NetworkStack
+    from cdk.stacks.database_stack import DatabaseStack
+    from cdk.stacks.compute_stack import ComputeStack
+    from cdk.stacks.storage_stack import StorageStack
+    from cdk.stacks.security_stack import SecurityStack
+    from cdk.stacks.monitoring_stack import MonitoringStack
+    from cdk.stacks.agentcore_stack import AgentCoreStack
+    from cdk.config import AGENTCORE_CONFIG, ENVIRONMENT
+except ModuleNotFoundError:
+    from stacks.network_stack import NetworkStack
+    from stacks.database_stack import DatabaseStack
+    from stacks.compute_stack import ComputeStack
+    from stacks.storage_stack import StorageStack
+    from stacks.security_stack import SecurityStack
+    from stacks.monitoring_stack import MonitoringStack
+    from stacks.agentcore_stack import AgentCoreStack
+    from config import AGENTCORE_CONFIG, ENVIRONMENT
 
 app = cdk.App()
 

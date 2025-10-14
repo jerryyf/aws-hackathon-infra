@@ -1,8 +1,20 @@
 # Agent Guidelines
 
-## Research First
+## Workflow
 
-Always use context7 to fetch up-to-date documentation.
+This project uses spec-kit. Always follow workflows outlined in specs, plans, tasks. Do not stop until they are complete, or you find yourself in a loop (in which case stop, and provide a summary of findings and confusion points to the user).
+
+## Research
+
+Always use context7 to fetch up-to-date documentation. Always use `webfetch` with URLs provided by either the user, or by context7.
+
+## Virtual Environment
+
+Check for existence of venv/ or .venv/ in the project. If not exist, create with `python3 -m venv ./.venv`. Always ensure the virtual environment is activated before anything:
+
+```bash
+source .venv/bin/activate
+```
 
 ## Environment Variables
 

@@ -1,11 +1,18 @@
 # Agent Guidelines
 
+## Environment Variables
+
+Set AWS profile before running CDK commands:
+```bash
+export AWS_PROFILE=hackathon
+```
+
 ## Commands
 
-- **Synth**: `cd cdk && cdk synth`
+- **Synth**: `cd cdk && cdk synth --profile hackathon`
 - **Run all tests**: `PYTHONPATH=. pytest`
 - **Run single test**: `PYTHONPATH=. pytest tests/unit/test_vpc_construct.py::test_vpc_construct`
-- **Deploy stack**: `cd cdk && cdk deploy NetworkStack`
+- **Deploy stack**: `cd cdk && cdk deploy NetworkStack --profile hackathon`
 - **Type check**: `cd cdk && pyright`
 - **Lint**: `cd cdk && black . && pylint stacks/`
 

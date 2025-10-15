@@ -15,29 +15,34 @@ def test_alb_accessibility_integration():
     template = Template.from_stack(stack)
 
     # Verify ALB is internet-facing
-    template.has_resource_properties("AWS::ElasticLoadBalancingV2::LoadBalancer", {
-        "Scheme": "internet-facing",
-        "Type": "application"
-    })
+    template.has_resource_properties(
+        "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        {"Scheme": "internet-facing", "Type": "application"},
+    )
 
     # Verify ALB has security group
-    alb_sg_ref = template.find_resources("AWS::ElasticLoadBalancingV2::LoadBalancer")["Alb"]["Properties"]["SecurityGroups"]
+    alb_sg_ref = template.find_resources("AWS::ElasticLoadBalancingV2::LoadBalancer")[
+        "Alb"
+    ]["Properties"]["SecurityGroups"]
     assert len(alb_sg_ref) == 1
 
     # Verify security group allows HTTPS from internet
-    template.has_resource_properties("AWS::EC2::SecurityGroup", {
-        "GroupDescription": "Security group for ALB",
-        "SecurityGroupIngress": [
-            {
-                "IpProtocol": "tcp",
-                "FromPort": 443,
-                "ToPort": 443,
-                "CidrIp": "0.0.0.0/0"
-            }
-        ]
-    })
+    template.has_resource_properties(
+        "AWS::EC2::SecurityGroup",
+        {
+            "GroupDescription": "Security group for ALB",
+            "SecurityGroupIngress": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 443,
+                    "ToPort": 443,
+                    "CidrIp": "0.0.0.0/0",
+                }
+            ],
+        },
+    )
 
     # Verify WAF is associated
-    template.has_resource_properties("AWS::WAFv2::WebACLAssociation", {
-        "ResourceArn": {"Ref": "Alb"}
-    })
+    template.has_resource_properties(
+        "AWS::WAFv2::WebACLAssociation", {"ResourceArn": {"Ref": "Alb"}}
+    )

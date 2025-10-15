@@ -11,11 +11,13 @@ def test_alb_accessibility():
 
     # Get ALB DNS name from deployed stack
     # For now, this will fail as stacks are not deployed
-    cloudformation = boto3.client('cloudformation')
+    cloudformation = boto3.client("cloudformation")
     try:
-        response = cloudformation.describe_stacks(StackName='ComputeStack')
-        outputs = {o['OutputKey']: o['OutputValue'] for o in response['Stacks'][0]['Outputs']}
-        alb_dns = outputs['AlbDnsName']
+        response = cloudformation.describe_stacks(StackName="ComputeStack")
+        outputs = {
+            o["OutputKey"]: o["OutputValue"] for o in response["Stacks"][0]["Outputs"]
+        }
+        alb_dns = outputs["AlbDnsName"]
     except:
         pytest.fail("ComputeStack not deployed or ALB DNS not found")
 

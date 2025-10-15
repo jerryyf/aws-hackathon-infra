@@ -128,9 +128,11 @@ JSII (JavaScript Interop Interface) maintains kernel state across CDK App instan
 There is already a Construct with name 'NetworkStack' in App
 ```
 
+**Root Cause**: The JSII kernel maintains a global registry of construct IDs across all `cdk.App()` instances created during a pytest session. When the same stack ID is reused in multiple tests, the kernel throws a "duplicate construct" error, even though each test creates its own `App()` instance.
+
 ### The Solution
 
-Use UUID-based unique stack names in tests to avoid JSII kernel conflicts.
+Use UUID-based unique stack names in unit tests to avoid JSII kernel conflicts.
 
 **Pattern** (from test_agentcore_validation.py):
 ```python
@@ -147,9 +149,14 @@ def test_network_stack_validation():
     template = Template.from_stack(stack)
 ```
 
-### Session-Scoped Fixtures
+**Key Points**:
+- Use `uuid.uuid4()[:8]` for 8-character unique suffix
+- Apply to ALL unit tests creating `cdk.App()` instances
+- Not needed for session-scoped fixtures (see below)
 
-For contract tests that share stack instances, use `scope="session"` to create the stack once.
+### Session-Scoped Fixtures (Contract Tests)
+
+For contract tests that share stack instances, use `scope="session"` to create the stack once per pytest session.
 
 **Pattern** (tests/contract/test_agentcore_vpc_endpoint_contract.py:7-15):
 ```python
@@ -169,6 +176,15 @@ def network_stack():
 - No JSII kernel conflicts across tests
 - Faster test execution (stack synthesized once)
 - Shared template for all contract tests
+- No UUID needed (stack created only once)
+
+### When to Use Each Pattern
+
+| Test Type | Pattern | Reason |
+|-----------|---------|--------|
+| Unit tests (function scope) | UUID suffix | Multiple `App()` instances per session |
+| Contract tests (session scope) | Static name | Single `App()` instance per session |
+| Integration tests | N/A (boto3 only) | No CDK App creation |
 
 ## 3. Contract Validation Patterns
 

@@ -9,7 +9,7 @@
     "**/cdk.out",
     "**/node_modules"
   ],
-  "pythonVersion": "3.11",
+  "pythonVersion": "3.13",
   "pythonPlatform": "Darwin",
   "typeCheckingMode": "basic",
   "reportMissingImports": false,

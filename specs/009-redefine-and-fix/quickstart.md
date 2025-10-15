@@ -37,7 +37,6 @@ This project uses a three-tier testing approach:
 **No AWS credentials required** - validates CloudFormation templates only.
 
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra
 PYTHONPATH=. pytest tests/unit/
 ```
 
@@ -64,7 +63,6 @@ tests/unit/test_vpc_construct.py .                   [100%]
 **No AWS credentials required** - validates template outputs against YAML contracts.
 
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra
 PYTHONPATH=. pytest tests/contract/
 ```
 
@@ -89,7 +87,6 @@ tests/contract/test_agentcore_runtime_contract.py ........  [100%]
 **Requires AWS credentials and deployed stacks** - queries actual AWS resources.
 
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra
 export AWS_PROFILE=hackathon
 export AWS_REGION=us-east-1
 PYTHONPATH=. pytest tests/integration/
@@ -644,7 +641,6 @@ ModuleNotFoundError: No module named 'cdk.stacks'
 
 **Solution**: Set `PYTHONPATH` to repository root:
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra
 PYTHONPATH=. pytest tests/unit/
 ```
 

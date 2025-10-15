@@ -262,20 +262,6 @@ class NetworkStack(Stack):
                 ),
             )
 
-        # ALB Listeners Configuration
-        if self.certificate is not None:
-            # HTTPS Listener (port 443) with SSL certificate
-            self.https_listener = self.alb.add_listener(
-                "HttpsListener",
-                port=443,
-                certificates=[self.certificate],
-                default_action=elbv2.ListenerAction.fixed_response(
-                    status_code=200,
-                    content_type="text/html",
-                    message_body="<html><body><h1>Welcome to bidopsai.com</h1><p>HTTPS is working!</p></body></html>"
-                )
-            )
-
         # HTTP Listener (port 80) - redirect to HTTPS
         self.http_listener = self.alb.add_listener(
             "HttpListener",
@@ -286,18 +272,6 @@ class NetworkStack(Stack):
                 permanent=True
             )
         )
-
-        # DNS Record Creation
-        if self.hosted_zone is not None and domain_name:
-            # Create DNS A record (alias) pointing to the ALB
-            self.dns_record = route53.ARecord(
-                self, "DnsRecord",
-                zone=self.hosted_zone,
-                record_name=domain_name,
-                target=route53.RecordTarget.from_alias(
-                    route53_targets.LoadBalancerTarget(self.alb)
-                )
-            )
 
         # VPC Endpoints
         self.vpc.add_gateway_endpoint(
@@ -503,13 +477,6 @@ class NetworkStack(Stack):
             f"{output_prefix}AgentCoreRuntimeSecurityGroupId",
             value=self.agentcore_runtime_sg.security_group_id,
             description="Security group ID for AgentCore runtimes",
-        )
-
-        CfnOutput(
-            self, "DomainName",
-            value=domain_name if domain_name else "",
-            description="Domain name configured for the ALB (empty if not configured)",
-            export_name="DomainName"
         )
 
         # Export individual subnet IDs for cross-stack references

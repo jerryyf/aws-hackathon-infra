@@ -359,7 +359,6 @@ class NetworkStack(Stack):
             "BedrockAgentCoreEndpointId",
             value=self.bedrock_agentcore_endpoint.vpc_endpoint_id,
             description="Bedrock AgentCore VPC Endpoint ID",
-            
         )
 
         CfnOutput(
@@ -367,7 +366,6 @@ class NetworkStack(Stack):
             "BedrockAgentCoreGatewayEndpointId",
             value=self.bedrock_agentcore_gateway_endpoint.vpc_endpoint_id,
             description="Bedrock AgentCore Gateway VPC Endpoint ID",
-            
         )
 
         CfnOutput(
@@ -375,7 +373,6 @@ class NetworkStack(Stack):
             "VpcId",
             value=self.vpc.vpc_id,
             description="VPC ID",
-            
         )
 
         CfnOutput(
@@ -383,7 +380,6 @@ class NetworkStack(Stack):
             "PublicSubnetIds",
             value=",".join([subnet.subnet_id for subnet in self.vpc.public_subnets]),
             description="Public subnet IDs",
-            
         )
 
         CfnOutput(
@@ -397,7 +393,6 @@ class NetworkStack(Stack):
                 ]
             ),
             description="Private app subnet IDs",
-            
         )
 
         CfnOutput(
@@ -411,7 +406,6 @@ class NetworkStack(Stack):
                 ]
             ),
             description="Private agent subnet IDs",
-            
         )
 
         CfnOutput(
@@ -425,7 +419,6 @@ class NetworkStack(Stack):
                 ]
             ),
             description="Private data subnet IDs",
-            
         )
 
         CfnOutput(
@@ -433,7 +426,6 @@ class NetworkStack(Stack):
             "AlbDnsName",
             value=self.alb.load_balancer_dns_name,
             description="Public ALB DNS name",
-            
         )
 
         CfnOutput(
@@ -441,7 +433,6 @@ class NetworkStack(Stack):
             "InternalAlbDnsName",
             value=self.internal_alb.load_balancer_dns_name,
             description="Internal ALB DNS name",
-            
         )
 
         CfnOutput(
@@ -451,7 +442,6 @@ class NetworkStack(Stack):
                 self.hosted_zone.hosted_zone_id if self.hosted_zone is not None else ""
             ),
             description="Route 53 hosted zone ID (empty if not created/lookup not performed)",
-            
         )
 
         CfnOutput(
@@ -461,7 +451,6 @@ class NetworkStack(Stack):
                 self.certificate.certificate_arn if self.certificate is not None else ""
             ),
             description="ACM certificate ARN (empty if not created)",
-            
         )
 
         CfnOutput(
@@ -469,7 +458,6 @@ class NetworkStack(Stack):
             "DomainName",
             value=domain_name if domain_name else "",
             description="Domain name configured for the ALB (empty if not configured)",
-            
         )
 
         CfnOutput(
@@ -477,7 +465,6 @@ class NetworkStack(Stack):
             "AgentCoreRuntimeSecurityGroupId",
             value=self.agentcore_runtime_sg.security_group_id,
             description="Security group ID for AgentCore runtimes",
-            
         )
 
         # Export individual subnet IDs for cross-stack references
@@ -492,5 +479,4 @@ class NetworkStack(Stack):
                 f"PrivateDataSubnet{i+1}Id",
                 value=subnet.subnet_id,
                 description=f"Private data subnet {i+1} ID",
-                
             )

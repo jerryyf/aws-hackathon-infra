@@ -1,5 +1,5 @@
 import pytest
-from aws_cdk import App, Stack
+from aws_cdk import App
 from cdk.stacks.agentcore_stack import AgentCoreStack
 from cdk.stacks.network_stack import NetworkStack
 from cdk.stacks.security_stack import SecurityStack

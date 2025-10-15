@@ -1,4 +1,4 @@
-import pytest
+import uuid
 from aws_cdk.assertions import Template
 from cdk.stacks.network_stack import NetworkStack
 import aws_cdk as cdk
@@ -6,8 +6,9 @@ import aws_cdk as cdk
 
 def test_vpc_construct():
     """Test VPC construct creation"""
+    unique_id = str(uuid.uuid4())[:8]
     app = cdk.App()
-    stack = NetworkStack(app, "TestStack")
+    stack = NetworkStack(app, f"TestNetworkStack{unique_id}")
 
     template = Template.from_stack(stack)
 

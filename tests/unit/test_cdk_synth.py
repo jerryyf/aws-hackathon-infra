@@ -1,5 +1,4 @@
 import pytest
-import os
 import aws_cdk as cdk
 from cdk.stacks.network_stack import NetworkStack
 from cdk.stacks.database_stack import DatabaseStack
@@ -15,16 +14,15 @@ def test_synth_all_stacks():
     """Test that all CDK stacks can be synthesized without errors"""
     app = cdk.App()
     
-    # Don't set env to match typical local dev / CI without AWS credentials
     network_stack = NetworkStack(app, "TestNetworkStack")
-    database_stack = DatabaseStack(app, "TestDatabaseStack", network_stack=network_stack)
-    compute_stack = ComputeStack(app, "TestComputeStack", network_stack=network_stack)
+    DatabaseStack(app, "TestDatabaseStack", network_stack=network_stack)
+    ComputeStack(app, "TestComputeStack", network_stack=network_stack)
     storage_stack = StorageStack(app, "TestStorageStack")
     security_stack = SecurityStack(app, "TestSecurityStack")
-    monitoring_stack = MonitoringStack(
+    MonitoringStack(
         app, "TestMonitoringStack", logs_bucket=storage_stack.logs_bucket
     )
-    agentcore_stack = AgentCoreStack(
+    AgentCoreStack(
         app,
         "TestAgentCoreStack",
         network_stack=network_stack,

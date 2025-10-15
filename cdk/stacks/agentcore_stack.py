@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 
 
 class AgentCoreStack(Stack):
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         scope: Construct,
         construct_id: str,
@@ -68,9 +68,7 @@ class AgentCoreStack(Stack):
                 self, "LogsKmsKey", "alias/aws/logs"
             ),
         )
-        logger.info(
-            "[AgentCoreStack] Log group created: %s", log_group.log_group_name
-        )
+        logger.info("[AgentCoreStack] Log group created: %s", log_group.log_group_name)
 
         ecr_uri = (
             f"{Stack.of(self).account}.dkr.ecr.{Stack.of(self).region}"
@@ -406,7 +404,7 @@ class AgentCoreStack(Stack):
             memory,
         )
 
-    def _export_outputs(
+    def _export_outputs(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         runtime_name: str,
         log_group,

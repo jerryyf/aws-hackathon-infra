@@ -52,7 +52,7 @@ class DatabaseStack(Stack):
                             availability_zone="us-east-1b",
                         ),
                     ]
-                except Exception:
+                except (ValueError, KeyError):
                     # Last-resort: create a small test VPC so unit tests can run
                     vpc = ec2.Vpc(
                         self, "TestVpcFromFallback", cidr="10.0.0.0/16", max_azs=2

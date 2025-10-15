@@ -1,58 +1,109 @@
-import pytest
-from aws_cdk.assertions import Template, Match
-from cdk.stacks.network_stack import NetworkStack
-from cdk.stacks.security_stack import SecurityStack
-from cdk.stacks.storage_stack import StorageStack
-from cdk.stacks.agentcore_stack import AgentCoreStack
-import aws_cdk as cdk
+import re
 
 
-@pytest.fixture(scope="session")
-def agentcore_stack():
-    app = cdk.App()
+def test_agentcore_runtime_contract_outputs(agentcore_stack_outputs, load_contract_yaml):
+    """Test that all required outputs from contract YAML exist"""
     
-    network_stack = NetworkStack(
-        app,
-        "TestNetworkStack",
-        env=cdk.Environment(account="123456789012", region="us-east-1"),
-    )
+    contract = load_contract_yaml("agentcore-stack.yaml")
     
-    security_stack = SecurityStack(
-        app,
-        "TestSecurityStack",
-        env=cdk.Environment(account="123456789012", region="us-east-1"),
-    )
+    required_outputs = [
+        output_name for output_name, spec in contract["outputs"].items()
+        if any(v.get("type") == "required" for v in spec.get("validation", []))
+    ]
     
-    storage_stack = StorageStack(
-        app,
-        "TestStorageStack",
-        env=cdk.Environment(account="123456789012", region="us-east-1"),
-    )
-    
-    agentcore_config = {
-        "cpu": 512,
-        "memory": 1024,
-        "network_mode": "VPC",
-    }
-    
-    stack = AgentCoreStack(
-        app,
-        "TestAgentCoreStack",
-        network_stack=network_stack,
-        security_stack=security_stack,
-        storage_stack=storage_stack,
-        agentcore_config=agentcore_config,
-        environment="test",
-        env=cdk.Environment(account="123456789012", region="us-east-1"),
-    )
-    
-    return stack
+    for output_name in required_outputs:
+        assert output_name in agentcore_stack_outputs, \
+            f"Required output {output_name} not found (contract: agentcore-stack.yaml)"
 
 
-def test_agentcore_runtime_outputs_exist(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
+def test_agentcore_runtime_arn_contract_validation(agentcore_stack_outputs, load_contract_yaml):
+    """Test AgentCore runtime ARN matches contract regex"""
     
-    outputs = template.find_outputs("*")
+    contract = load_contract_yaml("agentcore-stack.yaml")
+    arn = agentcore_stack_outputs["AgentRuntimeArn"]
+    
+    arn_spec = contract["outputs"]["AgentRuntimeArn"]
+    regex_validation = next(
+        (v for v in arn_spec["validation"] if v["type"] == "regex"), None
+    )
+    
+    assert regex_validation, "Contract must define regex validation for AgentRuntimeArn"
+    pattern = re.compile(regex_validation["pattern"])
+    assert pattern.match(arn), f"AgentRuntimeArn {arn} does not match contract pattern"
+
+
+def test_agentcore_runtime_id_contract_validation(agentcore_stack_outputs, load_contract_yaml):
+    """Test AgentCore runtime ID matches contract regex"""
+    
+    contract = load_contract_yaml("agentcore-stack.yaml")
+    runtime_id = agentcore_stack_outputs["AgentRuntimeId"]
+    
+    id_spec = contract["outputs"]["AgentRuntimeId"]
+    regex_validation = next(
+        (v for v in id_spec["validation"] if v["type"] == "regex"), None
+    )
+    
+    assert regex_validation, "Contract must define regex validation for AgentRuntimeId"
+    pattern = re.compile(regex_validation["pattern"])
+    assert pattern.match(runtime_id), f"AgentRuntimeId {runtime_id} does not match contract pattern"
+
+
+def test_agentcore_runtime_endpoint_contract_validation(agentcore_stack_outputs, load_contract_yaml):
+    """Test AgentCore runtime endpoint matches contract regex and HTTPS requirement"""
+    
+    contract = load_contract_yaml("agentcore-stack.yaml")
+    endpoint = agentcore_stack_outputs["AgentRuntimeEndpointUrl"]
+    
+    endpoint_spec = contract["outputs"]["AgentRuntimeEndpointUrl"]
+    
+    regex_validation = next(
+        (v for v in endpoint_spec["validation"] if v["type"] == "regex"), None
+    )
+    assert regex_validation, "Contract must define regex validation for endpoint"
+    pattern = re.compile(regex_validation["pattern"])
+    assert pattern.match(endpoint), f"Endpoint {endpoint} does not match contract pattern"
+    
+    https_validation = next(
+        (v for v in endpoint_spec["validation"] if v["type"] == "https_only"), None
+    )
+    assert https_validation, "Contract must define HTTPS validation"
+    assert endpoint.startswith("https://"), "Endpoint must use HTTPS"
+
+
+def test_agentcore_runtime_status_contract_validation(agentcore_stack_outputs, load_contract_yaml):
+    """Test AgentCore runtime status matches contract enum"""
+    
+    contract = load_contract_yaml("agentcore-stack.yaml")
+    status = agentcore_stack_outputs["AgentRuntimeStatus"]
+    
+    status_spec = contract["outputs"]["AgentRuntimeStatus"]
+    enum_validation = next(
+        (v for v in status_spec["validation"] if v["type"] == "enum"), None
+    )
+    
+    assert enum_validation, "Contract must define enum validation for status"
+    valid_values = enum_validation["values"]
+    assert status in valid_values, f"Status {status} not in contract enum: {valid_values}"
+
+
+def test_execution_role_arn_contract_validation(agentcore_stack_outputs, load_contract_yaml):
+    """Test execution role ARN matches contract regex"""
+    
+    contract = load_contract_yaml("agentcore-stack.yaml")
+    arn = agentcore_stack_outputs["ExecutionRoleArn"]
+    
+    role_spec = contract["outputs"]["ExecutionRoleArn"]
+    regex_validation = next(
+        (v for v in role_spec["validation"] if v["type"] == "regex"), None
+    )
+    
+    assert regex_validation, "Contract must define regex validation for ExecutionRoleArn"
+    pattern = re.compile(regex_validation["pattern"])
+    assert pattern.match(arn), f"ExecutionRoleArn {arn} does not match contract pattern"
+
+
+def test_agentcore_runtime_outputs_exist(agentcore_stack_outputs):
+    """Test that AgentCore runtime outputs exist"""
     
     required_outputs = [
         "AgentRuntimeArn",
@@ -64,117 +115,79 @@ def test_agentcore_runtime_outputs_exist(agentcore_stack):
     ]
     
     for output_name in required_outputs:
-        assert output_name in outputs, f"Required output {output_name} not found"
+        assert output_name in agentcore_stack_outputs, f"Required output {output_name} not found in AgentCoreStack"
 
 
-def test_agentcore_runtime_arn_output(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
+def test_agentcore_runtime_arn_output(agentcore_stack_outputs):
+    """Test AgentCore runtime ARN output format"""
     
-    outputs = template.find_outputs("AgentRuntimeArn")
-    assert len(outputs) == 1
+    arn = agentcore_stack_outputs["AgentRuntimeArn"]
+    arn_pattern = re.compile(r"^arn:aws:bedrock:[a-z0-9-]+:\d{12}:agent/[A-Z0-9]{10}$")
+    assert arn_pattern.match(arn), f"AgentRuntimeArn {arn} does not match expected format"
+
+
+def test_agentcore_runtime_id_output(agentcore_stack_outputs):
+    """Test AgentCore runtime ID output format"""
     
-    arn_output = outputs["AgentRuntimeArn"]
-    assert arn_output["Description"] == "Bedrock AgentCore runtime ARN"
-    assert arn_output["Export"]["Name"] == "test-AgentRuntimeArn"
-    assert "Value" in arn_output
+    runtime_id = agentcore_stack_outputs["AgentRuntimeId"]
+    id_pattern = re.compile(r"^[A-Z0-9]{10}$")
+    assert id_pattern.match(runtime_id), f"AgentRuntimeId {runtime_id} does not match expected format"
 
 
-def test_agentcore_runtime_id_output(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
+def test_agentcore_runtime_endpoint_output(agentcore_stack_outputs):
+    """Test AgentCore runtime endpoint output format"""
     
-    outputs = template.find_outputs("AgentRuntimeId")
-    assert len(outputs) == 1
+    endpoint = agentcore_stack_outputs["AgentRuntimeEndpointUrl"]
+    assert endpoint.startswith("https://"), f"AgentRuntimeEndpointUrl must use HTTPS"
+    assert "bedrock-agent-runtime" in endpoint, f"Endpoint must be a Bedrock Agent Runtime URL"
+
+
+def test_agentcore_runtime_status_output(agentcore_stack_outputs):
+    """Test AgentCore runtime status output"""
     
-    id_output = outputs["AgentRuntimeId"]
-    assert id_output["Description"] == "Bedrock AgentCore runtime ID"
-    assert id_output["Export"]["Name"] == "AgentRuntimeId"
-    assert "Value" in id_output
+    status = agentcore_stack_outputs["AgentRuntimeStatus"]
+    valid_statuses = ["CREATING", "PREPARED", "FAILED", "DELETING", "NOT_PREPARED"]
+    assert status in valid_statuses, f"AgentRuntimeStatus must be one of {valid_statuses}, got {status}"
 
 
-def test_agentcore_runtime_endpoint_output(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
+def test_agentcore_runtime_version_output(agentcore_stack_outputs):
+    """Test AgentCore runtime version output format"""
     
-    outputs = template.find_outputs("AgentRuntimeEndpointUrl")
-    assert len(outputs) == 1
+    version = agentcore_stack_outputs["AgentRuntimeVersion"]
+    # Version can be DRAFT or a number
+    assert version == "DRAFT" or version.isdigit(), \
+        f"AgentRuntimeVersion must be 'DRAFT' or numeric, got {version}"
+
+
+def test_execution_role_arn_output(agentcore_stack_outputs):
+    """Test execution role ARN output format"""
     
-    endpoint_output = outputs["AgentRuntimeEndpointUrl"]
-    assert endpoint_output["Description"] == "Bedrock AgentCore runtime endpoint URL"
-    assert endpoint_output["Export"]["Name"] == "AgentRuntimeEndpointUrl"
-    assert "Value" in endpoint_output
+    arn = agentcore_stack_outputs["ExecutionRoleArn"]
+    arn_pattern = re.compile(r"^arn:aws:iam::\d{12}:role/[a-zA-Z0-9-_]+$")
+    assert arn_pattern.match(arn), f"ExecutionRoleArn {arn} does not match expected format"
 
 
-def test_agentcore_runtime_status_output(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
+def test_agentcore_runtime_properties(agentcore_stack_outputs, bedrock_agent_client):
+    """Test AgentCore runtime properties via Bedrock Agent API"""
     
-    outputs = template.find_outputs("AgentRuntimeStatus")
-    assert len(outputs) == 1
+    agent_id = agentcore_stack_outputs["AgentRuntimeId"]
     
-    status_output = outputs["AgentRuntimeStatus"]
-    assert status_output["Description"] == "Bedrock AgentCore runtime status"
-    assert status_output["Export"]["Name"] == "AgentRuntimeStatus"
-    assert "Value" in status_output
-
-
-def test_agentcore_runtime_version_output(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
+    response = bedrock_agent_client.get_agent(agentId=agent_id)
+    agent = response["agent"]
     
-    outputs = template.find_outputs("AgentRuntimeVersion")
-    assert len(outputs) == 1
+    assert agent["agentStatus"] in ["CREATING", "PREPARED", "FAILED", "NOT_PREPARED"], \
+        f"Agent status must be valid"
+    assert "agentArn" in agent, "Agent must have ARN"
+    assert "agentVersion" in agent, "Agent must have version"
+
+
+def test_agentcore_runtime_tags(agentcore_stack_outputs, bedrock_agent_client):
+    """Test AgentCore runtime tags"""
     
-    version_output = outputs["AgentRuntimeVersion"]
-    assert version_output["Description"] == "Bedrock AgentCore runtime version"
-    assert version_output["Export"]["Name"] == "AgentRuntimeVersion"
-    assert "Value" in version_output
-
-
-def test_execution_role_arn_output(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
+    agent_arn = agentcore_stack_outputs["AgentRuntimeArn"]
     
-    outputs = template.find_outputs("ExecutionRoleArn")
-    assert len(outputs) == 1
+    response = bedrock_agent_client.list_tags_for_resource(resourceArn=agent_arn)
+    tags = response.get("tags", {})
     
-    role_output = outputs["ExecutionRoleArn"]
-    assert role_output["Description"] == "Bedrock AgentCore execution role ARN"
-    assert role_output["Export"]["Name"] == "test-AgentExecutionRoleArn"
-    assert "Value" in role_output
-
-
-def test_agentcore_runtime_properties(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
-    
-    template.has_resource_properties(
-        "AWS::BedrockAgentCore::Runtime",
-        {
-            "AgentRuntimeName": "hackathon-agent-test-us-east-1",
-            "RoleArn": {
-                "Fn::ImportValue": Match.string_like_regexp(".*AgentCoreExecutionRole.*Arn.*")
-            },
-            "AgentRuntimeArtifact": {
-                "ContainerConfiguration": {
-                    "Cpu": 512,
-                    "Memory": 1024,
-                }
-            },
-            "NetworkConfiguration": {
-                "NetworkMode": "VPC",
-            },
-        }
-    )
-
-
-def test_agentcore_runtime_tags(agentcore_stack):
-    template = Template.from_stack(agentcore_stack)
-    
-    template.has_resource_properties(
-        "AWS::BedrockAgentCore::Runtime",
-        {
-            "Tags": [
-                {"Key": "Project", "Value": "aws-hackathon"},
-                {"Key": "Environment", "Value": "test"},
-                {"Key": "Owner", "Value": "platform-team"},
-                {"Key": "CostCenter", "Value": "engineering"},
-                {"Key": "ManagedBy", "Value": "cdk"},
-                {"Key": "Stack", "Value": "agentcore-stack"},
-            ]
-        }
-    )
+    # Verify environment tag exists
+    assert "Environment" in tags or "environment" in tags, "Agent must have Environment tag"

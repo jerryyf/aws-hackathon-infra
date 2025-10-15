@@ -1,4 +1,5 @@
-import pytest
+import uuid
+
 from aws_cdk.assertions import Template
 from cdk.stacks.network_stack import NetworkStack
 from cdk.stacks.security_stack import SecurityStack
@@ -9,34 +10,35 @@ import aws_cdk as cdk
 
 def test_agentcore_stack_synth_public_mode():
     app = cdk.App()
-    
+    unique_id = str(uuid.uuid4())[:8]
+
     network_stack = NetworkStack(
         app,
-        "TestNetworkStack",
+        f"TestNetworkStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     security_stack = SecurityStack(
         app,
-        "TestSecurityStack",
+        f"TestSecurityStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     storage_stack = StorageStack(
         app,
-        "TestStorageStack",
+        f"TestStorageStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     agentcore_config = {
         "cpu": 512,
         "memory": 1024,
         "network_mode": "PUBLIC",
     }
-    
+
     stack = AgentCoreStack(
         app,
-        "TestAgentCoreStack",
+        f"TestAgentCoreStack{unique_id}",
         network_stack=network_stack,
         security_stack=security_stack,
         storage_stack=storage_stack,
@@ -44,51 +46,48 @@ def test_agentcore_stack_synth_public_mode():
         environment="test",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     template = Template.from_stack(stack)
-    
+
     template.resource_count_is("AWS::BedrockAgentCore::Runtime", 1)
-    
+
     template.has_resource_properties(
         "AWS::BedrockAgentCore::Runtime",
-        {
-            "NetworkConfiguration": {
-                "NetworkMode": "PUBLIC"
-            }
-        }
+        {"NetworkConfiguration": {"NetworkMode": "PUBLIC"}},
     )
 
 
 def test_agentcore_stack_synth_vpc_mode():
     app = cdk.App()
-    
+    unique_id = str(uuid.uuid4())[:8]
+
     network_stack = NetworkStack(
         app,
-        "TestNetworkStack",
+        f"TestNetworkStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     security_stack = SecurityStack(
         app,
-        "TestSecurityStack",
+        f"TestSecurityStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     storage_stack = StorageStack(
         app,
-        "TestStorageStack",
+        f"TestStorageStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     agentcore_config = {
         "cpu": 2048,
         "memory": 4096,
         "network_mode": "VPC",
     }
-    
+
     stack = AgentCoreStack(
         app,
-        "TestAgentCoreStack",
+        f"TestAgentCoreStack{unique_id}",
         network_stack=network_stack,
         security_stack=security_stack,
         storage_stack=storage_stack,
@@ -96,57 +95,56 @@ def test_agentcore_stack_synth_vpc_mode():
         environment="prod",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     template = Template.from_stack(stack)
-    
+
     template.resource_count_is("AWS::BedrockAgentCore::Runtime", 1)
-    
+
     template.has_resource_properties(
         "AWS::BedrockAgentCore::Runtime",
         {
-            "NetworkConfiguration": {
-                "NetworkMode": "VPC"
-            },
+            "NetworkConfiguration": {"NetworkMode": "VPC"},
             "AgentRuntimeArtifact": {
                 "ContainerConfiguration": {
                     "Cpu": 2048,
                     "Memory": 4096,
                 }
-            }
-        }
+            },
+        },
     )
 
 
 def test_agentcore_stack_synth_outputs():
     app = cdk.App()
-    
+    unique_id = str(uuid.uuid4())[:8]
+
     network_stack = NetworkStack(
         app,
-        "TestNetworkStack",
+        f"TestNetworkStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     security_stack = SecurityStack(
         app,
-        "TestSecurityStack",
+        f"TestSecurityStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     storage_stack = StorageStack(
         app,
-        "TestStorageStack",
+        f"TestStorageStack{unique_id}",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     agentcore_config = {
         "cpu": 512,
         "memory": 1024,
         "network_mode": "PUBLIC",
     }
-    
+
     stack = AgentCoreStack(
         app,
-        "TestAgentCoreStack",
+        f"TestAgentCoreStack{unique_id}",
         network_stack=network_stack,
         security_stack=security_stack,
         storage_stack=storage_stack,
@@ -154,11 +152,11 @@ def test_agentcore_stack_synth_outputs():
         environment="test",
         env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
-    
+
     template = Template.from_stack(stack)
-    
+
     outputs = template.find_outputs("*")
-    
+
     assert "AgentRuntimeArn" in outputs
     assert "AgentRuntimeId" in outputs
     assert "AgentRuntimeEndpointUrl" in outputs

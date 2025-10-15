@@ -80,7 +80,7 @@ class NetworkStack(Stack):
         if hasattr(self.alb.node.default_child, "override_logical_id"):
             try:
                 self.alb.node.default_child.override_logical_id("Alb")
-            except Exception:
+            except (AttributeError, TypeError):
                 pass
 
         # Internal ALB Security Group
@@ -121,7 +121,7 @@ class NetworkStack(Stack):
         if hasattr(self.internal_alb.node.default_child, "override_logical_id"):
             try:
                 self.internal_alb.node.default_child.override_logical_id("InternalAlb")
-            except Exception:
+            except (AttributeError, TypeError):
                 pass
 
         # WAF
@@ -353,7 +353,7 @@ class NetworkStack(Stack):
         )
 
         # Outputs
-        
+
         CfnOutput(
             self,
             "BedrockAgentCoreEndpointId",

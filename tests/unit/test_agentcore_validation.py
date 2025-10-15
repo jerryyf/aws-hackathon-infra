@@ -1,5 +1,6 @@
 import pytest
-from aws_cdk import App, Stack
+import uuid
+from aws_cdk import App
 from cdk.stacks.agentcore_stack import AgentCoreStack
 from cdk.stacks.network_stack import NetworkStack
 from cdk.stacks.security_stack import SecurityStack
@@ -11,38 +12,22 @@ def app():
     return App()
 
 
-@pytest.fixture(scope="session")
-def network_stack_session():
-    app = App()
-    return NetworkStack(app, "ValidationTestNetworkStack")
-
-
-@pytest.fixture(scope="session")
-def security_stack_session():
-    app = App()
-    return SecurityStack(app, "ValidationTestSecurityStack")
-
-
-@pytest.fixture(scope="session")
-def storage_stack_session():
-    app = App()
-    return StorageStack(app, "ValidationTestStorageStack")
-
-
-# For validation tests that create AgentCoreStack,  need fresh instances each time
 @pytest.fixture(scope="function")
 def network_stack(app):
-    return NetworkStack(app, "ValidationTestNetworkStack")
+    test_id = str(uuid.uuid4())[:8]
+    return NetworkStack(app, f"ValidationTestNetworkStack{test_id}")
 
 
 @pytest.fixture(scope="function")
 def security_stack(app):
-    return SecurityStack(app, "ValidationTestSecurityStack")
+    test_id = str(uuid.uuid4())[:8]
+    return SecurityStack(app, f"ValidationTestSecurityStack{test_id}")
 
 
 @pytest.fixture(scope="function")
 def storage_stack(app):
-    return StorageStack(app, "ValidationTestStorageStack")
+    test_id = str(uuid.uuid4())[:8]
+    return StorageStack(app, f"ValidationTestStorageStack{test_id}")
 
 
 def test_invalid_environment_empty(app, network_stack, security_stack, storage_stack):

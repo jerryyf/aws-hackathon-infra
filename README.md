@@ -11,19 +11,70 @@ Repository for AWS Hackathon AgentCore infrastructure. See docs/SETUP.md for det
 
 ### Running Tests
 
+The test suite includes unit tests, contract tests (validate deployed infrastructure), and integration tests (end-to-end scenarios).
+
+**Prerequisites:**
 ```bash
-# From repository root
+# Activate virtual environment
+source .venv/bin/activate
+
+# Set AWS profile for contract/integration tests
+export AWS_PROFILE=hackathon
+export AWS_REGION=us-east-1
+```
+
+**Quick Commands:**
+```bash
+# Run all unit tests (fast, no AWS required)
+PYTHONPATH=. pytest tests/unit/
+
+# Run contract tests (requires deployed infrastructure)
+PYTHONPATH=. pytest tests/contract/ -v
+
+# Run integration tests (requires deployed infrastructure)
+PYTHONPATH=. pytest tests/integration/ -v
+
+# Run all tests
 PYTHONPATH=. pytest
 
 # Run specific test
 PYTHONPATH=. pytest tests/unit/test_vpc_construct.py::test_vpc_construct
 
-# Run contract tests
-PYTHONPATH=. pytest tests/contract/ -v
-
 # Run with coverage
 PYTHONPATH=. pytest --cov=cdk --cov-report=html
 ```
+
+**Test Markers:**
+```bash
+# Run only unit tests
+pytest -m unit
+
+# Run only contract tests
+pytest -m contract
+
+# Run only integration tests
+pytest -m integration
+
+# Exclude slow tests
+pytest -m "not slow"
+```
+
+**Parallel Execution:**
+```bash
+# Install pytest-xdist
+pip install pytest-xdist
+
+# Run tests in parallel
+pytest -n auto
+```
+
+**CI/CD Pipeline:**
+The GitHub Actions workflow runs tests in stages:
+1. **Lint** (black, pyright, pylint) - runs on all PRs
+2. **Unit Tests** - runs on all PRs (no AWS credentials)
+3. **Deploy** - runs on main branch only
+4. **Contract Tests** - validates deployed infrastructure
+5. **Integration Tests** - end-to-end validation
 
 ### Deploying Infrastructure
 

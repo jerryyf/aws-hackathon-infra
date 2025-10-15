@@ -1,0 +1,26 @@
+{
+  "include": [
+    "stacks",
+    "app.py",
+    "config.py"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/cdk.out",
+    "**/node_modules"
+  ],
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Darwin",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": false,
+  "reportMissingTypeStubs": false,
+  "reportUnusedImport": true,
+  "reportUnusedVariable": true,
+  "reportGeneralTypeIssues": true,
+  "reportOptionalMemberAccess": true,
+  "reportOptionalSubscript": true,
+  "reportPrivateImportUsage": false,
+  "venvPath": ".",
+  "venv": ".venv",
+  "stubPath": ""
+}

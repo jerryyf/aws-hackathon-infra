@@ -1,63 +1,99 @@
-import json
-import pytest
-from aws_cdk.assertions import Template
-from cdk.stacks.network_stack import NetworkStack
-import aws_cdk as cdk
+import re
 
 
-def test_vpc_deployment_readiness():
-    """Test that VPC stack is ready for deployment with correct outputs"""
-    app = cdk.App()
+def test_vpc_deployment_readiness(network_stack_outputs, ec2_client):
+    """Test that VPC stack is deployed with correct outputs and resources"""
 
-    # Create stack
-    stack = NetworkStack(app, "TestNetworkStack")
+    # Verify VpcId output exists
+    assert "VpcId" in network_stack_outputs, "VpcId output not found in NetworkStack"
+    vpc_id = network_stack_outputs["VpcId"]
 
-    # Get CloudFormation template
-    template = Template.from_stack(stack)
+    # Query actual VPC resource from AWS
+    response = ec2_client.describe_vpcs(VpcIds=[vpc_id])
+    assert len(response["Vpcs"]) == 1, f"VPC {vpc_id} not found in AWS"
 
-    # Check that VPC output exists with correct export for cross-stack references
-    outputs = template.find_outputs("VpcId")
-    assert len(outputs) == 1
-    vpc_output = outputs["VpcId"]
-    assert vpc_output["Description"] == "VPC ID"
-    assert "Export" in vpc_output
-    assert vpc_output["Export"]["Name"] == "VpcId"
-    assert "Value" in vpc_output
+    vpc = response["Vpcs"][0]
 
-    # Check VPC properties for deployment
-    template.has_resource_properties("AWS::EC2::VPC", {
-        "CidrBlock": "10.0.0.0/16",
-        "EnableDnsHostnames": True,
-        "EnableDnsSupport": True
-    })
+    # Validate VPC properties match contract
+    assert (
+        vpc["CidrBlock"] == "10.0.0.0/16"
+    ), f"VPC CIDR must be 10.0.0.0/16, got {vpc['CidrBlock']}"
 
-    # Check that all required subnets are created for deployment
-    subnets = template.find_resources("AWS::EC2::Subnet")
-    assert len(subnets) == 8  # 2 AZs * 4 subnet types
+    # Check DNS attributes using describe_vpc_attribute
+    dns_hostnames_attr = ec2_client.describe_vpc_attribute(
+        VpcId=vpc_id, Attribute="enableDnsHostnames"
+    )
+    assert (
+        dns_hostnames_attr["EnableDnsHostnames"]["Value"] is True
+    ), "VPC must have DNS hostnames enabled"
 
-    # Check that internet gateway exists for public access
-    igw = template.find_resources("AWS::EC2::InternetGateway")
-    assert len(igw) == 1
+    dns_support_attr = ec2_client.describe_vpc_attribute(
+        VpcId=vpc_id, Attribute="enableDnsSupport"
+    )
+    assert (
+        dns_support_attr["EnableDnsSupport"]["Value"] is True
+    ), "VPC must have DNS support enabled"
 
-    # Check that NAT gateways exist for private subnet internet access
-    nat_gws = template.find_resources("AWS::EC2::NatGateway")
-    assert len(nat_gws) == 2  # One per AZ
+    # Verify subnets exist (8 total: 2 AZs * 4 subnet types)
+    subnets_response = ec2_client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
+    )
+    assert (
+        len(subnets_response["Subnets"]) == 8
+    ), f"Expected 8 subnets, found {len(subnets_response['Subnets'])}"
+
+    # Verify internet gateway exists
+    igw_response = ec2_client.describe_internet_gateways(
+        Filters=[{"Name": "attachment.vpc-id", "Values": [vpc_id]}]
+    )
+    assert len(igw_response["InternetGateways"]) == 1, "Expected 1 internet gateway"
+
+    # Verify NAT gateways exist (2 total: one per AZ)
+    nat_response = ec2_client.describe_nat_gateways(
+        Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
+    )
+    active_nats = [
+        nat
+        for nat in nat_response["NatGateways"]
+        if nat["State"] in ["available", "pending"]
+    ]
+    assert len(active_nats) == 2, f"Expected 2 NAT gateways, found {len(active_nats)}"
 
 
-def test_vpc_deployment_outputs():
+def test_vpc_deployment_outputs(network_stack_outputs):
     """Test VPC deployment outputs match contract for dependent stacks"""
-    app = cdk.App()
-    stack = NetworkStack(app, "TestNetworkStack")
-    template = Template.from_stack(stack)
 
-    # Validate all required outputs are present for deployment
-    outputs = template.find_outputs("*")
+    # Validate all required outputs are present per contract
     required_outputs = [
-        "VpcId", "PublicSubnetIds", "PrivateAppSubnetIds",
-        "PrivateAgentSubnetIds", "PrivateDataSubnetIds", "AlbDnsName"
+        "VpcId",
+        "PublicSubnetIds",
+        "PrivateAppSubnetIds",
+        "PrivateAgentSubnetIds",
+        "PrivateDataSubnetIds",
+        "AlbDnsName",
     ]
 
     for output_name in required_outputs:
-        assert output_name in outputs
-        assert "Export" in outputs[output_name]
-        assert "Value" in outputs[output_name]
+        assert (
+            output_name in network_stack_outputs
+        ), f"Required output {output_name} missing from NetworkStack"
+
+    # Validate subnet IDs format (comma-delimited list)
+    subnet_outputs = [
+        "PublicSubnetIds",
+        "PrivateAppSubnetIds",
+        "PrivateAgentSubnetIds",
+        "PrivateDataSubnetIds",
+    ]
+    subnet_pattern = re.compile(r"^subnet-[a-f0-9]{17}$")
+
+    for subnet_output in subnet_outputs:
+        subnet_ids = network_stack_outputs[subnet_output].split(",")
+        assert (
+            len(subnet_ids) == 2
+        ), f"{subnet_output} must contain exactly 2 subnet IDs, got {len(subnet_ids)}"
+
+        for subnet_id in subnet_ids:
+            assert subnet_pattern.match(
+                subnet_id
+            ), f"Subnet ID {subnet_id} does not match pattern subnet-[a-f0-9]{{17}}"

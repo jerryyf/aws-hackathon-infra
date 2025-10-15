@@ -1,0 +1,107 @@
+# CloudFormation Outputs Contract: AgentCore Stack
+# 
+# This contract defines the required outputs from the AgentCore CDK stack.
+# Contract tests validate these outputs exist and have correct formats.
+# 
+# Feature: AWS AgentCore Runtime Infrastructure
+# Stack: agentcore_stack.py
+# Test: tests/contract/test_agentcore_runtime_contract.py
+
+outputs:
+  AgentRuntimeArn:
+    description: "ARN of the deployed AWS Bedrock AgentCore runtime"
+    exportName: "${Environment}-AgentRuntimeArn"
+    format: "arn:aws:bedrock-agentcore:<region>:<account>:runtime/<runtime-id>"
+    validation:
+      - type: regex
+        pattern: "^arn:aws:bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[a-zA-Z0-9-]+$"
+      - type: required
+        message: "AgentRuntimeArn is required for runtime invocation"
+    usage: "Used by applications to invoke the agent runtime via AWS SDK"
+
+  AgentRuntimeId:
+    description: "Unique identifier for the agent runtime resource"
+    format: "<alphanumeric-id>"
+    validation:
+      - type: regex
+        pattern: "^[a-zA-Z0-9-]+$"
+      - type: required
+        message: "AgentRuntimeId is required for resource tracking"
+    usage: "Used for CloudWatch metrics filtering and log stream identification"
+
+  AgentRuntimeEndpointUrl:
+    description: "HTTPS endpoint URL for invoking the agent runtime"
+    format: "https://<runtime-id>.runtime.bedrock-agentcore.<region>.amazonaws.com"
+    validation:
+      - type: regex
+        pattern: "^https://[a-zA-Z0-9-]+\\.runtime\\.bedrock-agentcore\\.[a-z0-9-]+\\.amazonaws\\.com$"
+      - type: required
+        message: "EndpointUrl is required for runtime invocation"
+      - type: https_only
+        message: "Endpoint must use TLS 1.2 or higher (AWS enforced)"
+    usage: "Used for direct HTTPS invocation of the runtime (if enabled)"
+
+  ExecutionRoleArn:
+    description: "ARN of the IAM role assumed by the agent runtime"
+    exportName: "${Environment}-AgentExecutionRoleArn"
+    format: "arn:aws:iam::<account>:role/<role-name>"
+    validation:
+      - type: regex
+        pattern: "^arn:aws:iam::[0-9]{12}:role/[a-zA-Z0-9-_+=,.@]+$"
+      - type: required
+        message: "ExecutionRoleArn is required for runtime permission management"
+    usage: "Reference for debugging permission issues or adding additional policies"
+
+  AgentRuntimeStatus:
+    description: "Current deployment status of the agent runtime"
+    format: "CREATING | ACTIVE | UPDATING | DELETING | FAILED"
+    validation:
+      - type: enum
+        values: ["CREATING", "ACTIVE", "UPDATING", "DELETING", "FAILED"]
+      - type: deployment_check
+        expected: "ACTIVE"
+        message: "Runtime must reach ACTIVE status for successful deployment"
+    usage: "Used by deployment scripts to verify runtime readiness"
+
+  AgentRuntimeVersion:
+    description: "Version identifier for the deployed runtime"
+    format: "<version-string>"
+    default: "DEFAULT"
+    validation:
+      - type: required
+        message: "RuntimeVersion tracks deployment versions"
+    usage: "Used for rollback operations and version tracking"
+
+# Stack Dependencies
+dependencies:
+  - NetworkStack  # VPC, subnets, VPC endpoint
+  - SecurityStack  # IAM execution role
+  - StorageStack  # ECR repository for agent images
+
+# Tagging Requirements (AWS Well-Architected Framework - Cost pillar)
+required_tags:
+  - Project: "aws-hackathon"
+  - Environment: "${Environment}"  # test, prod
+  - Owner: "platform-team"
+  - CostCenter: "engineering"
+  - ManagedBy: "cdk"
+  - Stack: "agentcore-stack"
+
+# Success Criteria
+acceptance:
+  - name: "Runtime reaches ACTIVE status"
+    test: "AgentRuntimeStatus == 'ACTIVE'"
+    timeout: "10 minutes"
+    spec_reference: "SC-001"
+  
+  - name: "Runtime endpoint is HTTPS"
+    test: "AgentRuntimeEndpointUrl starts with 'https://'"
+    spec_reference: "SC-004 (TLS 1.2+ requirement)"
+  
+  - name: "All required outputs exist"
+    test: "All outputs with validation.type=required are present"
+    spec_reference: "FR-006 (runtime identification outputs)"
+  
+  - name: "Execution role has correct trust policy"
+    test: "ExecutionRoleArn references role with bedrock-agentcore.amazonaws.com trust"
+    spec_reference: "FR-003 (IAM role configuration)"

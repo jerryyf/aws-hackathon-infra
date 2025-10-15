@@ -23,7 +23,7 @@ def test_vpc_construct():
     # Check ALBs (public + internal)
     template.resource_count_is("AWS::ElasticLoadBalancingV2::LoadBalancer", 2)
 
-    # Check VPC endpoints  
+    # Check VPC endpoints
     # S3 (gateway) + 8 interface endpoints:
     # Bedrock Runtime, Secrets Manager, SSM, ECR API, ECR Docker, CloudWatch Logs,
     # Bedrock AgentCore, Bedrock AgentCore Gateway

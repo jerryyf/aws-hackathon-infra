@@ -15,19 +15,23 @@ def test_bedrock_access_integration():
     template = Template.from_stack(stack)
 
     # Verify Bedrock VPC endpoint exists
-    template.has_resource_properties("AWS::EC2::VPCEndpoint", {
-        "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.bedrock-runtime"},
-        "VpcEndpointType": "Interface",
-        "PrivateDnsEnabled": True
-    })
+    template.has_resource_properties(
+        "AWS::EC2::VPCEndpoint",
+        {
+            "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.bedrock-runtime"},
+            "VpcEndpointType": "Interface",
+            "PrivateDnsEnabled": True,
+        },
+    )
 
     # Verify VPC endpoint is in private subnets
     # (CDK automatically places interface endpoints in private subnets)
 
     # Verify security group for VPC endpoints
-    template.has_resource_properties("AWS::EC2::SecurityGroup", {
-        "GroupDescription": "Security group for VPC endpoints"
-    })
+    template.has_resource_properties(
+        "AWS::EC2::SecurityGroup",
+        {"GroupDescription": "Security group for VPC endpoints"},
+    )
 
     # Verify endpoints are exported
     outputs = template.find_outputs("*")

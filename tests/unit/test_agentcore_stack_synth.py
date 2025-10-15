@@ -1,5 +1,4 @@
 import uuid
-
 from aws_cdk.assertions import Template
 from cdk.stacks.network_stack import NetworkStack
 from cdk.stacks.security_stack import SecurityStack

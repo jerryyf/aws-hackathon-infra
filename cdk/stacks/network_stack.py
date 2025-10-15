@@ -352,12 +352,11 @@ class NetworkStack(Stack):
             description="HTTPS egress to AWS services",
         )
 
-        # Outputs - use stack_name prefix for unique IDs in test environments
-        output_prefix = f"{self.stack_name}-"
+        # Outputs
         
         CfnOutput(
             self,
-            f"{output_prefix}BedrockAgentCoreEndpointId",
+            "BedrockAgentCoreEndpointId",
             value=self.bedrock_agentcore_endpoint.vpc_endpoint_id,
             description="Bedrock AgentCore VPC Endpoint ID",
             export_name="BedrockAgentCoreEndpointId",
@@ -365,7 +364,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}BedrockAgentCoreGatewayEndpointId",
+            "BedrockAgentCoreGatewayEndpointId",
             value=self.bedrock_agentcore_gateway_endpoint.vpc_endpoint_id,
             description="Bedrock AgentCore Gateway VPC Endpoint ID",
             export_name="BedrockAgentCoreGatewayEndpointId",
@@ -373,7 +372,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}VpcId",
+            "VpcId",
             value=self.vpc.vpc_id,
             description="VPC ID",
             export_name="VpcId",
@@ -381,7 +380,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}PublicSubnetIds",
+            "PublicSubnetIds",
             value=",".join([subnet.subnet_id for subnet in self.vpc.public_subnets]),
             description="Public subnet IDs",
             export_name="PublicSubnetIds",
@@ -389,7 +388,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}PrivateAppSubnetIds",
+            "PrivateAppSubnetIds",
             value=",".join(
                 [
                     subnet.subnet_id
@@ -403,7 +402,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}PrivateAgentSubnetIds",
+            "PrivateAgentSubnetIds",
             value=",".join(
                 [
                     subnet.subnet_id
@@ -417,7 +416,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}PrivateDataSubnetIds",
+            "PrivateDataSubnetIds",
             value=",".join(
                 [
                     subnet.subnet_id
@@ -431,7 +430,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}AlbDnsName",
+            "AlbDnsName",
             value=self.alb.load_balancer_dns_name,
             description="Public ALB DNS name",
             export_name="AlbDnsName",
@@ -439,7 +438,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}InternalAlbDnsName",
+            "InternalAlbDnsName",
             value=self.internal_alb.load_balancer_dns_name,
             description="Internal ALB DNS name",
             export_name="InternalAlbDnsName",
@@ -447,7 +446,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}HostedZoneId",
+            "HostedZoneId",
             value=(
                 self.hosted_zone.hosted_zone_id if self.hosted_zone is not None else ""
             ),
@@ -457,7 +456,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}CertificateArn",
+            "CertificateArn",
             value=(
                 self.certificate.certificate_arn if self.certificate is not None else ""
             ),
@@ -467,7 +466,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}DomainName",
+            "DomainName",
             value=domain_name if domain_name else "",
             description="Domain name configured for the ALB (empty if not configured)",
             export_name="DomainName",
@@ -475,7 +474,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}AgentCoreRuntimeSecurityGroupId",
+            "AgentCoreRuntimeSecurityGroupId",
             value=self.agentcore_runtime_sg.security_group_id,
             description="Security group ID for AgentCore runtimes",
             export_name="AgentCoreRuntimeSecurityGroupId",
@@ -490,7 +489,7 @@ class NetworkStack(Stack):
         for i, subnet in enumerate(data_subnets):
             CfnOutput(
                 self,
-                f"{output_prefix}PrivateDataSubnet{i+1}Id",
+                f"PrivateDataSubnet{i+1}Id",
                 value=subnet.subnet_id,
                 description=f"Private data subnet {i+1} ID",
                 export_name=f"PrivateDataSubnet{i+1}Id",

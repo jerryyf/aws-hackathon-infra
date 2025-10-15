@@ -4,7 +4,7 @@ from cdk.stacks.security_stack import SecurityStack
 import aws_cdk as cdk
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def security_stack():
     app = cdk.App()
     stack = SecurityStack(

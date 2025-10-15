@@ -7,7 +7,7 @@ from cdk.stacks.agentcore_stack import AgentCoreStack
 import aws_cdk as cdk
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def agentcore_stack():
     app = cdk.App()
     

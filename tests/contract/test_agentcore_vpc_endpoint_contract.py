@@ -4,7 +4,7 @@ from cdk.stacks.network_stack import NetworkStack
 import aws_cdk as cdk
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def network_stack():
     app = cdk.App()
     stack = NetworkStack(

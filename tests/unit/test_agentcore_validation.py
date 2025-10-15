@@ -8,11 +8,28 @@ from cdk.stacks.storage_stack import StorageStack
 
 @pytest.fixture(scope="function")
 def app():
-    app_instance = App()
-    yield app_instance
-    del app_instance
+    return App()
 
 
+@pytest.fixture(scope="session")
+def network_stack_session():
+    app = App()
+    return NetworkStack(app, "ValidationTestNetworkStack")
+
+
+@pytest.fixture(scope="session")
+def security_stack_session():
+    app = App()
+    return SecurityStack(app, "ValidationTestSecurityStack")
+
+
+@pytest.fixture(scope="session")
+def storage_stack_session():
+    app = App()
+    return StorageStack(app, "ValidationTestStorageStack")
+
+
+# For validation tests that create AgentCoreStack,  need fresh instances each time
 @pytest.fixture(scope="function")
 def network_stack(app):
     return NetworkStack(app, "ValidationTestNetworkStack")

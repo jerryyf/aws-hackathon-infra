@@ -2,7 +2,11 @@
 
 ## Workflow
 
-This project uses spec-kit. Always follow workflows outlined in specs, plans, tasks. Do not stop until they are complete, or you find yourself in a loop (in which case stop, and provide a summary of findings and confusion points to the user).
+This project uses spec-kit. Always follow workflows outlined in specs, plans, tasks.
+
+### Subagents
+
+Use the `@general` subagent wherever possible. A general-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. Use when searching for keywords or files and you’re not confident you’ll find the right match in the first few tries.
 
 ## Research
 

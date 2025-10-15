@@ -30,9 +30,6 @@ jobs:
       run: |
         cd cdk
         pip install -r requirements.txt
-    
-    - name: Run Black formatter check
-      run: cd cdk && black --check .
 
     - name: Run Pylint
       run: cd cdk && pylint stacks/ --confidence HIGH

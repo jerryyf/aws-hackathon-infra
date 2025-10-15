@@ -1,5 +1,7 @@
 import os
 import re
+import time
+from datetime import datetime, timedelta
 import pytest
 import boto3
 from botocore.exceptions import ClientError
@@ -320,3 +322,68 @@ def test_e2e_deployment_complete(stack_outputs):
     assert len(runtime_id) > 0, "Runtime ID is empty"
     assert endpoint_url.startswith("https://"), "Endpoint URL must be HTTPS"
     assert execution_role.startswith("arn:aws:iam::"), "Invalid execution role ARN"
+
+
+def test_runtime_deployment_timeout(cloudformation_client):
+    try:
+        response = cloudformation_client.describe_stacks(StackName="AgentCoreStack")
+        stack = response["Stacks"][0]
+
+        creation_time = stack.get("CreationTime") or stack.get("LastUpdatedTime")
+        if not creation_time:
+            pytest.skip("Unable to determine stack deployment time")
+
+        current_time = datetime.now(creation_time.tzinfo)
+        deployment_duration = current_time - creation_time
+
+        timeout_limit = timedelta(minutes=10)
+
+        assert (
+            deployment_duration <= timeout_limit
+        ), f"Runtime deployment exceeded 10 minute timeout: {deployment_duration.total_seconds() / 60:.2f} minutes"
+
+        events_response = cloudformation_client.describe_stack_events(
+            StackName="AgentCoreStack"
+        )
+
+        runtime_events = [
+            e
+            for e in events_response["StackEvents"]
+            if e.get("ResourceType") == "AWS::BedrockAgentCore::Runtime"
+        ]
+
+        if runtime_events:
+            create_events = [
+                e
+                for e in runtime_events
+                if e.get("ResourceStatus") in ["CREATE_IN_PROGRESS", "CREATE_COMPLETE"]
+            ]
+
+            if len(create_events) >= 2:
+                start_event = next(
+                    (
+                        e
+                        for e in create_events
+                        if e["ResourceStatus"] == "CREATE_IN_PROGRESS"
+                    ),
+                    None,
+                )
+                complete_event = next(
+                    (
+                        e
+                        for e in create_events
+                        if e["ResourceStatus"] == "CREATE_COMPLETE"
+                    ),
+                    None,
+                )
+
+                if start_event and complete_event:
+                    runtime_creation_duration = (
+                        complete_event["Timestamp"] - start_event["Timestamp"]
+                    )
+                    assert (
+                        runtime_creation_duration <= timeout_limit
+                    ), f"Runtime resource creation exceeded 10 minute timeout: {runtime_creation_duration.total_seconds() / 60:.2f} minutes"
+
+    except ClientError:
+        pytest.skip("AgentCoreStack not deployed - skipping timeout validation")

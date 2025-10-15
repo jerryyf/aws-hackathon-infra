@@ -136,6 +136,9 @@ class AgentCoreStack(Stack):
             properties=runtime_properties,
         )
         logger.info("[AgentCoreStack] AgentCore runtime resource created")
+        logger.info(
+            "[AgentCoreStack] Deployment expectation: Runtime should reach ACTIVE status within 10 minutes (SC-001)"
+        )
 
         logger.info("[AgentCoreStack] Setting up CloudWatch metrics and alarms")
 

@@ -79,6 +79,9 @@ if env:
         storage_stack=storage_stack,
         agentcore_config=AGENTCORE_CONFIG[ENVIRONMENT],
         environment=ENVIRONMENT,
+        stack_name="AgentCoreStack",
+        description="AWS Bedrock AgentCore runtime infrastructure",
+        termination_protection=False,
     )
 else:
     network_stack = NetworkStack(app, "NetworkStack", domain_name=domain_name)
@@ -97,6 +100,9 @@ else:
         storage_stack=storage_stack,
         agentcore_config=AGENTCORE_CONFIG[ENVIRONMENT],
         environment=ENVIRONMENT,
+        stack_name="AgentCoreStack",
+        description="AWS Bedrock AgentCore runtime infrastructure",
+        termination_protection=False,
     )
 
 # Add dependencies between stacks

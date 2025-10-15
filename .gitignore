@@ -1,5 +1,7 @@
 # Ignore env files
 *.env
+.env.local
+.env.*.local
 
 # Ignore cdk venv files
 cdk/venv/
@@ -18,3 +20,25 @@ __pycache__
 # CDK artifacts
 cdk.out/
 cdk.context.json
+
+# ⚠️ SECURITY: Test credentials and passwords (DO NOT COMMIT)
+scripts/test-user-credentials.txt
+scripts/.test-passwords
+scripts/secrets.sh
+docs/*credentials*.md
+docs/*passwords*.md
+.secrets/
+secrets/
+
+# AWS credentials and keys
+.aws/
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

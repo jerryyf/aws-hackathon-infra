@@ -10,6 +10,9 @@ from stacks.monitoring_stack import MonitoringStack
 
 app = cdk.App()
 
+# Get environment from context or default to 'dev'
+environment = app.node.try_get_context("environment") or "dev"
+
 # Optional domain name can be provided via cdk context: cdk --context domain_name=example.com
 domain_name = app.node.try_get_context('domain_name') or os.getenv('DOMAIN_NAME')
 
@@ -45,14 +48,14 @@ if env:
     database_stack = DatabaseStack(app, "DatabaseStack", env=env, network_stack=network_stack)
     compute_stack = ComputeStack(app, "ComputeStack", env=env, network_stack=network_stack)
     storage_stack = StorageStack(app, "StorageStack", env=env)
-    security_stack = SecurityStack(app, "SecurityStack", env=env)
+    security_stack = SecurityStack(app, "SecurityStack", env=env, environment=environment, domain_name=domain_name)
     monitoring_stack = MonitoringStack(app, "MonitoringStack", env=env, logs_bucket=storage_stack.logs_bucket)
 else:
     network_stack = NetworkStack(app, "NetworkStack", domain_name=domain_name)
     database_stack = DatabaseStack(app, "DatabaseStack", network_stack=network_stack)
     compute_stack = ComputeStack(app, "ComputeStack", network_stack=network_stack)
     storage_stack = StorageStack(app, "StorageStack")
-    security_stack = SecurityStack(app, "SecurityStack")
+    security_stack = SecurityStack(app, "SecurityStack", environment=environment, domain_name=domain_name)
     monitoring_stack = MonitoringStack(app, "MonitoringStack", logs_bucket=storage_stack.logs_bucket)
 
 # Add dependencies between stacks

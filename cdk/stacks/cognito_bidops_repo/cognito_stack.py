@@ -1,10 +1,12 @@
 """
-AWS Hackathon Security Stack
+BidOps.AI Cognito User Pool Stack
 
-Manages:
-- SSM Parameters (app config, endpoints)
-- Cognito User Pool with RBAC groups
-- User authentication and authorization
+Creates and configures:
+- Cognito User Pool with username/email/phone sign-in
+- User Pool Client for web application
+- Google OAuth integration
+- User Groups for RBAC (ADMIN, DRAFTER, BIDDER, KB_ADMIN, KB_VIEW)
+- Password policies and MFA configuration
 """
 
 from aws_cdk import (
@@ -14,29 +16,25 @@ from aws_cdk import (
     RemovalPolicy,
     Tags,
 )
-from aws_cdk import aws_cognito as cognito, aws_ssm as ssm
+from aws_cdk import aws_cognito as cognito
 from constructs import Construct
 
 
-class SecurityStack(Stack):
-    """Security stack with SSM parameters and Cognito User Pool"""
+class CognitoStack(Stack):
+    """BidOps.AI Cognito User Pool Stack"""
 
-    def __init__(self, scope: Construct, construct_id: str, environment: str = "dev", domain_name: str | None = None, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, environment: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         self.env_name = environment
-        self.domain_name = domain_name
-        domain_prefix = f"hackathon-{environment}"
-
-        # SSM Parameters (existing functionality)
-        self._create_ssm_parameters()
+        domain_prefix = f"bidopsai-{environment}"
 
         # Create Cognito User Pool
         self.user_pool = self._create_user_pool()
 
         # Create User Pool Domain
         self.user_pool_domain = self.user_pool.add_domain(
-            "UserPoolDomain",
+            "BidOpsAIDomain",
             cognito_domain=cognito.CognitoDomainOptions(
                 domain_prefix=domain_prefix
             )
@@ -53,32 +51,15 @@ class SecurityStack(Stack):
 
         # Add tags
         Tags.of(self).add("Environment", environment)
-        Tags.of(self).add("Project", "AWSHackathon")
+        Tags.of(self).add("Project", "BidOpsAI")
         Tags.of(self).add("ManagedBy", "CDK")
 
-    def _create_ssm_parameters(self) -> None:
-        """Create SSM parameters for app configuration"""
-        
-        self.app_config_param = ssm.StringParameter(
-            self, "AppConfigParam",
-            parameter_name=f"/hackathon/{self.env_name}/app/config",
-            string_value='{"environment": "' + self.env_name + '", "version": "1.0"}',
-            description="Application configuration"
-        )
-
-        self.endpoint_params = ssm.StringParameter(
-            self, "EndpointParams",
-            parameter_name=f"/hackathon/{self.env_name}/endpoints",
-            string_value='{"api": "https://api.example.com", "bedrock": "https://bedrock.us-east-1.amazonaws.com"}',
-            description="Service endpoints"
-        )
-
     def _create_user_pool(self) -> cognito.UserPool:
-        """Create and configure Cognito User Pool with enhanced security"""
+        """Create and configure Cognito User Pool"""
         
         return cognito.UserPool(
-            self, "UserPool",
-            user_pool_name=f"hackathon-users-{self.env_name}",
+            self, "BidOpsAIUserPool",
+            user_pool_name=f"bidopsai-users-{self.env_name}",
             
             # Sign-in configuration
             sign_in_aliases=cognito.SignInAliases(
@@ -153,28 +134,26 @@ class SecurityStack(Stack):
             account_recovery=cognito.AccountRecovery.EMAIL_ONLY,
 
             # Email configuration
-            email=cognito.UserPoolEmail.with_cognito(
-                reply_to="noreply@" + (self.domain_name if self.domain_name else "hackathon.local")
-            ),
+            email=cognito.UserPoolEmail.with_cognito("noreply@bidopsai.com"),
 
             # User invitation
             user_invitation=cognito.UserInvitationConfig(
-                email_subject="Welcome to AWS Hackathon Platform",
+                email_subject="Welcome to BidOps.AI",
                 email_body=(
                     "Hello {username},<br/><br/>"
-                    "You have been invited to join the AWS Hackathon Platform.<br/>"
+                    "You have been invited to join BidOps.AI.<br/>"
                     "Your temporary password is: {####}<br/><br/>"
                     "Please sign in and change your password.<br/><br/>"
                     "Best regards,<br/>"
-                    "AWS Hackathon Team"
+                    "BidOps.AI Team"
                 ),
             ),
 
             # User verification
             user_verification=cognito.UserVerificationConfig(
-                email_subject="Verify your email for AWS Hackathon",
+                email_subject="Verify your email for BidOps.AI",
                 email_body=(
-                    "Thank you for signing up to AWS Hackathon Platform!<br/><br/>"
+                    "Thank you for signing up to BidOps.AI!<br/><br/>"
                     "Your verification code is: {####}<br/><br/>"
                     "Please enter this code to complete your registration."
                 ),
@@ -192,11 +171,11 @@ class SecurityStack(Stack):
         )
 
     def _create_user_pool_client(self) -> cognito.UserPoolClient:
-        """Create and configure User Pool Client for web application"""
+        """Create and configure User Pool Client"""
         
         return self.user_pool.add_client(
-            "UserPoolClient",
-            user_pool_client_name=f"hackathon-web-{self.env_name}",
+            "BidOpsAIWebClient",
+            user_pool_client_name=f"bidopsai-web-{self.env_name}",
             
             # OAuth configuration
             o_auth=cognito.OAuthSettings(
@@ -314,106 +293,71 @@ class SecurityStack(Stack):
         """Get callback URLs based on environment"""
         
         if self.env_name == "prod":
-            if self.domain_name:
-                return [
-                    f"https://{self.domain_name}/callback",
-                    f"https://app.{self.domain_name}/callback",
-                ]
-            return ["https://app.example.com/callback"]
+            return [
+                "https://app.bidopsai.com/callback",
+                "https://bidopsai.com/callback",
+            ]
         elif self.env_name == "staging":
-            if self.domain_name:
-                return [f"https://staging.{self.domain_name}/callback"]
-            return ["https://staging.example.com/callback"]
+            return ["https://staging.bidopsai.com/callback"]
         else:  # dev
-            urls = [
+            return [
                 "http://localhost:3000/callback",
                 "http://localhost:3000/api/auth/callback/cognito",
             ]
-            # Add domain URLs if provided (for dev testing with real domain)
-            if self.domain_name:
-                urls.extend([
-                    f"https://{self.domain_name}/callback",
-                    f"https://www.{self.domain_name}/callback",
-                    f"https://{self.domain_name}/api/auth/callback/cognito",
-                    f"https://www.{self.domain_name}/api/auth/callback/cognito",
-                ])
-            return urls
 
     def _get_logout_urls(self) -> list[str]:
         """Get logout URLs based on environment"""
         
         if self.env_name == "prod":
-            if self.domain_name:
-                return [
-                    f"https://{self.domain_name}",
-                    f"https://{self.domain_name}/signin",
-                ]
-            return ["https://app.example.com", "https://app.example.com/signin"]
+            return [
+                "https://app.bidopsai.com",
+                "https://app.bidopsai.com/signin",
+            ]
         elif self.env_name == "staging":
-            if self.domain_name:
-                return [
-                    f"https://staging.{self.domain_name}",
-                    f"https://staging.{self.domain_name}/signin",
-                ]
-            return ["https://staging.example.com", "https://staging.example.com/signin"]
+            return [
+                "https://staging.bidopsai.com",
+                "https://staging.bidopsai.com/signin",
+            ]
         else:  # dev
-            urls = [
+            return [
                 "http://localhost:3000",
                 "http://localhost:3000/signin",
             ]
-            # Add domain URLs if provided (for dev testing with real domain)
-            if self.domain_name:
-                urls.extend([
-                    f"https://{self.domain_name}",
-                    f"https://www.{self.domain_name}",
-                    f"https://{self.domain_name}/signin",
-                    f"https://www.{self.domain_name}/signin",
-                ])
-            return urls
 
     def _create_outputs(self, domain_prefix: str) -> None:
         """Create CloudFormation outputs"""
         
-        # SSM Parameter outputs
-        CfnOutput(
-            self, "AppConfigParamName",
-            value=self.app_config_param.parameter_name,
-            description="App config parameter name",
-            export_name=f"AppConfigParamName-{self.env_name}"
-        )
-
-        # Cognito outputs
         CfnOutput(
             self, "UserPoolId",
             value=self.user_pool.user_pool_id,
             description="Cognito User Pool ID",
-            export_name=f"UserPoolId-{self.env_name}",
+            export_name=f"BidOpsAI-UserPoolId-{self.env_name}",
         )
 
         CfnOutput(
             self, "UserPoolArn",
             value=self.user_pool.user_pool_arn,
             description="Cognito User Pool ARN",
-            export_name=f"UserPoolArn-{self.env_name}",
+            export_name=f"BidOpsAI-UserPoolArn-{self.env_name}",
         )
 
         CfnOutput(
             self, "UserPoolClientId",
             value=self.user_pool_client.user_pool_client_id,
             description="Cognito User Pool Client ID",
-            export_name=f"UserPoolClientId-{self.env_name}",
+            export_name=f"BidOpsAI-UserPoolClientId-{self.env_name}",
         )
 
         CfnOutput(
             self, "UserPoolDomain",
             value=f"{domain_prefix}.auth.{self.region}.amazoncognito.com",
             description="Cognito User Pool Domain",
-            export_name=f"UserPoolDomain-{self.env_name}",
+            export_name=f"BidOpsAI-UserPoolDomain-{self.env_name}",
         )
 
         CfnOutput(
             self, "CognitoRegion",
             value=self.region,
             description="AWS Region for Cognito",
-            export_name=f"CognitoRegion-{self.env_name}",
+            export_name=f"BidOpsAI-CognitoRegion-{self.env_name}",
         )

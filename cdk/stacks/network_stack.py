@@ -228,9 +228,6 @@ class NetworkStack(Stack):
                     ),
                 ),
             )
-        else:
-            print("No SSL cert")
-            raise Exception
 
         # DNS Record Creation
         if self.hosted_zone is not None and domain_name:

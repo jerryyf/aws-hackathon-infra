@@ -39,6 +39,22 @@ else
     exit 1
 fi
 
+echo "Deploying SecurityStack..."
+if cdk deploy SecurityStack --require-approval never; then
+    log_deployment "SecurityStack" "succeeded"
+else
+    log_deployment "SecurityStack" "failed"
+    exit 1
+fi
+
+echo "Deploying StorageStack..."
+if cdk deploy StorageStack --require-approval never; then
+    log_deployment "StorageStack" "succeeded"
+else
+    log_deployment "StorageStack" "failed"
+    exit 1
+fi
+
 echo "Deploying DatabaseStack..."
 if cdk deploy DatabaseStack --require-approval never; then
     log_deployment "DatabaseStack" "succeeded"
@@ -55,19 +71,19 @@ else
     exit 1
 fi
 
-echo "Deploying StorageStack..."
-if cdk deploy StorageStack --require-approval never; then
-    log_deployment "StorageStack" "succeeded"
-else
-    log_deployment "StorageStack" "failed"
-    exit 1
-fi
-
 echo "Deploying MonitoringStack..."
 if cdk deploy MonitoringStack --require-approval never; then
     log_deployment "MonitoringStack" "succeeded"
 else
     log_deployment "MonitoringStack" "failed"
+    exit 1
+fi
+
+echo "Deploying AgentCoreStack..."
+if cdk deploy AgentCoreStack --require-approval never; then
+    log_deployment "AgentCoreStack" "succeeded"
+else
+    log_deployment "AgentCoreStack" "failed"
     exit 1
 fi
 

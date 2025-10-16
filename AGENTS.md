@@ -1,28 +1,50 @@
-# Agent Development Guidelines
+# Agent Guidelines
 
-## Project Context
-Infrastructure-as-Code for AWS Hackathon AgentCore using AWS CDK (Python). Architecture in `docs/arch.mermaid`, ER diagrams in `docs/er.mermaid`. Constitution in `.specify/memory/constitution.md` defines AWS Well-Architected Framework compliance requirements. **Development platform: macOS**.
+## Workflow
 
-## Build/Test/Lint Commands
-- **Test all**: `PYTHONPATH=. pytest` (from repo root)
-- **Single test**: `PYTHONPATH=. pytest tests/unit/test_vpc_construct.py::test_vpc_construct`
-- **CDK synth**: `cd cdk && cdk synth` (validates CloudFormation templates)
-- **Format**: `cd cdk && black .` (88 char line length)
-- **Lint**: `cd cdk && pylint cdk/` (docstrings disabled, see pyproject.toml)
+This project uses spec-kit. Always follow workflows outlined in specs, plans, tasks.
 
-## Code Style (Python 3.11+, AWS CDK v2)
-- **Imports**: Group stdlib → third-party → aws_cdk → constructs → local (alphabetical within groups). Use `from aws_cdk import (..., aws_x as x)` style.
-- **Types**: Type hints required on all functions/methods (e.g., `def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None`)
-- **Naming**: `snake_case` (functions/vars), `PascalCase` (classes), `UPPER_SNAKE` (constants)
-- **Formatting**: Black (88 chars), no manual docstrings (pylint disabled C0114/C0115/C0116)
-- **Error Handling**: Use AWS CDK exceptions, no bare try/except, always validate stack dependencies
-- **Security**: NEVER hardcode secrets—use Secrets Manager/SSM. All S3 buckets KMS-encrypted, VPC endpoints for AWS services.
-- **Architecture**: Multi-AZ (2 AZs min), VPC 10.0.0.0/16, 4 subnet tiers (Public/24, PrivateApp/24, PrivateAgent/24, PrivateData/24)
+### Subagents
 
-## .specify Workflow
-- Feature branches: `00X-feature-name` (3-digit prefix). Check prerequisites: `.specify/scripts/bash/check-prerequisites.sh --json`
-- Slash commands: `/constitution`, `/spec`, `/plan`, `/tasks`, `/implement`, `/analyze`, `/clarify`
+Use the `@general` subagent wherever possible. A general-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. Use when searching for keywords or files and you’re not confident you’ll find the right match in the first few tries.
 
-## Constitution Compliance (NON-NEGOTIABLE)
-- All code MUST pass AWS Well-Architected Framework checks (6 pillars: Operational Excellence, Security, Reliability, Performance, Cost, Sustainability)
-- Tagging: All resources tagged with Project/Environment/Owner/CostCenter. Encryption at rest/transit (TLS 1.2+). Multi-AZ failover tested.
+## Research
+
+Always use context7 to fetch up-to-date documentation. Always use `webfetch` with URLs provided by either the user, or by context7.
+
+## Virtual Environment
+
+Check for existence of venv/ or .venv/ in the project. If not exist, create with `python3 -m venv ./.venv`. Always ensure the virtual environment is activated before anything:
+
+```bash
+source .venv/bin/activate
+```
+
+## Environment Variables
+
+Set AWS profile before running CDK commands:
+```bash
+export AWS_PROFILE=hackathon
+export AWS_REGION=us-east-1
+```
+
+## Commands
+
+- **Synth**: `cd cdk && cdk synth --profile hackathon`
+- **Run all tests**: `PYTHONPATH=. pytest`
+- **Run single test**: `PYTHONPATH=. pytest tests/unit/test_vpc_construct.py::test_vpc_construct`
+- **Deploy stack**: `cd cdk && cdk deploy NetworkStack --profile hackathon`
+- **Type check**: `cd cdk && pyright`
+- **Lint**: `cd cdk && black . && pylint stacks/`
+
+## Code Style
+
+- **Python 3.11+** with type hints (`str | None` not `Optional[str]`)
+- **Imports**: AWS CDK from `aws_cdk`, group by stdlib → third-party → local, use `as` aliases (`aws_ec2 as ec2`)
+- **Formatting**: Black (line-length 88), no module/class docstrings per pylint config
+- **Types**: Always use type hints on function signatures (`:` for params, `->` for returns)
+- **Naming**: snake_case for variables/functions, PascalCase for classes, ALL_CAPS for constants
+- **Error handling**: Let exceptions propagate unless specific handling needed
+- **CDK patterns**: Use L2 constructs, `CfnOutput` for exports, `Construct` scope pattern
+- **Testing**: pytest with `Template.from_stack()` assertions, contract tests validate CloudFormation outputs
+- **Environment**: Check `self.account`/`self.region` before context lookups (hosted zones, VPCs)

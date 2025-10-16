@@ -9,6 +9,9 @@ Manages:
 
 from aws_cdk import (
     Stack,
+    aws_iam as iam,
+    aws_ssm as ssm,
+    aws_cognito as cognito,
     CfnOutput,
     Duration,
     RemovalPolicy,
@@ -23,6 +26,216 @@ class SecurityStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, environment: str = "dev", domain_name: str | None = None, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        # IAM Execution Role for Bedrock AgentCore
+        self.agentcore_execution_role = iam.Role(
+            self,
+            "AgentCoreExecutionRole",
+            role_name="bedrock-agentcore-execution-role",
+            assumed_by=iam.ServicePrincipal(
+                "bedrock-agentcore.amazonaws.com",
+                conditions={
+                    "StringEquals": {"aws:SourceAccount": Stack.of(self).account},
+                    "ArnLike": {
+                        "aws:SourceArn": (
+                            f"arn:aws:bedrock-agentcore:"
+                            f"{Stack.of(self).region}:{Stack.of(self).account}:runtime/*"
+                        )
+                    },
+                },
+            ),
+            description="Execution role for Bedrock AgentCore runtimes",
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="BedrockModelAccess",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "bedrock:InvokeModel",
+                    "bedrock:InvokeModelWithResponseStream",
+                ],
+                resources=["arn:aws:bedrock:*::foundation-model/*"],
+                conditions={
+                    "StringEquals": {"aws:RequestedRegion": Stack.of(self).region}
+                },
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="ECRImageAccess",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "ecr:GetAuthorizationToken",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage",
+                ],
+                resources=["*"],
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="CloudWatchLogsAccess",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                ],
+                resources=[
+                    (
+                        f"arn:aws:logs:{Stack.of(self).region}:{Stack.of(self).account}:"
+                        f"log-group:/aws/bedrock-agentcore/*"
+                    )
+                ],
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="SecretsManagerAccess",
+                effect=iam.Effect.ALLOW,
+                actions=["secretsmanager:GetSecretValue"],
+                resources=[
+                    (
+                        f"arn:aws:secretsmanager:{Stack.of(self).region}:"
+                        f"{Stack.of(self).account}:secret:agentcore/*"
+                    )
+                ],
+                conditions={
+                    "StringEquals": {
+                        "secretsmanager:ResourceTag/Project": "aws-hackathon"
+                    }
+                },
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="KMSDecryptAccess",
+                effect=iam.Effect.ALLOW,
+                actions=["kms:Decrypt", "kms:DescribeKey"],
+                resources=[
+                    f"arn:aws:kms:{Stack.of(self).region}:{Stack.of(self).account}:key/*"
+                ],
+                conditions={
+                    "StringEquals": {
+                        "kms:ViaService": [
+                            f"ecr.{Stack.of(self).region}.amazonaws.com",
+                            f"secretsmanager.{Stack.of(self).region}.amazonaws.com",
+                        ]
+                    }
+                },
+            )
+        )
+
+        # IAM Execution Role for Bedrock AgentCore
+        self.agentcore_execution_role = iam.Role(
+            self,
+            "AgentCoreExecutionRole",
+            role_name="bedrock-agentcore-execution-role",
+            assumed_by=iam.ServicePrincipal(
+                "bedrock-agentcore.amazonaws.com",
+                conditions={
+                    "StringEquals": {"aws:SourceAccount": Stack.of(self).account},
+                    "ArnLike": {
+                        "aws:SourceArn": (
+                            f"arn:aws:bedrock-agentcore:"
+                            f"{Stack.of(self).region}:{Stack.of(self).account}:runtime/*"
+                        )
+                    },
+                },
+            ),
+            description="Execution role for Bedrock AgentCore runtimes",
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="BedrockModelAccess",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "bedrock:InvokeModel",
+                    "bedrock:InvokeModelWithResponseStream",
+                ],
+                resources=["arn:aws:bedrock:*::foundation-model/*"],
+                conditions={
+                    "StringEquals": {"aws:RequestedRegion": Stack.of(self).region}
+                },
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="ECRImageAccess",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "ecr:GetAuthorizationToken",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage",
+                ],
+                resources=["*"],
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="CloudWatchLogsAccess",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                ],
+                resources=[
+                    (
+                        f"arn:aws:logs:{Stack.of(self).region}:{Stack.of(self).account}:"
+                        f"log-group:/aws/bedrock-agentcore/*"
+                    )
+                ],
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="SecretsManagerAccess",
+                effect=iam.Effect.ALLOW,
+                actions=["secretsmanager:GetSecretValue"],
+                resources=[
+                    (
+                        f"arn:aws:secretsmanager:{Stack.of(self).region}:"
+                        f"{Stack.of(self).account}:secret:agentcore/*"
+                    )
+                ],
+                conditions={
+                    "StringEquals": {
+                        "secretsmanager:ResourceTag/Project": "aws-hackathon"
+                    }
+                },
+            )
+        )
+
+        self.agentcore_execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="KMSDecryptAccess",
+                effect=iam.Effect.ALLOW,
+                actions=["kms:Decrypt", "kms:DescribeKey"],
+                resources=[
+                    f"arn:aws:kms:{Stack.of(self).region}:{Stack.of(self).account}:key/*"
+                ],
+                conditions={
+                    "StringEquals": {
+                        "kms:ViaService": [
+                            f"ecr.{Stack.of(self).region}.amazonaws.com",
+                            f"secretsmanager.{Stack.of(self).region}.amazonaws.com",
+                        ]
+                    }
+                },
+            )
+        )
 
         self.env_name = environment
         self.domain_name = domain_name
@@ -60,24 +273,30 @@ class SecurityStack(Stack):
         """Create SSM parameters for app configuration"""
         
         self.app_config_param = ssm.StringParameter(
-            self, "AppConfigParam",
+            self,
+            "AppConfigParam",
             parameter_name=f"/hackathon/{self.env_name}/app/config",
             string_value='{"environment": "' + self.env_name + '", "version": "1.0"}',
-            description="Application configuration"
+            description="Application configuration",
         )
 
         self.endpoint_params = ssm.StringParameter(
-            self, "EndpointParams",
+            self,
+            "EndpointParams",
             parameter_name=f"/hackathon/{self.env_name}/endpoints",
-            string_value='{"api": "https://api.example.com", "bedrock": "https://bedrock.us-east-1.amazonaws.com"}',
-            description="Service endpoints"
+            string_value=(
+                '{"api": "https://api.example.com", '
+                '"bedrock": "https://bedrock.us-east-1.amazonaws.com"}'
+            ),
+            description="Service endpoints",
         )
 
     def _create_user_pool(self) -> cognito.UserPool:
         """Create and configure Cognito User Pool with enhanced security"""
         
         return cognito.UserPool(
-            self, "UserPool",
+            self,
+            "UserPool",
             user_pool_name=f"hackathon-users-{self.env_name}",
             
             # Sign-in configuration
@@ -383,8 +602,14 @@ class SecurityStack(Stack):
         )
 
         # Cognito outputs
+                require_symbols=True,
+            ),
+        )
+
+        # Outputs
         CfnOutput(
-            self, "UserPoolId",
+            self,
+            "UserPoolId",
             value=self.user_pool.user_pool_id,
             description="Cognito User Pool ID",
             export_name=f"UserPoolId-{self.env_name}",
@@ -412,8 +637,17 @@ class SecurityStack(Stack):
         )
 
         CfnOutput(
-            self, "CognitoRegion",
+            self,
+            "CognitoRegion",
             value=self.region,
             description="AWS Region for Cognito",
-            export_name=f"CognitoRegion-{self.env_name}",
+            export_name=f"CognitoRegion-{self.env_name}",,
+        )
+
+        CfnOutput(
+            self,
+            "AgentCoreExecutionRoleArn",
+            value=self.agentcore_execution_role.role_arn,
+            description="Bedrock AgentCore execution role ARN",
+            export_name="AgentCoreExecutionRoleArn",
         )

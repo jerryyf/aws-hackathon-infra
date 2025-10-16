@@ -1,69 +1,34 @@
 graph TB
-    subgraph "User Layer"
-        User[User/Client
-with JWT Token]
-    end
-
-    subgraph "Global Services"
-        R53[Route 53 DNS]
-        ACM[ACM Certificate]
-    end
-
-    User -->|HTTPS + JWT| R53
-    R53 --> ALB
-    
     subgraph "AWS Region: us-east-1"
         subgraph "VPC: 10.0.0.0/16"
-            
-            subgraph "Public Subnets"
-                subgraph "AZ-1: us-east-1a
-10.0.1.0/24"
-                    IGW1[Internet Gateway]
-                    NAT1[NAT Gateway]
-                    ALB1A[ALB Node AZ-1]
-                end
-                
-                subgraph "AZ-2: us-east-1b
-10.0.2.0/24"
-                    ALB1B[ALB Node AZ-2]
-                end
-                
-                ALB{{"Public ALB
-Cognito Auth + WAF + Shield"}}
-                ALB -.-> ALB1A
-                ALB -.-> ALB1B
-            end
             
             subgraph "Private AgentCore Subnets"
                 subgraph "AZ-1: us-east-1a
 10.0.21.0/24"
-                    AgentRuntime1A[AgentCore Runtime 1
-Strands Framework
-ARM64 Container]
-                    AgentRuntime1B[AgentCore Runtime 2
-Strands Framework
-ARM64 Container]
+                    AgentRuntime1[AgentCore Runtime 1
+CfnRuntime
+512 CPU / 1024 MiB]
                 end
                 
                 subgraph "AZ-2: us-east-1b
 10.0.22.0/24"
-                    AgentRuntime2A[AgentCore Runtime 3
-Strands Framework
-ARM64 Container]
-                    AgentRuntime2B[AgentCore Runtime 4
-Strands Framework
-ARM64 Container]
+                    AgentRuntime2[AgentCore Runtime 2
+CfnRuntime
+512 CPU / 1024 MiB]
                 end
             end
             
+            subgraph "Security Groups"
+                RuntimeSG[Agent Runtime SG
+Outbound: 443 to VPC Endpoints]
+            end
+            
             subgraph "VPC Endpoints"
-                VPCE_S3[S3 Gateway
-Endpoint]
+                VPCE_BedrockAgentCore[Bedrock AgentCore
+Interface Endpoint
+Multi-AZ
+Private DNS Enabled]
                 VPCE_Bedrock[Bedrock
-Interface Endpoint]
-                VPCE_Secrets[Secrets Manager
-Interface Endpoint]
-                VPCE_SSM[SSM Parameter Store
 Interface Endpoint]
                 VPCE_ECR_API[ECR API
 Interface Endpoint]
@@ -71,112 +36,108 @@ Interface Endpoint]
 Interface Endpoint]
                 VPCE_CW_Logs[CloudWatch Logs
 Interface Endpoint]
+                VPCE_Secrets[Secrets Manager
+Interface Endpoint]
             end
         end
     end
     
     subgraph "AWS Managed Services - Regional"
+        BedrockAgentCore[Bedrock AgentCore Service
+Runtime Management]
         Bedrock[Bedrock Service
 Foundation Models]
-        Cognito[Cognito User Pool
-JWT Authentication]
         
         subgraph "Container Registry"
             ECR[ECR Repository
-AgentCore Image
-ARM64/Scanning Enabled]
+Agent Container Image
+KMS Encrypted]
         end
         
-        subgraph "Configuration & Secrets"
+        subgraph "Security & Configuration"
+            IAM[IAM Execution Role
+Trust: bedrock-agentcore.amazonaws.com
+Permissions: Bedrock, ECR, CloudWatch]
             Secrets[Secrets Manager
 API Keys
-Model IDs]
-            SSM[SSM Parameter Store
-Configuration
-Endpoints]
+Configuration]
         end
         
         subgraph "Observability"
             CloudWatch[CloudWatch
-Logs + Metrics + Alarms
-30-day retention]
+Logs + Metrics
+Runtime Status
+Invocation Count
+Error Rate
+Latency p50/p99]
             CloudTrail[CloudTrail
 AgentCore API Audit]
         end
     end
     
-    %% Connections
-    ALB -->|Cognito JWT
-Validation| Cognito
+    %% Runtime to Security Group
+    AgentRuntime1 -.->|Member of| RuntimeSG
+    AgentRuntime2 -.->|Member of| RuntimeSG
     
-    ALB1A -->|/invocations
-POST| AgentRuntime1A
-    ALB1A -->|/ping
-GET| AgentRuntime1A
-    ALB1A -->|/invocations
-POST| AgentRuntime1B
-    ALB1A -->|/ping
-GET| AgentRuntime1B
+    %% Runtime to VPC Endpoints
+    AgentRuntime1 -->|Port 443| VPCE_BedrockAgentCore
+    AgentRuntime2 -->|Port 443| VPCE_BedrockAgentCore
     
-    ALB1B -->|/invocations
-POST| AgentRuntime2A
-    ALB1B -->|/ping
-GET| AgentRuntime2A
-    ALB1B -->|/invocations
-POST| AgentRuntime2B
-    ALB1B -->|/ping
-GET| AgentRuntime2B
+    AgentRuntime1 -->|Invoke Model| VPCE_Bedrock
+    AgentRuntime2 -->|Invoke Model| VPCE_Bedrock
     
-    AgentRuntime1A -->|VPC Endpoint| VPCE_Bedrock
-    AgentRuntime1B -->|VPC Endpoint| VPCE_Bedrock
-    AgentRuntime2A -->|VPC Endpoint| VPCE_Bedrock
-    AgentRuntime2B -->|VPC Endpoint| VPCE_Bedrock
+    AgentRuntime1 -.->|Pull Image| VPCE_ECR_DKR
+    AgentRuntime2 -.->|Pull Image| VPCE_ECR_DKR
     
+    AgentRuntime1 -->|Logs| VPCE_CW_Logs
+    AgentRuntime2 -->|Logs| VPCE_CW_Logs
+    
+    AgentRuntime1 -->|Config| VPCE_Secrets
+    AgentRuntime2 -->|Config| VPCE_Secrets
+    
+    %% VPC Endpoints to Services
+    VPCE_BedrockAgentCore --> BedrockAgentCore
     VPCE_Bedrock --> Bedrock
-    
-    AgentRuntime1A -->|VPC Endpoint| VPCE_Secrets
-    AgentRuntime1B -->|VPC Endpoint| VPCE_Secrets
-    AgentRuntime2A -->|VPC Endpoint| VPCE_Secrets
-    AgentRuntime2B -->|VPC Endpoint| VPCE_Secrets
-    
+    VPCE_ECR_API --> ECR
+    VPCE_ECR_DKR --> ECR
+    VPCE_CW_Logs --> CloudWatch
     VPCE_Secrets --> Secrets
     
-    AgentRuntime1A -->|Structured
-JSON Logs| VPCE_CW_Logs
-    AgentRuntime1B -->|Structured
-JSON Logs| VPCE_CW_Logs
-    AgentRuntime2A -->|Structured
-JSON Logs| VPCE_CW_Logs
-    AgentRuntime2B -->|Structured
-JSON Logs| VPCE_CW_Logs
+    %% IAM Role Association
+    IAM -.->|AssumeRole| AgentRuntime1
+    IAM -.->|AssumeRole| AgentRuntime2
     
-    VPCE_CW_Logs --> CloudWatch
-    
-    AgentRuntime1A -.->|Pull Image| VPCE_ECR_DKR
-    AgentRuntime1B -.->|Pull Image| VPCE_ECR_DKR
-    AgentRuntime2A -.->|Pull Image| VPCE_ECR_DKR
-    AgentRuntime2B -.->|Pull Image| VPCE_ECR_DKR
-    
-    VPCE_ECR_DKR --> ECR
-    VPCE_ECR_API --> ECR
-    
+    %% Monitoring
     CloudTrail -.->|Audit Logs| CloudWatch
+    BedrockAgentCore -.->|Runtime Metrics| CloudWatch
     
-    %% Styling
-    classDef az1 fill:#4a90e2,stroke:#2c5aa0,stroke-width:2px,color:#fff
-    classDef az2 fill:#9b59b6,stroke:#6c3483,stroke-width:2px,color:#fff
-    classDef alb fill:#f39c12,stroke:#d68910,stroke-width:3px,color:#000
-    classDef runtime fill:#8e44ad,stroke:#5b2c6f,stroke-width:3px,color:#fff
-    classDef managed fill:#16a085,stroke:#117a65,stroke-width:3px,stroke-dasharray: 5 5,color:#fff
-    classDef vpce fill:#e67e22,stroke:#ba6b1a,stroke-width:2px,color:#fff
-    classDef storage fill:#27ae60,stroke:#1e8449,stroke-width:2px,color:#fff
-    classDef security fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff
+    %% Stack Outputs
+    AgentRuntime1 -.->|Outputs
+RuntimeArn
+RuntimeId
+EndpointUrl
+Status| StackOutputs[CloudFormation
+Stack Outputs]
+    AgentRuntime2 -.->|Outputs
+RuntimeArn
+RuntimeId
+EndpointUrl
+Status| StackOutputs
     
-    class AgentRuntime1A,AgentRuntime1B,ALB1A,NAT1,IGW1 az1
-    class AgentRuntime2A,AgentRuntime2B,ALB1B az2
-    class ALB alb
-    class AgentRuntime1A,AgentRuntime1B,AgentRuntime2A,AgentRuntime2B runtime
-    class Bedrock managed
-    class VPCE_S3,VPCE_Bedrock,VPCE_Secrets,VPCE_SSM,VPCE_ECR_API,VPCE_ECR_DKR,VPCE_CW_Logs vpce
-    class ECR storage
-    class Cognito,Secrets,SSM,CloudWatch,CloudTrail security
+    %% Styling - AWS Architecture Colors
+    classDef compute fill:#FF9900,stroke:#D97F00,stroke-width:3px,color:#000
+    classDef ml fill:#01A88D,stroke:#017F6A,stroke-width:3px,color:#fff
+    classDef networking fill:#8C4FFF,stroke:#6B3ACC,stroke-width:2px,color:#fff
+    classDef security fill:#DD344C,stroke:#B02A3D,stroke-width:2px,color:#fff
+    classDef storage fill:#7AA116,stroke:#5F8112,stroke-width:2px,color:#fff
+    classDef management fill:#E7157B,stroke:#B81163,stroke-width:2px,color:#fff
+    classDef containers fill:#FF9900,stroke:#D97F00,stroke-width:2px,color:#000
+    classDef outputs fill:#879596,stroke:#687677,stroke-width:2px,color:#fff
+    
+    class AgentRuntime1,AgentRuntime2 compute
+    class BedrockAgentCore,Bedrock ml
+    class VPCE_BedrockAgentCore,VPCE_Bedrock,VPCE_ECR_API,VPCE_ECR_DKR,VPCE_CW_Logs,VPCE_Secrets,RuntimeSG networking
+    class IAM,Secrets security
+    class ECR containers
+    class CloudWatch,CloudTrail management
+    class StackOutputs outputs

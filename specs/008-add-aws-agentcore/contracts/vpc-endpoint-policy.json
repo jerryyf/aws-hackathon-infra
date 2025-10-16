@@ -1,0 +1,35 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowAgentRuntimeInvocation",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "bedrock-agentcore:InvokeAgentRuntime",
+        "bedrock-agentcore:InvokeAgentRuntimeWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:runtime/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:PrincipalAccount": "${AWS::AccountId}"
+        }
+      }
+    },
+    {
+      "Sid": "AllowRuntimeManagement",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "bedrock-agentcore:GetAgentRuntime",
+        "bedrock-agentcore:ListAgentRuntimes"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceVpc": "${VpcId}"
+        }
+      }
+    }
+  ]
+}

@@ -15,17 +15,19 @@ def test_database_connectivity_integration():
     template = Template.from_stack(stack)
 
     # Verify RDS cluster
-    template.has_resource_properties("AWS::RDS::DBCluster", {
-        "Engine": "aurora-postgresql",
-        "DatabaseName": "hackathon",
-        "StorageEncrypted": True
-    })
+    template.has_resource_properties(
+        "AWS::RDS::DBCluster",
+        {
+            "Engine": "aurora-postgresql",
+            "DatabaseName": "hackathon",
+            "StorageEncrypted": True,
+        },
+    )
 
     # Verify RDS Proxy
-    template.has_resource_properties("AWS::RDS::DBProxy", {
-        "EngineFamily": "POSTGRESQL",
-        "RequireTLS": True
-    })
+    template.has_resource_properties(
+        "AWS::RDS::DBProxy", {"EngineFamily": "POSTGRESQL", "RequireTLS": True}
+    )
 
     # Verify proxy targets cluster
     proxy_target_groups = template.find_resources("AWS::RDS::DBProxyTargetGroup")

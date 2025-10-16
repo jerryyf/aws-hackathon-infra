@@ -407,7 +407,7 @@ class SecurityStack(Stack):
                     f"https://app.{self.domain_name}/callback",
                 ]
             return ["https://app.example.com/callback"]
-        elif self.env_name == "staging":
+        if self.env_name == "staging":
             if self.domain_name:
                 return [f"https://staging.{self.domain_name}/callback"]
             return ["https://staging.example.com/callback"]
@@ -438,7 +438,7 @@ class SecurityStack(Stack):
                     f"https://{self.domain_name}/signin",
                 ]
             return ["https://app.example.com", "https://app.example.com/signin"]
-        elif self.env_name == "staging":
+        if self.env_name == "staging":
             if self.domain_name:
                 return [
                     f"https://staging.{self.domain_name}",

@@ -48,10 +48,8 @@ class AgentCoreStack(Stack):
             )
 
         logger.info(
-            "[AgentCoreStack] Configuration validated: network_mode=%s, cpu=%d, memory=%d",
+            "[AgentCoreStack] Configuration validated: network_mode=%s",
             network_mode,
-            int(agentcore_config["cpu"]),
-            int(agentcore_config["memory"]),
         )
 
         runtime_name = f"hackathon-agent-{environment}-{Stack.of(self).region}"
@@ -82,8 +80,6 @@ class AgentCoreStack(Stack):
             "AgentRuntimeArtifact": {
                 "ContainerConfiguration": {
                     "ContainerUri": ecr_uri,
-                    "Cpu": int(agentcore_config["cpu"]),
-                    "Memory": int(agentcore_config["memory"]),
                 }
             },
             "RoleArn": security_stack.agentcore_execution_role.role_arn,

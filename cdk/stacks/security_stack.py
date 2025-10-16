@@ -411,22 +411,22 @@ class SecurityStack(Stack):
             if self.domain_name:
                 return [f"https://staging.{self.domain_name}/callback"]
             return ["https://staging.example.com/callback"]
-        else:  # dev
-            urls = [
-                "http://localhost:3000/callback",
-                "http://localhost:3000/api/auth/callback/cognito",
-            ]
-            # Add domain URLs if provided (for dev testing with real domain)
-            if self.domain_name:
-                urls.extend(
-                    [
-                        f"https://{self.domain_name}/callback",
-                        f"https://www.{self.domain_name}/callback",
-                        f"https://{self.domain_name}/api/auth/callback/cognito",
-                        f"https://www.{self.domain_name}/api/auth/callback/cognito",
-                    ]
-                )
-            return urls
+        # dev
+        urls = [
+            "http://localhost:3000/callback",
+            "http://localhost:3000/api/auth/callback/cognito",
+        ]
+        # Add domain URLs if provided (for dev testing with real domain)
+        if self.domain_name:
+            urls.extend(
+                [
+                    f"https://{self.domain_name}/callback",
+                    f"https://www.{self.domain_name}/callback",
+                    f"https://{self.domain_name}/api/auth/callback/cognito",
+                    f"https://www.{self.domain_name}/api/auth/callback/cognito",
+                ]
+            )
+        return urls
 
     def _get_logout_urls(self) -> list[str]:
         """Get logout URLs based on environment"""
@@ -445,22 +445,22 @@ class SecurityStack(Stack):
                     f"https://staging.{self.domain_name}/signin",
                 ]
             return ["https://staging.example.com", "https://staging.example.com/signin"]
-        else:  # dev
-            urls = [
-                "http://localhost:3000",
-                "http://localhost:3000/signin",
-            ]
-            # Add domain URLs if provided (for dev testing with real domain)
-            if self.domain_name:
-                urls.extend(
-                    [
-                        f"https://{self.domain_name}",
-                        f"https://www.{self.domain_name}",
-                        f"https://{self.domain_name}/signin",
-                        f"https://www.{self.domain_name}/signin",
-                    ]
-                )
-            return urls
+        # dev
+        urls = [
+            "http://localhost:3000",
+            "http://localhost:3000/signin",
+        ]
+        # Add domain URLs if provided (for dev testing with real domain)
+        if self.domain_name:
+            urls.extend(
+                [
+                    f"https://{self.domain_name}",
+                    f"https://www.{self.domain_name}",
+                    f"https://{self.domain_name}/signin",
+                    f"https://www.{self.domain_name}/signin",
+                ]
+            )
+        return urls
 
     def _create_outputs(self, domain_prefix: str) -> None:
         """Create CloudFormation outputs"""

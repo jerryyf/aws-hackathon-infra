@@ -23,6 +23,9 @@ except ModuleNotFoundError:
 
 app = cdk.App()
 
+# Get environment from context or default to 'dev'
+environment = app.node.try_get_context("environment") or "dev"
+
 # Optional domain name can be provided via cdk context: cdk --context domain_name=example.com
 domain_name = app.node.try_get_context("domain_name") or os.getenv("DOMAIN_NAME")
 

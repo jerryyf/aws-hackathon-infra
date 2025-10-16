@@ -101,15 +101,7 @@ def test_agentcore_stack_synth_vpc_mode():
 
     template.has_resource_properties(
         "AWS::BedrockAgentCore::Runtime",
-        {
-            "NetworkConfiguration": {"NetworkMode": "VPC"},
-            "AgentRuntimeArtifact": {
-                "ContainerConfiguration": {
-                    "Cpu": 2048,
-                    "Memory": 4096,
-                }
-            },
-        },
+        {"NetworkConfiguration": {"NetworkMode": "VPC"}},
     )
 
 

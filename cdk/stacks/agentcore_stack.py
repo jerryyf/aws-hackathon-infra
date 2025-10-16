@@ -87,14 +87,14 @@ class AgentCoreStack(Stack):
                 }
             },
             "RoleArn": security_stack.agentcore_execution_role.role_arn,
-            "Tags": [
-                {"Key": "Project", "Value": "aws-hackathon"},
-                {"Key": "Environment", "Value": environment},
-                {"Key": "Owner", "Value": "platform-team"},
-                {"Key": "CostCenter", "Value": "engineering"},
-                {"Key": "ManagedBy", "Value": "cdk"},
-                {"Key": "Stack", "Value": "agentcore-stack"},
-            ],
+            "Tags": {
+                "Project": "aws-hackathon",
+                "Environment": environment,
+                "Owner": "platform-team",
+                "CostCenter": "engineering",
+                "ManagedBy": "cdk",
+                "Stack": "agentcore-stack",
+            },
         }
 
         if network_mode == "VPC":

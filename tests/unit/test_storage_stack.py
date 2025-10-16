@@ -230,6 +230,7 @@ def test_storage_stack_ecr_outputs_created():
     template.has_output("AppEcrRepositoryUri", {})
     template.has_output("ApiEcrRepositoryUri", {})
     template.has_output("AgentEcrRepositoryUri", {})
+    template.has_output("SubagentEcrRepositoryUri", {})
 
 
 def test_storage_stack_s3_outputs_have_exports():
@@ -278,6 +279,12 @@ def test_storage_stack_ecr_outputs_have_exports():
     template.has_output("AgentEcrRepositoryUri", {
         "Export": {
             "Name": "AgentEcrRepositoryUri"
+        }
+    })
+
+    template.has_output("SubagentEcrRepositoryUri", {
+        "Export": {
+            "Name": "SubagentEcrRepositoryUri"
         }
     })
 

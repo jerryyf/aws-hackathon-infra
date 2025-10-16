@@ -5,6 +5,7 @@ def test_ecr_repositories_contract(storage_stack_outputs):
         "AppEcrRepositoryUri",
         "ApiEcrRepositoryUri",
         "AgentEcrRepositoryUri",
+        "SubagentEcrRepositoryUri",
     ]
 
     for output_name in required_outputs:
@@ -20,8 +21,9 @@ def test_ecr_repository_properties(storage_stack_outputs, ecr_client):
     app_repo_name = storage_stack_outputs["AppEcrRepositoryUri"].split("/")[-1]
     api_repo_name = storage_stack_outputs["ApiEcrRepositoryUri"].split("/")[-1]
     agent_repo_name = storage_stack_outputs["AgentEcrRepositoryUri"].split("/")[-1]
+    subagent_repo_name = storage_stack_outputs["SubagentEcrRepositoryUri"].split("/")[-1]
 
-    for repo_name in [app_repo_name, api_repo_name, agent_repo_name]:
+    for repo_name in [app_repo_name, api_repo_name, agent_repo_name, subagent_repo_name]:
         response = ecr_client.describe_repositories(repositoryNames=[repo_name])
         assert (
             len(response["repositories"]) == 1
@@ -43,7 +45,9 @@ def test_ecr_repository_names(storage_stack_outputs):
     app_repo_uri = storage_stack_outputs["AppEcrRepositoryUri"]
     api_repo_uri = storage_stack_outputs["ApiEcrRepositoryUri"]
     agent_repo_uri = storage_stack_outputs["AgentEcrRepositoryUri"]
+    subagent_repo_uri = storage_stack_outputs["SubagentEcrRepositoryUri"]
     
     assert "bidopsai/app" in app_repo_uri, "App repository must be named bidopsai/app"
     assert "bidopsai/api" in api_repo_uri, "API repository must be named bidopsai/api"
     assert "bidopsai/agent" in agent_repo_uri, "Agent repository must be named bidopsai/agent"
+    assert "bidopsai/subagent" in subagent_repo_uri, "Subagent repository must be named bidopsai/subagent"

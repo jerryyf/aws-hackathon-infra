@@ -51,15 +51,7 @@ class StorageStack(Stack):
         )
         self.ecr_repo = ecr.Repository(
             self,
-            "AppEcrRepository",
-            repository_name="bidopsai/bff",
-            image_scan_on_push=True,
-            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
-            removal_policy=RemovalPolicy.DESTROY,
-        )
-        self.ecr_repo = ecr.Repository(
-            self,
-            "AppEcrRepository",
+            "ApiEcrRepository",
             repository_name="bidopsai/api",
             image_scan_on_push=True,
             image_tag_mutability=ecr.TagMutability.IMMUTABLE,
@@ -67,16 +59,16 @@ class StorageStack(Stack):
         )
         self.ecr_repo = ecr.Repository(
             self,
-            "WorkflowAgentEcrRepository",
-            repository_name="bidopsai/workflow-agent",
+            "AgentEcrRepository",
+            repository_name="bidopsai/agent",
             image_scan_on_push=True,
             image_tag_mutability=ecr.TagMutability.IMMUTABLE,
             removal_policy=RemovalPolicy.DESTROY,
         )
         self.ecr_repo = ecr.Repository(
             self,
-            "DelegateAgentEcrRepository",
-            repository_name="bidopsai/delegate-agent",
+            "SubagentEcrRepository",
+            repository_name="bidopsai/subagent",
             image_scan_on_push=True,
             image_tag_mutability=ecr.TagMutability.IMMUTABLE,
             removal_policy=RemovalPolicy.DESTROY,
@@ -109,8 +101,22 @@ class StorageStack(Stack):
 
         CfnOutput(
             self,
-            "EcrRepositoryUri",
+            "AppEcrRepositoryUri",
             value=self.ecr_repo.repository_uri,
-            description="ECR repository URI",
-            export_name="EcrRepositoryUri",
+            description="App ECR repository URI",
+            export_name="AppEcrRepositoryUri",
+        )
+        CfnOutput(
+            self,
+            "ApiEcrRepositoryUri",
+            value=self.ecr_repo.repository_uri,
+            description="API ECR repository URI",
+            export_name="ApiEcrRepositoryUri",
+        )
+        CfnOutput(
+            self,
+            "AgentEcrRepositoryUri",
+            value=self.ecr_repo.repository_uri,
+            description="Agent ECR repository URI",
+            export_name="AgentEcrRepositoryUri",
         )

@@ -43,8 +43,40 @@ class StorageStack(Stack):
         # ECR Repositories
         self.ecr_repo = ecr.Repository(
             self,
-            "EcrRepository",
-            repository_name="hackathon/app",
+            "AppEcrRepository",
+            repository_name="bidopsai/app",
+            image_scan_on_push=True,
+            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+        self.ecr_repo = ecr.Repository(
+            self,
+            "AppEcrRepository",
+            repository_name="bidopsai/bff",
+            image_scan_on_push=True,
+            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+        self.ecr_repo = ecr.Repository(
+            self,
+            "AppEcrRepository",
+            repository_name="bidopsai/api",
+            image_scan_on_push=True,
+            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+        self.ecr_repo = ecr.Repository(
+            self,
+            "WorkflowAgentEcrRepository",
+            repository_name="bidopsai/workflow-agent",
+            image_scan_on_push=True,
+            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+        self.ecr_repo = ecr.Repository(
+            self,
+            "DelegateAgentEcrRepository",
+            repository_name="bidopsai/delegate-agent",
             image_scan_on_push=True,
             image_tag_mutability=ecr.TagMutability.IMMUTABLE,
             removal_policy=RemovalPolicy.DESTROY,

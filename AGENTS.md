@@ -1,5 +1,9 @@
 # Agent Guidelines
 
+## Git
+
+DO NOT run any `git` or `gh` commands unless specifically granted permission to by the user.
+
 ## Workflow
 
 This project uses spec-kit. Always follow workflows outlined in specs, plans, tasks.
@@ -48,3 +52,7 @@ export AWS_REGION=us-east-1
 - **CDK patterns**: Use L2 constructs, `CfnOutput` for exports, `Construct` scope pattern
 - **Testing**: pytest with `Template.from_stack()` assertions, contract tests validate CloudFormation outputs
 - **Environment**: Check `self.account`/`self.region` before context lookups (hosted zones, VPCs)
+
+## Project Structure
+
+All documentation can be found in docs/. Place any ad-hoc reports, troubleshooting summaries, deployments, here.

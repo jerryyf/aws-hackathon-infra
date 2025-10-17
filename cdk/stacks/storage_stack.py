@@ -49,26 +49,10 @@ class StorageStack(Stack):
             image_tag_mutability=ecr.TagMutability.IMMUTABLE,
             removal_policy=RemovalPolicy.DESTROY,
         )
-        self.api_ecr_repo = ecr.Repository(
-            self,
-            "ApiEcrRepository",
-            repository_name="bidopsai/api",
-            image_scan_on_push=True,
-            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
-            removal_policy=RemovalPolicy.DESTROY,
-        )
         self.agent_ecr_repo = ecr.Repository(
             self,
             "AgentEcrRepository",
             repository_name="bidopsai/agent",
-            image_scan_on_push=True,
-            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
-            removal_policy=RemovalPolicy.DESTROY,
-        )
-        self.subagent_ecr_repo = ecr.Repository(
-            self,
-            "SubagentEcrRepository",
-            repository_name="bidopsai/subagent",
             image_scan_on_push=True,
             image_tag_mutability=ecr.TagMutability.IMMUTABLE,
             removal_policy=RemovalPolicy.DESTROY,
@@ -108,22 +92,8 @@ class StorageStack(Stack):
         )
         CfnOutput(
             self,
-            "ApiEcrRepositoryUri",
-            value=self.api_ecr_repo.repository_uri,
-            description="API ECR repository URI",
-            export_name="ApiEcrRepositoryUri",
-        )
-        CfnOutput(
-            self,
             "AgentEcrRepositoryUri",
             value=self.agent_ecr_repo.repository_uri,
             description="Agent ECR repository URI",
             export_name="AgentEcrRepositoryUri",
-        )
-        CfnOutput(
-            self,
-            "SubagentEcrRepositoryUri",
-            value=self.subagent_ecr_repo.repository_uri,
-            description="Subagent ECR repository URI",
-            export_name="SubagentEcrRepositoryUri",
         )

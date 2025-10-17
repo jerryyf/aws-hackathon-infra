@@ -25,6 +25,5 @@ def test_vpc_construct():
 
     # Check VPC endpoints
     # S3 (gateway) + 8 interface endpoints:
-    # Bedrock Runtime, Secrets Manager, SSM, ECR API, ECR Docker, CloudWatch Logs,
-    # Bedrock AgentCore, Bedrock AgentCore Gateway
+    # Bedrock Runtime, Secrets Manager, SSM, ECR API, ECR Docker, CloudWatch Logs
     template.resource_count_is("AWS::EC2::VPCEndpoint", 9)

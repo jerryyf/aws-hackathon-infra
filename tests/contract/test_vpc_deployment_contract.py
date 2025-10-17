@@ -2,24 +2,18 @@ import re
 
 
 def test_vpc_deployment_readiness(network_stack_outputs, ec2_client):
-    """Test that VPC stack is deployed with correct outputs and resources"""
-
-    # Verify VpcId output exists
     assert "VpcId" in network_stack_outputs, "VpcId output not found in NetworkStack"
     vpc_id = network_stack_outputs["VpcId"]
 
-    # Query actual VPC resource from AWS
     response = ec2_client.describe_vpcs(VpcIds=[vpc_id])
     assert len(response["Vpcs"]) == 1, f"VPC {vpc_id} not found in AWS"
 
     vpc = response["Vpcs"][0]
 
-    # Validate VPC properties match contract
     assert (
         vpc["CidrBlock"] == "10.0.0.0/16"
     ), f"VPC CIDR must be 10.0.0.0/16, got {vpc['CidrBlock']}"
 
-    # Check DNS attributes using describe_vpc_attribute
     dns_hostnames_attr = ec2_client.describe_vpc_attribute(
         VpcId=vpc_id, Attribute="enableDnsHostnames"
     )
@@ -34,7 +28,6 @@ def test_vpc_deployment_readiness(network_stack_outputs, ec2_client):
         dns_support_attr["EnableDnsSupport"]["Value"] is True
     ), "VPC must have DNS support enabled"
 
-    # Verify subnets exist (8 total: 2 AZs * 4 subnet types)
     subnets_response = ec2_client.describe_subnets(
         Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
     )
@@ -42,13 +35,11 @@ def test_vpc_deployment_readiness(network_stack_outputs, ec2_client):
         len(subnets_response["Subnets"]) == 8
     ), f"Expected 8 subnets, found {len(subnets_response['Subnets'])}"
 
-    # Verify internet gateway exists
     igw_response = ec2_client.describe_internet_gateways(
         Filters=[{"Name": "attachment.vpc-id", "Values": [vpc_id]}]
     )
     assert len(igw_response["InternetGateways"]) == 1, "Expected 1 internet gateway"
 
-    # Verify NAT gateways exist (2 total: one per AZ)
     nat_response = ec2_client.describe_nat_gateways(
         Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
     )
@@ -61,9 +52,6 @@ def test_vpc_deployment_readiness(network_stack_outputs, ec2_client):
 
 
 def test_vpc_deployment_outputs(network_stack_outputs):
-    """Test VPC deployment outputs match contract for dependent stacks"""
-
-    # Validate all required outputs are present per contract
     required_outputs = [
         "VpcId",
         "PublicSubnetIds",
@@ -78,7 +66,6 @@ def test_vpc_deployment_outputs(network_stack_outputs):
             output_name in network_stack_outputs
         ), f"Required output {output_name} missing from NetworkStack"
 
-    # Validate subnet IDs format (comma-delimited list)
     subnet_outputs = [
         "PublicSubnetIds",
         "PrivateAppSubnetIds",

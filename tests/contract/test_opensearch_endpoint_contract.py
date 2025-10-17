@@ -2,13 +2,10 @@ import re
 
 
 def test_opensearch_endpoint_contract(database_stack_outputs):
-    """Test that OpenSearch endpoint stack output matches contract specification"""
-
     assert (
         "OpenSearchEndpoint" in database_stack_outputs
     ), "OpenSearchEndpoint output not found in DatabaseStack"
 
-    # Validate endpoint format (vpc-domainname-identifier.region.es.amazonaws.com)
     endpoint = database_stack_outputs["OpenSearchEndpoint"]
     endpoint_pattern = re.compile(r"^vpc-[a-z0-9-]+\.[a-z0-9-]+\.es\.amazonaws\.com$")
     assert endpoint_pattern.match(
@@ -17,14 +14,8 @@ def test_opensearch_endpoint_contract(database_stack_outputs):
 
 
 def test_opensearch_domain_properties(database_stack_outputs, opensearch_client):
-    """Test OpenSearch domain properties"""
-
-    # Extract domain name from endpoint
-    # Format: vpc-domainname-uniqueid.identifier.region.es.amazonaws.com
-    # Domain name format: opensearchdomai-uniqueid (max 28 chars)
     endpoint = database_stack_outputs["OpenSearchEndpoint"]
 
-    # Get all domains and find the one matching the endpoint
     domains = opensearch_client.list_domain_names()["DomainNames"]
 
     domain_name = None
@@ -32,7 +23,6 @@ def test_opensearch_domain_properties(database_stack_outputs, opensearch_client)
         domain_info = opensearch_client.describe_domain(DomainName=domain["DomainName"])
         domain_status = domain_info["DomainStatus"]
 
-        # Check both public endpoint and VPC endpoints
         if (
             domain_status.get("Endpoint") == endpoint
             or domain_status.get("Endpoints", {}).get("vpc") == endpoint

@@ -80,28 +80,73 @@ def test_bedrock_agentcore_endpoint_outputs(network_stack):
 
 ### Integration Tests
 
-**Purpose**: Query deployed AWS infrastructure to validate live resources.
+**Purpose**: Validate live AWS resources after deployment using real HTTP calls, database connections, and service interactions.
 
-**Pattern**: boto3 clients + CloudFormation describe_stacks + pytest.skip for undeployed stacks
+**Pattern**: boto3 clients + actual service calls (HTTP requests, database connections, etc.) + pytest.skip for undeployed stacks
 
 **When to Use**:
 - Post-deployment validation
-- E2E infrastructure testing
-- Resource state verification (ACTIVE, available)
-- Cross-service connectivity tests
-- Trust policy and IAM role validation
+- E2E infrastructure testing (actual HTTP calls to ALB, database connections)
+- Real service connectivity tests
+- Performance and availability validation
+- NOT for template validation (use unit tests instead)
 
-**Example** (tests/integration/test_agentcore_e2e_deployment.py:24-31):
+**Example** (tests/integration/test_alb_post_deployment.py:7-27):
 ```python
-@pytest.fixture
-def stack_outputs(cloudformation_client):
+def test_alb_accessibility():
+    """Test that ALB is accessible after deployment"""
+    cloudformation = boto3.client("cloudformation")
     try:
-        response = cloudformation_client.describe_stacks(StackName="AgentCoreStack")
-        outputs = {o["OutputKey"]: o["OutputValue"] for o in response["Stacks"][0]["Outputs"]}
-        return outputs
-    except ClientError:
-        pytest.skip("AgentCoreStack not deployed - skipping E2E tests")
+        response = cloudformation.describe_stacks(StackName="ComputeStack")
+        outputs = {
+            o["OutputKey"]: o["OutputValue"] for o in response["Stacks"][0]["Outputs"]
+        }
+        alb_dns = outputs["AlbDnsName"]
+    except:
+        pytest.fail("ComputeStack not deployed or ALB DNS not found")
+
+    # Test ALB responds
+    response = requests.get(f"http://{alb_dns}", timeout=10)
+    assert response.status_code == 200
+    assert "hackathon" in response.text.lower()
 ```
+
+**Example** (tests/integration/test_database_post_deployment.py:8-44):
+```python
+def test_database_connectivity():
+    """Test that database is accessible after deployment"""
+    cloudformation = boto3.client("cloudformation")
+    try:
+        response = cloudformation.describe_stacks(StackName="DatabaseStack")
+        outputs = {
+            o["OutputKey"]: o["OutputValue"] for o in response["Stacks"][0]["Outputs"]
+        }
+        db_endpoint = outputs["RdsEndpoint"]
+        db_port = int(outputs["RdsPort"])
+    except:
+        pytest.fail("DatabaseStack not deployed or outputs not found")
+
+    # Get credentials from Secrets Manager
+    secrets_client = boto3.client("secretsmanager")
+    secret = secrets_client.get_secret_value(SecretId="hackathon/rds/credentials")
+    creds = json.loads(secret["SecretString"])
+
+    # Test database connection
+    try:
+        conn = psycopg2.connect(
+            host=db_endpoint,
+            port=db_port,
+            database="hackathon",
+            user=creds["username"],
+            password=creds["password"],
+            connect_timeout=10,
+        )
+        conn.close()
+    except Exception as e:
+        pytest.fail(f"Database connection failed: {e}")
+```
+
+**Key Difference from Contract Tests**: Integration tests make actual service calls (HTTP, database, etc.) whereas contract tests only validate CloudFormation outputs exist without testing actual connectivity.
 
 **boto3 Query Patterns**:
 ```python
@@ -479,10 +524,21 @@ def test_vpc_mode_configuration(stack_outputs, cloudformation_client):
 
 ```
 tests/
-├── unit/           # CDK template synthesis tests (no AWS)
-├── contract/       # Output contract validation (no deployment)
-└── integration/    # Live AWS resource validation (requires deployment)
+├── unit/           # CDK template synthesis tests (no AWS, fast)
+│                   # Use Template.from_stack() to validate CloudFormation templates
+│                   # Run during development and CI/CD
+├── contract/       # CloudFormation output validation (no deployment, medium)
+│                   # Use boto3 to validate stack outputs from deployed resources
+│                   # Require AWS credentials and deployed stacks
+└── integration/    # Live AWS resource validation (requires deployment, slow)
+                    # Test actual service connectivity (HTTP, database, etc.)
+                    # Run after deployment to validate E2E functionality
 ```
+
+**Key Differences**:
+- **Unit tests**: Template validation only, no AWS interaction, fast
+- **Contract tests**: Validate deployed CloudFormation outputs exist with correct format/export names
+- **Integration tests**: Test actual service behavior (HTTP calls, DB connections, etc.)
 
 ### 2. Fixture Patterns
 

@@ -285,87 +285,23 @@ class NetworkStack(Stack):
             service=ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
         )
 
-        # Bedrock AgentCore endpoints: use region-based service names when available
-        if self.region:
-            agentcore_service_name = f"com.amazonaws.{self.region}.bedrock-agentcore"
-            agentcore_gateway_service_name = (
-                f"com.amazonaws.{self.region}.bedrock-agentcore.gateway"
-            )
-        else:
-            agentcore_service_name = cdk.Fn.sub(
-                "com.amazonaws.${AWS::Region}.bedrock-agentcore"
-            )
-            agentcore_gateway_service_name = cdk.Fn.sub(
-                "com.amazonaws.${AWS::Region}.bedrock-agentcore.gateway"
-            )
-
-        # Main Bedrock AgentCore endpoint
-        self.bedrock_agentcore_endpoint = self.vpc.add_interface_endpoint(
-            "BedrockAgentCoreEndpoint",
-            service=ec2.InterfaceVpcEndpointService(agentcore_service_name, 443),
-            private_dns_enabled=True,
-            subnets=ec2.SubnetSelection(subnet_group_name="PrivateAgent"),
-        )
-
-        # Bedrock AgentCore Gateway endpoint
-        self.bedrock_agentcore_gateway_endpoint = self.vpc.add_interface_endpoint(
-            "BedrockAgentCoreGatewayEndpoint",
-            service=ec2.InterfaceVpcEndpointService(
-                agentcore_gateway_service_name, 443
-            ),
-            private_dns_enabled=True,
-            subnets=ec2.SubnetSelection(subnet_group_name="PrivateAgent"),
-        )
-
-        # Security Group for Bedrock AgentCore Runtimes
-        self.agentcore_runtime_sg = ec2.SecurityGroup(
-            self,
-            "AgentCoreRuntimeSecurityGroup",
-            vpc=self.vpc,
-            description="Security group for Bedrock AgentCore agent runtimes",
-            allow_all_outbound=False,
-        )
-
-        self.agentcore_runtime_sg.add_egress_rule(
-            peer=ec2.Peer.any_ipv4(),
-            connection=ec2.Port.tcp(443),
-            description="HTTPS egress to AWS services",
-        )
-
-        # Outputs
-        output_prefix = f"{self.stack_name}-"
-
         CfnOutput(
             self,
-            f"{output_prefix}BedrockAgentCoreEndpointId",
-            value=self.bedrock_agentcore_endpoint.vpc_endpoint_id,
-            description="Bedrock AgentCore VPC Endpoint ID",
-        )
-
-        CfnOutput(
-            self,
-            f"{output_prefix}BedrockAgentCoreGatewayEndpointId",
-            value=self.bedrock_agentcore_gateway_endpoint.vpc_endpoint_id,
-            description="Bedrock AgentCore Gateway VPC Endpoint ID",
-        )
-
-        CfnOutput(
-            self,
-            f"{output_prefix}VpcId",
+            "VpcId",
             value=self.vpc.vpc_id,
             description="VPC ID",
         )
 
         CfnOutput(
             self,
-            f"{output_prefix}PublicSubnetIds",
+            "PublicSubnetIds",
             value=",".join([subnet.subnet_id for subnet in self.vpc.public_subnets]),
             description="Public subnet IDs",
         )
 
         CfnOutput(
             self,
-            f"{output_prefix}PrivateAppSubnetIds",
+            "PrivateAppSubnetIds",
             value=",".join(
                 [
                     subnet.subnet_id
@@ -378,7 +314,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}PrivateAgentSubnetIds",
+            "PrivateAgentSubnetIds",
             value=",".join(
                 [
                     subnet.subnet_id
@@ -391,7 +327,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}PrivateDataSubnetIds",
+            "PrivateDataSubnetIds",
             value=",".join(
                 [
                     subnet.subnet_id
@@ -404,21 +340,21 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}AlbDnsName",
+            "AlbDnsName",
             value=self.alb.load_balancer_dns_name,
             description="Public ALB DNS name",
         )
 
         CfnOutput(
             self,
-            f"{output_prefix}InternalAlbDnsName",
+            "InternalAlbDnsName",
             value=self.internal_alb.load_balancer_dns_name,
             description="Internal ALB DNS name",
         )
 
         CfnOutput(
             self,
-            f"{output_prefix}HostedZoneId",
+            "HostedZoneId",
             value=(
                 self.hosted_zone.hosted_zone_id if self.hosted_zone is not None else ""
             ),
@@ -427,7 +363,7 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}CertificateArn",
+            "CertificateArn",
             value=(
                 self.certificate.certificate_arn if self.certificate is not None else ""
             ),
@@ -436,19 +372,11 @@ class NetworkStack(Stack):
 
         CfnOutput(
             self,
-            f"{output_prefix}DomainName",
+            "DomainName",
             value=domain_name if domain_name else "",
             description="Domain name configured for the ALB (empty if not configured)",
         )
 
-        CfnOutput(
-            self,
-            f"{output_prefix}AgentCoreRuntimeSecurityGroupId",
-            value=self.agentcore_runtime_sg.security_group_id,
-            description="Security group ID for AgentCore runtimes",
-        )
-
-        # Export individual subnet IDs for cross-stack references
         data_subnets = [
             subnet
             for subnet in self.vpc.private_subnets
@@ -457,7 +385,7 @@ class NetworkStack(Stack):
         for i, subnet in enumerate(data_subnets):
             CfnOutput(
                 self,
-                f"{output_prefix}PrivateDataSubnet{i+1}Id",
+                f"PrivateDataSubnet{i+1}Id",
                 value=subnet.subnet_id,
                 description=f"Private data subnet {i+1} ID",
             )

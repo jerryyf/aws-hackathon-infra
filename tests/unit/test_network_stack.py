@@ -87,7 +87,7 @@ def test_network_stack_vpc_endpoints():
     stack = NetworkStack(app, "TestNetworkStack")
     template = Template.from_stack(stack)
 
-    template.resource_count_is("AWS::EC2::VPCEndpoint", 9)
+    template.resource_count_is("AWS::EC2::VPCEndpoint", 7)
 
 
 def test_network_stack_s3_gateway_endpoint():
@@ -137,13 +137,13 @@ def test_network_stack_outputs():
     stack = NetworkStack(app, "TestNetworkStack")
     template = Template.from_stack(stack)
 
-    template.has_output("TestNetworkStackVpcId", {})
-    template.has_output("TestNetworkStackPublicSubnetIds", {})
-    template.has_output("TestNetworkStackPrivateAppSubnetIds", {})
-    template.has_output("TestNetworkStackPrivateAgentSubnetIds", {})
-    template.has_output("TestNetworkStackPrivateDataSubnetIds", {})
-    template.has_output("TestNetworkStackAlbDnsName", {})
-    template.has_output("TestNetworkStackInternalAlbDnsName", {})
+    template.has_output("VpcId", {})
+    template.has_output("PublicSubnetIds", {})
+    template.has_output("PrivateAppSubnetIds", {})
+    template.has_output("PrivateAgentSubnetIds", {})
+    template.has_output("PrivateDataSubnetIds", {})
+    template.has_output("AlbDnsName", {})
+    template.has_output("InternalAlbDnsName", {})
 
 
 def test_network_stack_with_domain_no_env():

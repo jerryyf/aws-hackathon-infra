@@ -43,14 +43,15 @@ def test_database_deployment_outputs(
     domain_found = False
     for domain in domains:
         domain_info = opensearch_client.describe_domain(DomainName=domain["DomainName"])
-        if (
-            domain_info["DomainStatus"]["Endpoint"] == os_endpoint
-            or domain_info["DomainStatus"].get("Endpoints", {}).get("vpc")
-            == os_endpoint
-        ):
+        domain_status = domain_info["DomainStatus"]
+        domain_endpoint = domain_status.get("Endpoint") or domain_status.get(
+            "Endpoints", {}
+        ).get("vpc")
+
+        if domain_endpoint == os_endpoint:
             domain_found = True
             assert (
-                domain_info["DomainStatus"]["Processing"] is False
+                domain_status["Processing"] is False
             ), f"OpenSearch domain {domain['DomainName']} is still processing"
             break
 

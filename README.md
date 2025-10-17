@@ -76,9 +76,22 @@ The GitHub Actions workflow runs tests in stages:
 4. **Contract Tests** - validates deployed infrastructure
 5. **Integration Tests** - end-to-end validation
 
-### Deploying Infrastructure
+### Local workflow
 
-See [quickstart.md](specs/002-create-python-application/quickstart.md) for detailed deployment scenarios and validation procedures.
+For a fully local deployment:
+```bash
+# Run unit tests first
+PYTHONPATH=. pytest tests/unit
+
+# deploy
+export AWS_PROFILE=hackathon
+export AWS_REGION=us-east-1
+cd cdk && cdk deploy --all
+
+# run contract and integration tests
+PYTHONPATH=. pytest tests/contract
+PYTHONPATH=. pytest tests/integration
+```
 
 ## Environment Variables
 

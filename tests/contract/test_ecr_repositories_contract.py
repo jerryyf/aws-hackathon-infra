@@ -11,8 +11,10 @@ def test_ecr_repositories_contract(storage_stack_outputs):
 
 
 def test_ecr_repository_properties(storage_stack_outputs, ecr_client):
-    app_repo_name = storage_stack_outputs["AppEcrRepositoryUri"].split("/")[-1]
-    agent_repo_name = storage_stack_outputs["AgentEcrRepositoryUri"].split("/")[-1]
+    app_repo_name = "/".join(storage_stack_outputs["AppEcrRepositoryUri"].split("/")[-2:])
+    agent_repo_name = "/".join(
+        storage_stack_outputs["AgentEcrRepositoryUri"].split("/")[-2:]
+    )
 
     for repo_name in [app_repo_name, agent_repo_name]:
         response = ecr_client.describe_repositories(repositoryNames=[repo_name])

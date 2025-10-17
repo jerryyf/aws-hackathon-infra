@@ -9,7 +9,6 @@ Manages:
 
 from aws_cdk import (
     Stack,
-    aws_iam as iam,
     aws_ssm as ssm,
     aws_cognito as cognito,
     CfnOutput,

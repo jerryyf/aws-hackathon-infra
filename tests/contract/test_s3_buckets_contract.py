@@ -53,6 +53,8 @@ def test_s3_bucket_properties(storage_stack_outputs, s3_client):
 
 
 def test_s3_bucket_lifecycle_policies(storage_stack_outputs, s3_client):
+    from botocore.exceptions import ClientError
+
     logs_bucket = storage_stack_outputs["LogsBucketName"]
 
     try:
@@ -60,8 +62,11 @@ def test_s3_bucket_lifecycle_policies(storage_stack_outputs, s3_client):
         assert (
             "Rules" in lifecycle
         ), f"Logs bucket {logs_bucket} should have lifecycle rules for cost optimization"
-    except s3_client.exceptions.NoSuchLifecycleConfiguration:
-        pass
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchLifecycleConfiguration":
+            pass
+        else:
+            raise
 
 
 def test_s3_bucket_names_follow_convention(storage_stack_outputs):

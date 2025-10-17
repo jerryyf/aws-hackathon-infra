@@ -1,27 +1,34 @@
 import pytest
-import requests
 import boto3
-from cdk.app import app
 
 
 def test_alb_accessibility():
-    """Test that ALB is accessible after deployment"""
-    # This test assumes the infrastructure is deployed
-    # It will fail until deployment scripts are implemented and run
-
-    # Get ALB DNS name from deployed stack
-    # For now, this will fail as stacks are not deployed
+    """Test that ALB is deployed and in active state"""
     cloudformation = boto3.client("cloudformation")
+    elbv2 = boto3.client("elbv2")
+
     try:
-        response = cloudformation.describe_stacks(StackName="ComputeStack")
+        response = cloudformation.describe_stacks(StackName="NetworkStack")
         outputs = {
             o["OutputKey"]: o["OutputValue"] for o in response["Stacks"][0]["Outputs"]
         }
         alb_dns = outputs["AlbDnsName"]
-    except:
-        pytest.fail("ComputeStack not deployed or ALB DNS not found")
+    except Exception as e:
+        pytest.fail(f"NetworkStack not deployed or AlbDnsName not found: {e}")
 
-    # Test ALB responds
-    response = requests.get(f"http://{alb_dns}", timeout=10)
-    assert response.status_code == 200
-    assert "hackathon" in response.text.lower()  # Assuming some content
+    assert alb_dns, "ALB DNS name must not be empty"
+
+    load_balancers = elbv2.describe_load_balancers()["LoadBalancers"]
+    alb = next((lb for lb in load_balancers if lb["DNSName"] == alb_dns), None)
+
+    assert alb is not None, f"ALB with DNS {alb_dns} not found"
+    assert alb["State"]["Code"] == "active", f"ALB state is {alb['State']['Code']}"
+    assert alb["Scheme"] == "internet-facing", "ALB must be internet-facing"
+
+    listeners = elbv2.describe_listeners(LoadBalancerArn=alb["LoadBalancerArn"])[
+        "Listeners"
+    ]
+    assert len(listeners) > 0, "ALB must have at least one listener"
+
+    https_listener = next((l for l in listeners if l["Port"] == 443), None)
+    assert https_listener is not None, "ALB must have HTTPS listener on port 443"

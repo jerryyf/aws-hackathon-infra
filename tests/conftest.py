@@ -27,28 +27,7 @@ def load_contract():
     return _load
 
 
-@pytest.fixture(scope="session")
-def load_contract_yaml():
-    """Load contract YAML files from specs/008-add-aws-agentcore/contracts/"""
 
-    def _load(filename: str) -> dict[str, Any]:
-        path = PROJECT_ROOT / "specs" / "008-add-aws-agentcore" / "contracts" / filename
-        with open(path) as f:
-            return yaml.safe_load(f)
-
-    return _load
-
-
-@pytest.fixture(scope="session")
-def load_contract_json():
-    """Load contract JSON files from specs/008-add-aws-agentcore/contracts/"""
-
-    def _load(filename: str) -> dict[str, Any]:
-        path = PROJECT_ROOT / "specs" / "008-add-aws-agentcore" / "contracts" / filename
-        with open(path) as f:
-            return json.load(f)
-
-    return _load
 
 
 @pytest.fixture(scope="session")
@@ -159,8 +138,3 @@ def compute_stack_outputs(cloudformation_client):
 @pytest.fixture
 def monitoring_stack_outputs(cloudformation_client):
     return get_stack_outputs(cloudformation_client, "MonitoringStack")
-
-
-@pytest.fixture
-def agentcore_stack_outputs(cloudformation_client):
-    return get_stack_outputs(cloudformation_client, "AgentCoreStack")

@@ -9,8 +9,6 @@ try:
     from cdk.stacks.storage_stack import StorageStack
     from cdk.stacks.security_stack import SecurityStack
     from cdk.stacks.monitoring_stack import MonitoringStack
-    from cdk.stacks.agentcore_stack import AgentCoreStack
-    from cdk.config import AGENTCORE_CONFIG, ENVIRONMENT
 except ModuleNotFoundError:
     from stacks.network_stack import NetworkStack
     from stacks.database_stack import DatabaseStack
@@ -18,8 +16,6 @@ except ModuleNotFoundError:
     from stacks.storage_stack import StorageStack
     from stacks.security_stack import SecurityStack
     from stacks.monitoring_stack import MonitoringStack
-    from stacks.agentcore_stack import AgentCoreStack
-    from config import AGENTCORE_CONFIG, ENVIRONMENT
 
 app = cdk.App()
 
@@ -73,19 +69,6 @@ if env:
     monitoring_stack = MonitoringStack(
         app, "MonitoringStack", env=env, logs_bucket=storage_stack.logs_bucket
     )
-    agentcore_stack = AgentCoreStack(
-        app,
-        "AgentCoreStack",
-        env=env,
-        network_stack=network_stack,
-        security_stack=security_stack,
-        storage_stack=storage_stack,
-        agentcore_config=AGENTCORE_CONFIG[ENVIRONMENT],
-        environment=ENVIRONMENT,
-        stack_name="AgentCoreStack",
-        description="AWS Bedrock AgentCore runtime infrastructure",
-        termination_protection=False,
-    )
 else:
     network_stack = NetworkStack(app, "NetworkStack", domain_name=domain_name)
     database_stack = DatabaseStack(app, "DatabaseStack", network_stack=network_stack)
@@ -95,18 +78,6 @@ else:
     monitoring_stack = MonitoringStack(
         app, "MonitoringStack", logs_bucket=storage_stack.logs_bucket
     )
-    agentcore_stack = AgentCoreStack(
-        app,
-        "AgentCoreStack",
-        network_stack=network_stack,
-        security_stack=security_stack,
-        storage_stack=storage_stack,
-        agentcore_config=AGENTCORE_CONFIG[ENVIRONMENT],
-        environment=ENVIRONMENT,
-        stack_name="AgentCoreStack",
-        description="AWS Bedrock AgentCore runtime infrastructure",
-        termination_protection=False,
-    )
 
 # Add dependencies between stacks
 database_stack.add_dependency(network_stack)
@@ -114,9 +85,6 @@ compute_stack.add_dependency(network_stack)
 storage_stack.add_dependency(network_stack)
 security_stack.add_dependency(network_stack)
 monitoring_stack.add_dependency(network_stack)
-agentcore_stack.add_dependency(network_stack)
-agentcore_stack.add_dependency(security_stack)
-agentcore_stack.add_dependency(storage_stack)
 
 # Apply resource tags per FR-009 requirement
 # All four tags (Project, Environment, Owner, CostCenter) are required

@@ -15,14 +15,6 @@ STACK_NAMES = {
     "compute": "ComputeStack",
     "storage": "StorageStack",
     "monitoring": "MonitoringStack",
-    "agentcore": "AgentCoreStack",
-}
-
-# Bedrock AgentCore configuration
-AGENTCORE_CONFIG = {
-    "dev": {"cpu": "512", "memory": "1024", "network_mode": "PUBLIC"},
-    "test": {"cpu": "1024", "memory": "2048", "network_mode": "VPC"},
-    "prod": {"cpu": "2048", "memory": "4096", "network_mode": "VPC"},
 }
 
 # Test environment settings

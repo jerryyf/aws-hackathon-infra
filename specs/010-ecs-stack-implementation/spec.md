@@ -122,7 +122,7 @@ Platform operators need to configure IAM task roles that grant containers least-
 - **FR-008**: Task definitions MUST specify awsvpc network mode for ENI-based networking in VPC
 - **FR-009**: Task definitions MUST include task execution role with permissions for: ECR image pull (ecr:GetAuthorizationToken, ecr:BatchCheckLayerAvailability, ecr:GetDownloadUrlForLayer, ecr:BatchGetImage), CloudWatch logs write (logs:CreateLogStream, logs:PutLogEvents), and SSM Parameter Store read (ssm:GetParameter, ssm:GetParameters)
 - **FR-010**: Task definitions MUST configure CloudWatch log groups with log stream prefix matching service name
-- **FR-011**: Task definitions MUST specify container image URIs pointing to ECR repositories from StorageStack (BFF uses bidopsai/app repo, AgentCore uses bidopsai/agent repo)
+- **FR-011**: Task definitions MUST specify container image URIs pointing to ECR repositories from StorageStack (BFF uses `storage_stack.app_ecr_repo.repository_uri`, AgentCore uses `storage_stack.agent_ecr_repo.repository_uri`)
 - **FR-012**: Container definitions MUST include essential flag set to true for service-critical containers
 - **FR-013**: Container definitions MUST specify environment variables for AWS_REGION, ENVIRONMENT, and service-specific configuration
 - **FR-014**: Container definitions MUST mount secrets from SSM Parameter Store as environment variables for database credentials and API keys
@@ -179,7 +179,7 @@ Platform operators need to configure IAM task roles that grant containers least-
 **Stack Integration**
 - **FR-047**: ComputeStack MUST accept NetworkStack as dependency for VPC, subnet, security group, and ALB references
 - **FR-048**: ComputeStack MUST accept StorageStack as dependency for ECR repository URIs (bidopsai/app for BFF, bidopsai/agent for AgentCore)
-- **FR-049**: ComputeStack MUST accept SecurityStack as dependency for SSM Parameter Store ARNs
+- **FR-049**: ComputeStack MUST accept SecurityStack as dependency for SSM Parameter Store ARNs (including `/bidopsai/{env}/app/config`, `/bidopsai/{env}/endpoints`, `/bidopsai/{env}/rds/credentials`, `/bidopsai/{env}/api-keys`)
 - **FR-050**: ComputeStack MUST export service ARNs, cluster ARN, task definition ARNs, and Service Discovery namespace as CloudFormation outputs
 
 ### Key Entities

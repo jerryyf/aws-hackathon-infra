@@ -19,7 +19,7 @@ Enhance the existing `ComputeStack` to provision production-ready ECS infrastruc
 **Project Type**: Infrastructure as Code (single CDK application)  
 **Performance Goals**: Task launch time <60s, auto-scale response <5 min, 99.9% availability during deployments  
 **Constraints**: Fargate-only (no EC2), multi-AZ resilience, <$500/month dev environment cost, security group least-privilege  
-**Scale/Scope**: 3 services (BFF, GraphQL, AgentCore), 2-10 tasks per service, 6-30 concurrent containers
+**Scale/Scope**: 2 services (BFF, AgentCore), 2-10 tasks per service, 4-20 concurrent containers
 
 ## Constitution Check
 
@@ -37,13 +37,13 @@ Enhance the existing `ComputeStack` to provision production-ready ECS infrastruc
 - All resources defined in CDK Python code (`cdk/stacks/compute_stack.py`)
 - Version controlled, peer reviewed pull requests
 - No manual console changes (all infrastructure in code)
-- Secrets managed via Secrets Manager (from SecurityStack)
+- Secrets managed via SSM Parameter Store (from SecurityStack)
 - Modular stack design with explicit dependencies
 
 ✅ **III. Security & Compliance First**
 - Least-privilege IAM: Task execution roles (ECR/CloudWatch/SSM), task roles (service-specific AWS access)
 - Defense-in-depth: Security groups per service tier, private subnet deployment, VPC endpoints (no public internet)
-- Encryption: Container images in ECR (encrypted at rest), TLS 1.2+ for ALB traffic, SSM Parameter Store encrypted
+- Encryption: Container images in ECR (encrypted at rest), TLS 1.2+ for ALB traffic, SSM Parameter Store encrypted with KMS
 - Audit trail: CloudWatch Logs (7-day retention), CloudTrail enabled (MonitoringStack)
 - Network isolation: BFF → public ALB only, AgentCore → BFF only (no inbound from internet)
 

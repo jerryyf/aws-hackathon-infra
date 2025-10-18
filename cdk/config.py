@@ -17,6 +17,22 @@ STACK_NAMES = {
     "monitoring": "MonitoringStack",
 }
 
+# ECS resource allocations per environment
+ECS_RESOURCE_ALLOCATIONS = {
+    "dev": {
+        "cpu": 512,
+        "memory": 1024,
+    },
+    "test": {
+        "cpu": 1024,
+        "memory": 2048,
+    },
+    "prod": {
+        "cpu": 2048,
+        "memory": 4096,
+    },
+}
+
 # Test environment settings
 if ENVIRONMENT == "test":
     # Use test-specific settings

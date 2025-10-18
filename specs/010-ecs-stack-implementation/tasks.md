@@ -24,8 +24,8 @@
 
 **Purpose**: Project initialization and configuration updates for ECS infrastructure
 
-- [ ] T001 Update config.py to add ECS resource allocation settings per environment (dev: 512 CPU/1024 MiB, test: 1024 CPU/2048 MiB, prod: 2048 CPU/4096 MiB) in cdk/config.py
-- [ ] T002 [P] Update requirements.txt to verify aws-cdk-lib dependencies are current (aws-cdk.aws-ecs, aws-cdk.aws-iam) in cdk/requirements.txt
+- [X] T001 Update config.py to add ECS resource allocation settings per environment (dev: 512 CPU/1024 MiB, test: 1024 CPU/2048 MiB, prod: 2048 CPU/4096 MiB) in cdk/config.py
+- [X] T002 [P] Update requirements.txt to verify aws-cdk-lib dependencies are current (aws-cdk.aws-ecs, aws-cdk.aws-iam) in cdk/requirements.txt
 
 ---
 
@@ -35,13 +35,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create task execution role with ECR pull permissions (ecr:GetAuthorizationToken, ecr:BatchCheckLayerAvailability, ecr:GetDownloadUrlForLayer, ecr:BatchGetImage) in cdk/stacks/compute_stack.py
-- [ ] T004 Add CloudWatch Logs write permissions to task execution role (logs:CreateLogStream, logs:PutLogEvents) in cdk/stacks/compute_stack.py
-- [ ] T005 Add SSM Parameter Store read permissions to task execution role (ssm:GetParameter, ssm:GetParameters) in cdk/stacks/compute_stack.py
-- [ ] T006 [P] Create security group for BFF tasks allowing inbound from public ALB on port 3000 in cdk/stacks/compute_stack.py
-- [ ] T007 [P] Create security group for AgentCore tasks allowing inbound from BFF security group on port 8080 in cdk/stacks/compute_stack.py
-- [ ] T008 Configure all ECS security groups to allow outbound traffic to VPC endpoints on port 443 in cdk/stacks/compute_stack.py
-- [ ] T009 Configure all ECS security groups to allow outbound traffic to RDS security group on port 5432 in cdk/stacks/compute_stack.py
+- [X] T003 Create task execution role with ECR pull permissions (ecr:GetAuthorizationToken, ecr:BatchCheckLayerAvailability, ecr:GetDownloadUrlForLayer, ecr:BatchGetImage) in cdk/stacks/compute_stack.py
+- [X] T004 Add CloudWatch Logs write permissions to task execution role (logs:CreateLogStream, logs:PutLogEvents) in cdk/stacks/compute_stack.py
+- [X] T005 Add SSM Parameter Store read permissions to task execution role (ssm:GetParameter, ssm:GetParameters) in cdk/stacks/compute_stack.py
+- [X] T006 [P] Create security group for BFF tasks allowing inbound from public ALB on port 3000 in cdk/stacks/compute_stack.py
+- [X] T007 [P] Create security group for AgentCore tasks allowing inbound from BFF security group on port 8080 in cdk/stacks/compute_stack.py
+- [X] T008 Configure all ECS security groups to allow outbound traffic to VPC endpoints on port 443 in cdk/stacks/compute_stack.py
+- [X] T009 Configure all ECS security groups to allow outbound traffic to RDS security group on port 5432 in cdk/stacks/compute_stack.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

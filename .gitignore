@@ -16,6 +16,11 @@ tmp/
 
 .pytest_cache
 __pycache__
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
 
 # CDK artifacts
 cdk.out/

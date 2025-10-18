@@ -8,7 +8,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        exclude: package.lock.json
+        exclude: ^(package.lock.json|docs/|specs/|\.specify/)
 
   # Check for AWS credentials and ARNs
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -19,8 +19,11 @@ repos:
       - id: check-merge-conflict
       - id: check-yaml
         args: ['--unsafe']  # Allow custom YAML tags in CDK
+        exclude: ^(specs/.*\.yaml|\.specify/)  # Skip contract files with custom syntax
       - id: trailing-whitespace
+        exclude: ^(\.specify/)
       - id: end-of-file-fixer
+        exclude: ^(\.specify/)
       - id: detect-private-key
 
   # Custom hook to detect AWS ARNs and access keys

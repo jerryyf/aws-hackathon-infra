@@ -228,6 +228,18 @@ class NetworkStack(Stack):
                     ),
                 ),
             )
+        self.https_listener = self.alb.add_listener(
+            "HttpListener",
+            port=80,
+            default_action=elbv2.ListenerAction.fixed_response(
+                status_code=200,
+                content_type="text/html",
+                message_body=(
+                    "<html><body><h1>Welcome to bidopsai.com</h1>"
+                    "<p>HTTP is working!</p></body></html>"
+                ),
+            ),
+        )
 
         # DNS Record Creation
         if self.hosted_zone is not None and domain_name:

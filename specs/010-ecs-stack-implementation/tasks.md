@@ -57,13 +57,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Update ECS cluster in ComputeStack to enable CloudWatch Container Insights in cdk/stacks/compute_stack.py
-- [ ] T012 [US1] Create Fargate capacity provider with on-demand compute and assign 70% weight in default strategy in cdk/stacks/compute_stack.py
-- [ ] T013 [US1] Create Fargate Spot capacity provider and assign 30% weight in default strategy in cdk/stacks/compute_stack.py
-- [ ] T014 [US1] Associate capacity providers with ECS cluster in cdk/stacks/compute_stack.py
-- [ ] T015 [US1] Export cluster ARN and cluster name as CloudFormation outputs in cdk/stacks/compute_stack.py
-- [ ] T016 [US1] Create contract test validating cluster ARN and cluster name outputs in tests/contract/test_ecs_cluster_contract.py
-- [ ] T017 [US1] Update unit tests to verify cluster configuration and capacity providers in tests/unit/test_compute_stack.py
+- [X] T011 [US1] Update ECS cluster in ComputeStack to enable CloudWatch Container Insights in cdk/stacks/compute_stack.py
+- [X] T012 [US1] Create Fargate capacity provider with on-demand compute and assign 70% weight in default strategy in cdk/stacks/compute_stack.py
+- [X] T013 [US1] Create Fargate Spot capacity provider and assign 30% weight in default strategy in cdk/stacks/compute_stack.py
+- [X] T014 [US1] Associate capacity providers with ECS cluster in cdk/stacks/compute_stack.py
+- [X] T015 [US1] Export cluster ARN and cluster name as CloudFormation outputs in cdk/stacks/compute_stack.py
+- [X] T016 [US1] Create contract test validating cluster ARN and cluster name outputs in tests/contract/test_ecs_cluster_contract.py
+- [X] T017 [US1] Update unit tests to verify cluster configuration and capacity providers in tests/unit/test_compute_stack.py
 
 **Checkpoint**: ECS cluster with Fargate capacity providers should be deployable and testable independently
 
@@ -79,15 +79,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Create BFF task role with CloudWatch Logs write and SSM Parameter Store read permissions in cdk/stacks/compute_stack.py
-- [ ] T019 [P] [US2] Create AgentCore task role with full Bedrock agent access, S3 read/write, and SSM Parameter Store read permissions in cdk/stacks/compute_stack.py
-- [ ] T020 [P] [US2] Create CloudWatch log group for BFF service with 7-day retention in cdk/stacks/compute_stack.py
-- [ ] T021 [P] [US2] Create CloudWatch log group for AgentCore service with 7-day retention in cdk/stacks/compute_stack.py
-- [ ] T022 [US2] Create Fargate task definition for BFF with environment-based CPU/memory allocation (FR-041/42/43), awsvpc network mode (FR-008), task execution role (FR-009), task role (FR-016), container definition with port 3000 (FR-015), essential flag true (FR-012), ECR image URI from storage_stack.app_ecr_repo.repository_uri (FR-011), CloudWatch logs (FR-010), environment variables AWS_REGION/ENVIRONMENT/LOG_LEVEL (FR-013), SSM secrets (FR-014) in cdk/stacks/compute_stack.py
-- [ ] T023 [US2] Create Fargate task definition for AgentCore with environment-based CPU/memory allocation (FR-041/42/43), awsvpc network mode (FR-008), task execution role (FR-009), task role (FR-017), container definition with port 8080 (FR-015), essential flag true (FR-012), ECR image URI from storage_stack.agent_ecr_repo.repository_uri (FR-011), CloudWatch logs (FR-010), environment variables AWS_REGION/ENVIRONMENT/LOG_LEVEL (FR-013), SSM secrets (FR-014) in cdk/stacks/compute_stack.py
-- [ ] T024 [US2] Export task definition ARNs for BFF and AgentCore as CloudFormation outputs in cdk/stacks/compute_stack.py
-- [ ] T025 [US2] Create contract test validating task definition ARNs and task role ARNs in tests/contract/test_task_definitions_contract.py
-- [ ] T026 [US2] Update unit tests to verify task definition configurations, IAM roles, and CloudWatch log groups in tests/unit/test_compute_stack.py
+- [X] T018 [P] [US2] Create BFF task role with CloudWatch Logs write and SSM Parameter Store read permissions in cdk/stacks/compute_stack.py
+- [X] T019 [P] [US2] Create AgentCore task role with full Bedrock agent access, S3 read/write, and SSM Parameter Store read permissions in cdk/stacks/compute_stack.py
+- [X] T020 [P] [US2] Create CloudWatch log group for BFF service with 7-day retention in cdk/stacks/compute_stack.py
+- [X] T021 [P] [US2] Create CloudWatch log group for AgentCore service with 7-day retention in cdk/stacks/compute_stack.py
+- [X] T022 [US2] Create Fargate task definition for BFF with environment-based CPU/memory allocation (FR-041/42/43), awsvpc network mode (FR-008), task execution role (FR-009), task role (FR-016), container definition with port 3000 (FR-015), essential flag true (FR-012), ECR image URI from storage_stack.app_ecr_repo.repository_uri (FR-011), CloudWatch logs (FR-010), environment variables AWS_REGION/ENVIRONMENT/LOG_LEVEL (FR-013), SSM secrets (FR-014) in cdk/stacks/compute_stack.py
+- [X] T023 [US2] Create Fargate task definition for AgentCore with environment-based CPU/memory allocation (FR-041/42/43), awsvpc network mode (FR-008), task execution role (FR-009), task role (FR-017), container definition with port 8080 (FR-015), essential flag true (FR-012), ECR image URI from storage_stack.agent_ecr_repo.repository_uri (FR-011), CloudWatch logs (FR-010), environment variables AWS_REGION/ENVIRONMENT/LOG_LEVEL (FR-013), SSM secrets (FR-014) in cdk/stacks/compute_stack.py
+- [X] T024 [US2] Export task definition ARNs for BFF and AgentCore as CloudFormation outputs in cdk/stacks/compute_stack.py
+- [X] T025 [US2] Create contract test validating task definition ARNs and task role ARNs in tests/contract/test_task_definitions_contract.py
+- [X] T026 [US2] Update unit tests to verify task definition configurations, IAM roles, and CloudWatch log groups in tests/unit/test_compute_stack.py
 
 **Checkpoint**: Task definitions should be created with correct resource allocations, IAM roles, and CloudWatch logging
 
@@ -103,10 +103,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Create contract test validating BFF security group allows inbound only from public ALB security group on port 3000 in tests/contract/test_security_groups_contract.py
-- [ ] T028 [US4] Create contract test validating AgentCore security group allows inbound only from BFF security group on port 8080 in tests/contract/test_security_groups_contract.py
-- [ ] T029 [US4] Create contract test validating no security group allows 0.0.0.0/0 inbound access in tests/contract/test_security_groups_contract.py
-- [ ] T030 [US4] Update unit tests to verify security group ingress and egress rules in tests/unit/test_compute_stack.py
+- [X] T027 [US4] Create contract test validating BFF security group allows inbound only from public ALB security group on port 3000 in tests/contract/test_security_groups_contract.py
+- [X] T028 [US4] Create contract test validating AgentCore security group allows inbound only from BFF security group on port 8080 in tests/contract/test_security_groups_contract.py
+- [X] T029 [US4] Create contract test validating no security group allows 0.0.0.0/0 inbound access in tests/contract/test_security_groups_contract.py
+- [X] T030 [US4] Update unit tests to verify security group ingress and egress rules in tests/unit/test_compute_stack.py
 
 **Checkpoint**: Security groups should enforce network isolation with zero 0.0.0.0/0 inbound access
 

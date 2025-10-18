@@ -6,6 +6,9 @@ from aws_cdk import (
     aws_logs as logs,
     aws_elasticloadbalancingv2 as elbv2,
     aws_servicediscovery as servicediscovery,
+    aws_cloudwatch as cloudwatch,
+    aws_cloudwatch_actions as cw_actions,
+    aws_sns as sns,
     Duration,
     CfnOutput,
 )
@@ -161,13 +164,36 @@ class ComputeStack(Stack):
         bff_task_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["logs:CreateLogStream", "logs:PutLogEvents"],
-                resources=["*"],
+                resources=[
+                    f"arn:aws:logs:{self.region}:{self.account}:log-group:/ecs/bidopsai/bff-{ENVIRONMENT}:*"
+                ],
             )
         )
 
         bff_task_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["ssm:GetParameter", "ssm:GetParameters"],
+                resources=[
+                    f"arn:aws:ssm:{self.region}:{self.account}:parameter/bidopsai/{ENVIRONMENT}/*"
+                ],
+            )
+        )
+
+        bff_task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.DENY,
+                actions=[
+                    "logs:DeleteLogGroup",
+                    "logs:DeleteLogStream",
+                    "ssm:DeleteParameter",
+                    "ssm:DeleteParameters",
+                    "iam:*",
+                    "ec2:*",
+                    "ecs:DeleteCluster",
+                    "ecs:DeleteService",
+                    "ecs:UpdateService",
+                    "ecs:DeregisterTaskDefinition",
+                ],
                 resources=["*"],
             )
         )
@@ -186,20 +212,58 @@ class ComputeStack(Stack):
                     "bedrock-agent-runtime:InvokeAgent",
                     "bedrock-runtime:InvokeModel",
                 ],
-                resources=["*"],
+                resources=[
+                    f"arn:aws:bedrock:{self.region}:{self.account}:agent/*",
+                    f"arn:aws:bedrock:{self.region}::foundation-model/*",
+                ],
             )
         )
 
         agent_task_role.add_to_policy(
             iam.PolicyStatement(
-                actions=["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
-                resources=["*"],
+                actions=["s3:GetObject", "s3:PutObject"],
+                resources=[
+                    f"arn:aws:s3:::bidopsai-{ENVIRONMENT}-agent-data/*",
+                ],
+                effect=iam.Effect.ALLOW,
+            )
+        )
+
+        agent_task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["s3:ListBucket"],
+                resources=[
+                    f"arn:aws:s3:::bidopsai-{ENVIRONMENT}-agent-data",
+                ],
             )
         )
 
         agent_task_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["ssm:GetParameter", "ssm:GetParameters"],
+                resources=[
+                    f"arn:aws:ssm:{self.region}:{self.account}:parameter/bidopsai/{ENVIRONMENT}/*"
+                ],
+            )
+        )
+
+        agent_task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.DENY,
+                actions=[
+                    "s3:DeleteBucket",
+                    "s3:DeleteObject",
+                    "ssm:DeleteParameter",
+                    "ssm:DeleteParameters",
+                    "bedrock:DeleteAgent",
+                    "bedrock:UpdateAgent",
+                    "iam:*",
+                    "ec2:*",
+                    "ecs:DeleteCluster",
+                    "ecs:DeleteService",
+                    "ecs:UpdateService",
+                    "ecs:DeregisterTaskDefinition",
+                ],
                 resources=["*"],
             )
         )
@@ -242,7 +306,9 @@ class ComputeStack(Stack):
             logging=ecs.LogDrivers.aws_logs(
                 stream_prefix="bff", log_group=bff_log_group
             ),
-            port_mappings=[ecs.PortMapping(container_port=3000, protocol=ecs.Protocol.TCP)],
+            port_mappings=[
+                ecs.PortMapping(container_port=3000, protocol=ecs.Protocol.TCP)
+            ],
             essential=True,
             environment={
                 "AWS_REGION": self.region,
@@ -272,7 +338,9 @@ class ComputeStack(Stack):
             logging=ecs.LogDrivers.aws_logs(
                 stream_prefix="agent", log_group=agent_log_group
             ),
-            port_mappings=[ecs.PortMapping(container_port=8080, protocol=ecs.Protocol.TCP)],
+            port_mappings=[
+                ecs.PortMapping(container_port=8080, protocol=ecs.Protocol.TCP)
+            ],
             essential=True,
             environment={
                 "AWS_REGION": self.region,
@@ -464,3 +532,165 @@ class ComputeStack(Stack):
             value=f"agentcore.{service_discovery_namespace.namespace_name}",
             export_name=f"{ENVIRONMENT}-AgentCoreServiceDiscoveryDns",
         )
+
+        alarm_topic = sns.Topic(
+            self, "AlarmTopic", display_name=f"{ENVIRONMENT}-ECS-Alarms"
+        )
+
+        if self.bff_service is not None:
+            bff_cpu_alarm = cloudwatch.Alarm(
+                self,
+                "BffHighCpuAlarm",
+                metric=self.bff_service.metric_cpu_utilization(),
+                threshold=85,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                alarm_description="Alert when BFF service CPU exceeds 85%",
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            )
+            bff_cpu_alarm.add_alarm_action(cw_actions.SnsAction(alarm_topic))
+
+            bff_memory_alarm = cloudwatch.Alarm(
+                self,
+                "BffHighMemoryAlarm",
+                metric=self.bff_service.metric_memory_utilization(),
+                threshold=85,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                alarm_description="Alert when BFF service memory exceeds 85%",
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            )
+            bff_memory_alarm.add_alarm_action(cw_actions.SnsAction(alarm_topic))
+
+            bff_task_count_alarm = cloudwatch.Alarm(
+                self,
+                "BffLowTaskCountAlarm",
+                metric=cloudwatch.Metric(
+                    namespace="AWS/ECS",
+                    metric_name="RunningTaskCount",
+                    dimensions_map={
+                        "ServiceName": self.bff_service.service_name,
+                        "ClusterName": self.cluster.cluster_name,
+                    },
+                    statistic="Average",
+                    period=Duration.minutes(5),
+                ),
+                threshold=1,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+                alarm_description="Alert when BFF service has less than 1 running task",
+                treat_missing_data=cloudwatch.TreatMissingData.BREACHING,
+            )
+            bff_task_count_alarm.add_alarm_action(cw_actions.SnsAction(alarm_topic))
+
+        if self.agent_service is not None:
+            agent_cpu_alarm = cloudwatch.Alarm(
+                self,
+                "AgentHighCpuAlarm",
+                metric=self.agent_service.metric_cpu_utilization(),
+                threshold=85,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                alarm_description="Alert when AgentCore service CPU exceeds 85%",
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            )
+            agent_cpu_alarm.add_alarm_action(cw_actions.SnsAction(alarm_topic))
+
+            agent_memory_alarm = cloudwatch.Alarm(
+                self,
+                "AgentHighMemoryAlarm",
+                metric=self.agent_service.metric_memory_utilization(),
+                threshold=85,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                alarm_description="Alert when AgentCore service memory exceeds 85%",
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            )
+            agent_memory_alarm.add_alarm_action(cw_actions.SnsAction(alarm_topic))
+
+            agent_task_count_alarm = cloudwatch.Alarm(
+                self,
+                "AgentLowTaskCountAlarm",
+                metric=cloudwatch.Metric(
+                    namespace="AWS/ECS",
+                    metric_name="RunningTaskCount",
+                    dimensions_map={
+                        "ServiceName": self.agent_service.service_name,
+                        "ClusterName": self.cluster.cluster_name,
+                    },
+                    statistic="Average",
+                    period=Duration.minutes(5),
+                ),
+                threshold=2,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+                alarm_description="Alert when AgentCore service has less than 2 running tasks",
+                treat_missing_data=cloudwatch.TreatMissingData.BREACHING,
+            )
+            agent_task_count_alarm.add_alarm_action(cw_actions.SnsAction(alarm_topic))
+
+        if network_stack and hasattr(network_stack, "alb"):
+            alb_target_response_time_alarm = cloudwatch.Alarm(
+                self,
+                "AlbHighResponseTimeAlarm",
+                metric=network_stack.alb.metric_target_response_time(),
+                threshold=3,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                alarm_description="Alert when ALB target response time exceeds 3 seconds",
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            )
+            alb_target_response_time_alarm.add_alarm_action(
+                cw_actions.SnsAction(alarm_topic)
+            )
+
+            alb_unhealthy_target_alarm = cloudwatch.Alarm(
+                self,
+                "AlbUnhealthyTargetAlarm",
+                metric=cloudwatch.Metric(
+                    namespace="AWS/ApplicationELB",
+                    metric_name="UnHealthyHostCount",
+                    dimensions_map={
+                        "LoadBalancer": network_stack.alb.load_balancer_full_name,
+                    },
+                    statistic="Average",
+                    period=Duration.minutes(5),
+                ),
+                threshold=1,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+                alarm_description="Alert when ALB has unhealthy targets",
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            )
+            alb_unhealthy_target_alarm.add_alarm_action(
+                cw_actions.SnsAction(alarm_topic)
+            )
+
+            alb_5xx_alarm = cloudwatch.Alarm(
+                self,
+                "AlbHigh5xxAlarm",
+                metric=cloudwatch.Metric(
+                    namespace="AWS/ApplicationELB",
+                    metric_name="HTTPCode_Target_5XX_Count",
+                    dimensions_map={
+                        "LoadBalancer": network_stack.alb.load_balancer_full_name,
+                    },
+                    statistic="Sum",
+                    period=Duration.minutes(5),
+                ),
+                threshold=10,
+                evaluation_periods=2,
+                datapoints_to_alarm=2,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                alarm_description="Alert when ALB target 5XX error count exceeds 10 in 5 minutes",
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            )
+            alb_5xx_alarm.add_alarm_action(cw_actions.SnsAction(alarm_topic))

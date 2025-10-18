@@ -253,16 +253,39 @@ def test_compute_stack_bff_task_role_permissions():
                         {
                             "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
                             "Effect": "Allow",
-                            "Resource": "*",
+                            "Resource": Match.object_like(
+                                {"Fn::Join": Match.any_value()}
+                            ),
                         },
                         {
                             "Action": ["ssm:GetParameter", "ssm:GetParameters"],
                             "Effect": "Allow",
+                            "Resource": Match.object_like(
+                                {"Fn::Join": Match.any_value()}
+                            ),
+                        },
+                        {
+                            "Action": [
+                                "logs:DeleteLogGroup",
+                                "logs:DeleteLogStream",
+                                "ssm:DeleteParameter",
+                                "ssm:DeleteParameters",
+                                "iam:*",
+                                "ec2:*",
+                                "ecs:DeleteCluster",
+                                "ecs:DeleteService",
+                                "ecs:UpdateService",
+                                "ecs:DeregisterTaskDefinition",
+                            ],
+                            "Effect": "Deny",
                             "Resource": "*",
                         },
                     ]
                 )
-            }
+            },
+            "Roles": Match.array_with(
+                [{"Ref": Match.string_like_regexp(r"BffTaskRole.*")}]
+            ),
         },
     )
 
@@ -287,25 +310,55 @@ def test_compute_stack_agent_task_role_permissions():
                                 "bedrock-runtime:InvokeModel",
                             ],
                             "Effect": "Allow",
-                            "Resource": "*",
+                            "Resource": Match.array_with(
+                                [Match.object_like({"Fn::Join": Match.any_value()})]
+                            ),
                         },
                         {
-                            "Action": [
-                                "s3:GetObject",
-                                "s3:PutObject",
-                                "s3:ListBucket",
-                            ],
+                            "Action": ["s3:GetObject", "s3:PutObject"],
                             "Effect": "Allow",
-                            "Resource": "*",
+                            "Resource": Match.string_like_regexp(
+                                r"arn:aws:s3:::bidopsai-.+-agent-data/\*"
+                            ),
+                        },
+                        {
+                            "Action": "s3:ListBucket",
+                            "Effect": "Allow",
+                            "Resource": Match.string_like_regexp(
+                                r"arn:aws:s3:::bidopsai-.+-agent-data"
+                            ),
                         },
                         {
                             "Action": ["ssm:GetParameter", "ssm:GetParameters"],
                             "Effect": "Allow",
+                            "Resource": Match.object_like(
+                                {"Fn::Join": Match.any_value()}
+                            ),
+                        },
+                        {
+                            "Action": [
+                                "s3:DeleteBucket",
+                                "s3:DeleteObject",
+                                "ssm:DeleteParameter",
+                                "ssm:DeleteParameters",
+                                "bedrock:DeleteAgent",
+                                "bedrock:UpdateAgent",
+                                "iam:*",
+                                "ec2:*",
+                                "ecs:DeleteCluster",
+                                "ecs:DeleteService",
+                                "ecs:UpdateService",
+                                "ecs:DeregisterTaskDefinition",
+                            ],
+                            "Effect": "Deny",
                             "Resource": "*",
                         },
                     ]
                 )
-            }
+            },
+            "Roles": Match.array_with(
+                [{"Ref": Match.string_like_regexp(r"AgentTaskRole.*")}]
+            ),
         },
     )
 
@@ -428,9 +481,7 @@ def test_compute_stack_bff_auto_scaling(network_stack, test_app):
             "PolicyType": "TargetTrackingScaling",
             "TargetTrackingScalingPolicyConfiguration": {
                 "PredefinedMetricSpecification": {
-                    "PredefinedMetricType": Match.string_like_regexp(
-                        "ECS.*Utilization"
-                    )
+                    "PredefinedMetricType": Match.string_like_regexp("ECS.*Utilization")
                 },
                 "ScaleInCooldown": 300,
                 "ScaleOutCooldown": 300,
@@ -446,3 +497,165 @@ def test_compute_stack_service_outputs(network_stack, test_app):
     template.has_output("AgentServiceArn", {})
     template.has_output("ServiceDiscoveryNamespaceId", {})
     template.has_output("AgentCoreServiceDiscoveryDns", {})
+
+
+def test_compute_stack_sns_alarm_topic(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::SNS::Topic", {"DisplayName": "test-ECS-Alarms"}
+    )
+
+
+def test_compute_stack_bff_cpu_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when BFF service CPU exceeds 85%",
+            "Threshold": 85,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
+def test_compute_stack_bff_memory_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when BFF service memory exceeds 85%",
+            "Threshold": 85,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
+def test_compute_stack_bff_task_count_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when BFF service has less than 1 running task",
+            "Threshold": 1,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "LessThanThreshold",
+            "TreatMissingData": "breaching",
+        },
+    )
+
+
+def test_compute_stack_agent_cpu_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when AgentCore service CPU exceeds 85%",
+            "Threshold": 85,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
+def test_compute_stack_agent_memory_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when AgentCore service memory exceeds 85%",
+            "Threshold": 85,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
+def test_compute_stack_agent_task_count_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when AgentCore service has less than 2 running tasks",
+            "Threshold": 2,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "LessThanThreshold",
+            "TreatMissingData": "breaching",
+        },
+    )
+
+
+def test_compute_stack_alb_response_time_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when ALB target response time exceeds 3 seconds",
+            "Threshold": 3,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
+def test_compute_stack_alb_unhealthy_target_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when ALB has unhealthy targets",
+            "Threshold": 1,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
+def test_compute_stack_alb_5xx_alarm(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmDescription": "Alert when ALB target 5XX error count exceeds 10 in 5 minutes",
+            "Threshold": 10,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )

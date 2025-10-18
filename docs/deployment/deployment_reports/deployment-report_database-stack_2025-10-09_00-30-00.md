@@ -7,9 +7,9 @@ Key resources
 -------------
 - RDS: Aurora PostgreSQL (serverless v2)
   - Writer and reader serverless instances
-  - Default DB: hackathon
+  - Default DB: bidopsai
 - RDS Proxy (DatabaseProxy)
-- SecretsManager secret for DB credentials: `hackathon/rds/credentials`
+- SecretsManager secret for DB credentials: `bidopsai/rds/credentials`
 - OpenSearch domain (2 data nodes for 2-AZ deployment)
 
 Important file/artifact
@@ -27,7 +27,7 @@ Sanity checks (Console)
 - CloudFormation: `DatabaseStack` status = `CREATE_COMPLETE` / `UPDATE_COMPLETE`.
 - RDS console: cluster status = `available`, instances healthy.
 - RDS Proxy console: proxy status = `available`, endpoint present.
-- Secrets Manager: secret `hackathon/rds/credentials` exists and is accessible.
+- Secrets Manager: secret `bidopsai/rds/credentials` exists and is accessible.
 - OpenSearch console: domain status = `Active`, data node count = 2, zone awareness works across two AZs.
 
 CLI quick checks

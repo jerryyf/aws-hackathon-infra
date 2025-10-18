@@ -105,29 +105,29 @@ curl: (7) Failed to connect to server
 
 ```bash
 # Check stack status
-aws cloudformation describe-stacks --stack-name NetworkStack --profile hackathon --query 'Stacks[0].StackStatus'
+aws cloudformation describe-stacks --stack-name NetworkStack --profile bidopsai --query 'Stacks[0].StackStatus'
 
 # List all deployed stacks
-aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --profile hackathon
+aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --profile bidopsai
 
 # Get stack outputs
-aws cloudformation describe-stacks --stack-name NetworkStack --profile hackathon --query 'Stacks[0].Outputs'
+aws cloudformation describe-stacks --stack-name NetworkStack --profile bidopsai --query 'Stacks[0].Outputs'
 
 # Test ALB connectivity
 curl -v -m 10 http://NetworkS-Alb-0acRk7hR1THU-1757666855.us-east-1.elb.amazonaws.com
 
 # Get ALB details
-aws elbv2 describe-load-balancers --profile hackathon --query 'LoadBalancers[?contains(DNSName, `NetworkS-Alb`)]'
+aws elbv2 describe-load-balancers --profile bidopsai --query 'LoadBalancers[?contains(DNSName, `NetworkS-Alb`)]'
 
 # Check listeners
-ALB_ARN=$(aws elbv2 describe-load-balancers --profile hackathon --query 'LoadBalancers[?LoadBalancerName==`NetworkS-Alb-0acRk7hR1THU`].LoadBalancerArn' --output text)
-aws elbv2 describe-listeners --profile hackathon --load-balancer-arn "$ALB_ARN"
+ALB_ARN=$(aws elbv2 describe-load-balancers --profile bidopsai --query 'LoadBalancers[?LoadBalancerName==`NetworkS-Alb-0acRk7hR1THU`].LoadBalancerArn' --output text)
+aws elbv2 describe-listeners --profile bidopsai --load-balancer-arn "$ALB_ARN"
 
 # Check target groups
-aws elbv2 describe-target-groups --profile hackathon --load-balancer-arn "$ALB_ARN"
+aws elbv2 describe-target-groups --profile bidopsai --load-balancer-arn "$ALB_ARN"
 
 # Check security group rules
-aws ec2 describe-security-groups --profile hackathon --group-ids sg-098299ee0f74d6d97
+aws ec2 describe-security-groups --profile bidopsai --group-ids sg-098299ee0f74d6d97
 ```
 
 ## Conclusion

@@ -28,16 +28,16 @@ source .venv/bin/activate
 
 Set AWS profile before running CDK commands:
 ```bash
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 ```
 
 ## Commands
 
-- **Synth**: `cd cdk && cdk synth --profile hackathon`
+- **Synth**: `cd cdk && cdk synth --profile bidopsai`
 - **Run all tests**: `PYTHONPATH=. pytest`
 - **Run single test**: `PYTHONPATH=. pytest tests/unit/test_vpc_construct.py::test_vpc_construct`
-- **Deploy stack**: `cd cdk && cdk deploy NetworkStack --profile hackathon`
+- **Deploy stack**: `cd cdk && cdk deploy NetworkStack --profile bidopsai`
 - **Type check**: `cd cdk && pyright`
 - **Lint**: `cd cdk && black . && pylint stacks/`
 

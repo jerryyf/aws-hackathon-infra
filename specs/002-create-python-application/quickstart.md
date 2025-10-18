@@ -11,7 +11,7 @@
 ```bash
 # Clone repository
 git clone <repo-url>
-cd aws-hackathon-infra
+cd aws-bidopsai-infra
 
 # Install Python dependencies
 cd cdk
@@ -208,7 +208,7 @@ aws rds describe-db-clusters \
 # Expected: Engine=aurora-postgresql, at least 1 writer + 1 reader instance
 
 # Validate OpenSearch domain configuration
-aws opensearch describe-domain --domain-name hackathon-opensearch \
+aws opensearch describe-domain --domain-name bidopsai-opensearch \
   --query 'DomainStatus.[ClusterConfig.InstanceCount,ClusterConfig.ZoneAwarenessEnabled,EncryptionAtRestOptions.Enabled]' --output table
 # Expected: InstanceCount=3, ZoneAwarenessEnabled=true, Encryption=true
 
@@ -365,7 +365,7 @@ aws iam get-role-policy --role-name <task-role> --policy-name S3Access
 **OpenSearch cluster yellow status**
 ```bash
 # Check cluster health
-aws opensearch describe-domain --domain-name hackathon-opensearch \
+aws opensearch describe-domain --domain-name bidopsai-opensearch \
   --query 'DomainStatus.ClusterConfig'
 # Solution: Ensure 3 data nodes and zone awareness enabled
 

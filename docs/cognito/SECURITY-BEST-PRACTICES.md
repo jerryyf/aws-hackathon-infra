@@ -39,7 +39,7 @@ if [ -f .env ]; then
 fi
 
 # Use environment variables instead of hardcoded passwords
-if create_user "admin" "admin@hackathon.local" "Admin" "User" "ADMIN" "$COGNITO_ADMIN_PASSWORD"; then
+if create_user "admin" "admin@bidopsai.local" "Admin" "User" "ADMIN" "$COGNITO_ADMIN_PASSWORD"; then
   USERS_CREATED+=("admin")
 fi
 ```
@@ -57,12 +57,12 @@ fi
 ```bash
 # Store each password in Secrets Manager
 aws secretsmanager create-secret \
-  --name /hackathon/dev/cognito/admin-password \
+  --name /bidopsai/dev/cognito/admin-password \
   --secret-string "YourSecurePassword123!@#" \
   --region us-east-1
 
 aws secretsmanager create-secret \
-  --name /hackathon/dev/cognito/drafter-password \
+  --name /bidopsai/dev/cognito/drafter-password \
   --secret-string "YourSecurePassword456!@#" \
   --region us-east-1
 
@@ -75,13 +75,13 @@ aws secretsmanager create-secret \
 
 # Fetch passwords from AWS Secrets Manager
 ADMIN_PASSWORD=$(aws secretsmanager get-secret-value \
-  --secret-id /hackathon/dev/cognito/admin-password \
+  --secret-id /bidopsai/dev/cognito/admin-password \
   --query SecretString \
   --output text \
   --region us-east-1)
 
 # Use fetched password
-if create_user "admin" "admin@hackathon.local" "Admin" "User" "ADMIN" "$ADMIN_PASSWORD"; then
+if create_user "admin" "admin@bidopsai.local" "Admin" "User" "ADMIN" "$ADMIN_PASSWORD"; then
   USERS_CREATED+=("admin")
 fi
 ```
@@ -110,7 +110,7 @@ KBADMIN_PASSWORD=$(generate_password)
 VIEWER_PASSWORD=$(generate_password)
 
 # Create users with generated passwords
-if create_user "admin" "admin@hackathon.local" "Admin" "User" "ADMIN" "$ADMIN_PASSWORD"; then
+if create_user "admin" "admin@bidopsai.local" "Admin" "User" "ADMIN" "$ADMIN_PASSWORD"; then
   USERS_CREATED+=("admin")
   echo "Admin password: $ADMIN_PASSWORD" >> .test-passwords  # Save locally, gitignored
 fi
@@ -167,7 +167,7 @@ aws cognito-idp admin-set-user-password \
 - ✅ Simple to implement
 - ✅ Hardcoded passwords are temporary only
 - ✅ Each team member sets their own password
-- ✅ Good enough for hackathon/dev environment
+- ✅ Good enough for bidopsai/dev environment
 
 ### **For Production (LATER):**
 Use **Option 2 (AWS Secrets Manager)**
@@ -214,8 +214,8 @@ Replace passwords with:
 ```markdown
 | Username | Password |
 |----------|----------|
-| admin@hackathon.local | [See team password manager] |
-| drafter@hackathon.local | [See team password manager] |
+| admin@bidopsai.local | [See team password manager] |
+| drafter@bidopsai.local | [See team password manager] |
 ```
 
 ### 3. Update Test User Script
@@ -300,7 +300,7 @@ For admin accounts, consider restricting access to office/VPN IPs using Lambda t
 Run these commands NOW:
 
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra
+cd /home/vekysilkova/aws-bidopsai-infra
 
 # 1. Make all test users change password on next login
 USER_POOL_ID="us-east-1_3tjXn7pNM"

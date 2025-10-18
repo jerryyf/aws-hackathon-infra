@@ -9,7 +9,7 @@ Key resources
   - KnowledgeBaseBucket (KMS-managed, versioned, block public access)
   - LogsBucket (KMS-managed, versioned, block public access)
   - BdaBucket (KMS-managed, versioned, block public access)
-- ECR repository: `hackathon/app` (image scan on push, immutable tags)
+- ECR repository: `bidopsai/app` (image scan on push, immutable tags)
 
 Important file/artifact
 -----------------------
@@ -18,7 +18,7 @@ Important file/artifact
 Sanity checks (Console)
 -----------------------
 - S3 Console: Buckets exist, encryption enabled, public access blocked, lifecycle/removal policy appropriate.
-- ECR Console: Repository `hackathon/app` exists and image scanning is enabled.
+- ECR Console: Repository `bidopsai/app` exists and image scanning is enabled.
 
 Next steps
 ----------

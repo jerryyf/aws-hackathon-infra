@@ -33,10 +33,10 @@
 ⚠️  **Status:** Existing User Pool detected
 
 **Details:**
-- **Existing Pool:** `hackathon-users` (ID: us-east-1_vRMXP8aHP)
+- **Existing Pool:** `bidopsai-users` (ID: us-east-1_vRMXP8aHP)
 - **Created:** October 9, 2025
-- **New Pool:** `hackathon-users-dev` (will be created)
-- **Impact:** No conflict - different names (`hackathon-users` vs `hackathon-users-dev`)
+- **New Pool:** `bidopsai-users-dev` (will be created)
+- **Impact:** No conflict - different names (`bidopsai-users` vs `bidopsai-users-dev`)
 
 **Action:** ✅ No action needed - names don't conflict
 
@@ -60,8 +60,8 @@
 1. ✅ AWS::SSM::Parameter - AppConfigParam
 2. ✅ AWS::SSM::Parameter - EndpointParams
 3. ✅ AWS::IAM::Role - UserPool/smsRole (for SMS MFA)
-4. ✅ AWS::Cognito::UserPool - UserPool (hackathon-users-dev)
-5. ✅ AWS::Cognito::UserPoolDomain - hackathon-dev
+4. ✅ AWS::Cognito::UserPool - UserPool (bidopsai-users-dev)
+5. ✅ AWS::Cognito::UserPoolDomain - bidopsai-dev
 6. ✅ AWS::Cognito::UserPoolClient - UserPoolClient
 7. ✅ AWS::Cognito::UserPoolGroup - AdminGroup (ADMIN)
 8. ✅ AWS::Cognito::UserPoolGroup - DrafterGroup (DRAFTER)
@@ -78,8 +78,8 @@
 ## 4. Configuration Review
 
 ### 4.1 User Pool Configuration
-✅ **User Pool Name:** hackathon-users-dev  
-✅ **Domain:** hackathon-dev.auth.us-east-1.amazoncognito.com  
+✅ **User Pool Name:** bidopsai-users-dev  
+✅ **Domain:** bidopsai-dev.auth.us-east-1.amazoncognito.com  
 ✅ **Password Policy:**
 - Minimum length: 12 characters
 - Requires: uppercase, lowercase, numbers, symbols
@@ -96,7 +96,7 @@
 - theme_preference (2-20 chars)
 
 ### 4.2 OAuth Configuration
-✅ **Client Name:** hackathon-web-dev  
+✅ **Client Name:** bidopsai-web-dev  
 ✅ **OAuth Flows:** Authorization Code Grant only (secure)  
 ✅ **OAuth Scopes:** email, openid, profile, phone  
 ✅ **Callback URLs:**
@@ -162,7 +162,7 @@ All outputs exported with `-dev` suffix for cross-stack references.
 
 ### Step 1: Deploy SecurityStack
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra/cdk
+cd /home/vekysilkova/aws-bidopsai-infra/cdk
 cdk deploy SecurityStack --context environment=dev --require-approval never
 ```
 
@@ -182,43 +182,43 @@ aws cognito-idp describe-user-pool \
 
 # Check User Pool Domain
 aws cognito-idp describe-user-pool-domain \
-  --domain hackathon-dev \
+  --domain bidopsai-dev \
   --region us-east-1
 ```
 
 ### Step 3: Create Test Users
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra
+cd /home/vekysilkova/aws-bidopsai-infra
 bash scripts/create-test-users.sh dev
 ```
 
 **This will create 5 test users:**
-1. admin@hackathon.local (ADMIN group) - Password: AdminPass123!@#
-2. drafter@hackathon.local (DRAFTER group) - Password: DrafterPass123!@#
-3. bidder@hackathon.local (BIDDER group) - Password: BidderPass123!@#
-4. kbadmin@hackathon.local (KB_ADMIN group) - Password: KbadminPass123!@#
-5. viewer@hackathon.local (KB_VIEW group) - Password: ViewerPass123!@#
+1. admin@bidopsai.local (ADMIN group) - Password: AdminPass123!@#
+2. drafter@bidopsai.local (DRAFTER group) - Password: DrafterPass123!@#
+3. bidder@bidopsai.local (BIDDER group) - Password: BidderPass123!@#
+4. kbadmin@bidopsai.local (KB_ADMIN group) - Password: KbadminPass123!@#
+5. viewer@bidopsai.local (KB_VIEW group) - Password: ViewerPass123!@#
 
 ---
 
 ## 8. Post-Deployment Testing
 
 ### 8.1 Cognito Hosted UI Testing
-**URL:** https://hackathon-dev.auth.us-east-1.amazoncognito.com/login?client_id=<CLIENT_ID>&response_type=code&redirect_uri=http://localhost:3000/callback
+**URL:** https://bidopsai-dev.auth.us-east-1.amazoncognito.com/login?client_id=<CLIENT_ID>&response_type=code&redirect_uri=http://localhost:3000/callback
 
 **Steps:**
 1. Open the Hosted UI URL in browser
-2. Login with test user: admin@hackathon.local / AdminPass123!@#
+2. Login with test user: admin@bidopsai.local / AdminPass123!@#
 3. You'll be prompted to change password (first login)
 4. Set new password (must meet 12-char policy)
 5. You'll be redirected to callback URL with authorization code
 
 ### 8.2 Manual Testing via AWS Console
 1. Go to AWS Console → Cognito → User Pools
-2. Select `hackathon-users-dev`
+2. Select `bidopsai-users-dev`
 3. Verify:
    - ✅ 5 user groups exist
-   - ✅ Domain is active: hackathon-dev
+   - ✅ Domain is active: bidopsai-dev
    - ✅ App client configured with OAuth
    - ✅ Password policy is 12 chars minimum
 
@@ -228,7 +228,7 @@ bash scripts/create-test-users.sh dev
 aws cognito-idp initiate-auth \
   --auth-flow USER_PASSWORD_AUTH \
   --client-id <CLIENT_ID> \
-  --auth-parameters USERNAME=admin@hackathon.local,PASSWORD=AdminPass123!@# \
+  --auth-parameters USERNAME=admin@bidopsai.local,PASSWORD=AdminPass123!@# \
   --region us-east-1
 
 # Note: This may fail if USER_PASSWORD_AUTH is disabled in client settings
@@ -253,7 +253,7 @@ Once you have a frontend application:
        userPoolId: '<UserPoolId from output>',
        userPoolWebClientId: '<ClientId from output>',
        oauth: {
-         domain: 'hackathon-dev.auth.us-east-1.amazoncognito.com',
+         domain: 'bidopsai-dev.auth.us-east-1.amazoncognito.com',
          scope: ['email', 'openid', 'profile', 'phone'],
          redirectSignIn: 'http://localhost:3000/callback',
          redirectSignOut: 'http://localhost:3000',
@@ -319,13 +319,13 @@ If deployment fails or issues occur:
 
 ### Option 2: Manual Stack Deletion
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra/cdk
+cd /home/vekysilkova/aws-bidopsai-infra/cdk
 cdk destroy SecurityStack --context environment=dev
 ```
 
 ### Option 3: Restore Original SecurityStack
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra/cdk/stacks
+cd /home/vekysilkova/aws-bidopsai-infra/cdk/stacks
 cp security_stack.py.backup security_stack.py
 cdk deploy SecurityStack --context environment=dev
 ```
@@ -389,7 +389,7 @@ aws cloudwatch put-metric-alarm \
 
 ### Current Limitations
 1. **Localhost URLs:** Only works for local development
-2. **No Custom Domain:** Using default Cognito domain (hackathon-dev.auth.us-east-1.amazoncognito.com)
+2. **No Custom Domain:** Using default Cognito domain (bidopsai-dev.auth.us-east-1.amazoncognito.com)
 3. **No Email Customization:** Using default Cognito email templates
 4. **No SES Integration:** Using Cognito's default email sender (limited to 50 emails/day)
 
@@ -417,7 +417,7 @@ aws cloudwatch put-metric-alarm \
 ⚠️ **Action Required:** Add tags to resources for cost tracking
 
 **Recommended Tags:**
-- Project: aws-hackathon
+- Project: aws-bidopsai
 - Environment: dev
 - Owner: vekysilkova@deloitte.com.au
 - CostCenter: <your-cost-center>
@@ -430,8 +430,8 @@ aws cloudwatch put-metric-alarm \
 | Decision Point | Chosen Option | Rationale |
 |---------------|---------------|-----------|
 | Environment | dev | Testing before prod |
-| User Pool Name | hackathon-users-dev | Environment-specific naming |
-| Domain Prefix | hackathon-dev | Matches User Pool naming |
+| User Pool Name | bidopsai-users-dev | Environment-specific naming |
+| Domain Prefix | bidopsai-dev | Matches User Pool naming |
 | Deletion Protection | INACTIVE | Allow easy cleanup in dev |
 | MFA | OPTIONAL | Don't force users in dev |
 | OAuth Flow | Authorization Code | Most secure for web apps |
@@ -503,7 +503,7 @@ All validation checks passed. The stack can be safely deployed to the dev enviro
 
 **Next Command:**
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra/cdk
+cd /home/vekysilkova/aws-bidopsai-infra/cdk
 cdk deploy SecurityStack --context environment=dev --require-approval never
 ```
 

@@ -21,7 +21,7 @@ class ComputeStack(Stack):
 
         # ECS Cluster
         self.cluster = ecs.Cluster(
-            self, "EcsCluster", vpc=vpc, cluster_name="hackathon-cluster"
+            self, "EcsCluster", vpc=vpc, cluster_name="bidopsai-cluster"
         )
 
         # Task Definition

@@ -96,7 +96,7 @@ await prisma.user.create({
 await prisma.user.create({
   data: {
     cognitoId: 'NEW_USER_ID_FROM_OUR_COGNITO',  // ✅ NEW VALUE
-    email: 'admin@hackathon.local',  // Match our Cognito users
+    email: 'admin@bidopsai.local',  // Match our Cognito users
     role: 'ADMIN',
     // ...
   }
@@ -190,14 +190,14 @@ Step 4: Restart Backend
    const users = [
      {
        cognitoId: '24088408-c041-70cc-8502-2e8cf144f168',  // From AWS list
-       email: 'admin@hackathon.local',  // Match our users
+       email: 'admin@bidopsai.local',  // Match our users
        role: 'ADMIN',
        firstName: 'Admin',
        lastName: 'User'
      },
      {
        cognitoId: '6458e4c8-5041-70d1-a27c-d7017f823697',
-       email: 'drafter@hackathon.local',
+       email: 'drafter@bidopsai.local',
        role: 'DRAFTER',
        firstName: 'Draft',
        lastName: 'Creator'
@@ -223,12 +223,12 @@ NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=65o9d0v0lcquh23bqsi3ck6711
 NEXT_PUBLIC_AWS_REGION=us-east-1
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=us-east-1_3tjXn7pNM
 NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=4uci08tqhijkrncjbebr3hu60q
-NEXT_PUBLIC_COGNITO_DOMAIN=hackathon-dev.auth.us-east-1.amazoncognito.com
+NEXT_PUBLIC_COGNITO_DOMAIN=bidopsai-dev.auth.us-east-1.amazoncognito.com
 ```
 
 ### **Step 1: Get Cognito User IDs**
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra
+cd /home/vekysilkova/aws-bidopsai-infra
 
 # List all users with their Cognito IDs (sub)
 aws cognito-idp list-users \
@@ -243,11 +243,11 @@ aws cognito-idp list-users \
 -------------------------------------------------------------------------------------------------
 |                                           ListUsers                                           |
 +----------+--------------------------------------+---------------------------+
-| admin    | 24088408-c041-70cc-8502-2e8cf144f168 | admin@hackathon.local     |
-| drafter  | 6458e4c8-5041-70d1-a27c-d7017f823697 | drafter@hackathon.local   |
-| bidder   | c4787458-50a1-70fe-1689-de097c06e9f3 | bidder@hackathon.local    |
-| kbadmin  | 24088408-c041-70cc-8502-2e8cf144f168 | kbadmin@hackathon.local   |
-| viewer   | 448854e8-c0b1-7087-94c4-93c5cbe0fcec | viewer@hackathon.local    |
+| admin    | 24088408-c041-70cc-8502-2e8cf144f168 | admin@bidopsai.local     |
+| drafter  | 6458e4c8-5041-70d1-a27c-d7017f823697 | drafter@bidopsai.local   |
+| bidder   | c4787458-50a1-70fe-1689-de097c06e9f3 | bidder@bidopsai.local    |
+| kbadmin  | 24088408-c041-70cc-8502-2e8cf144f168 | kbadmin@bidopsai.local   |
+| viewer   | 448854e8-c0b1-7087-94c4-93c5cbe0fcec | viewer@bidopsai.local    |
 +----------+--------------------------------------+---------------------------+
 ```
 
@@ -264,11 +264,11 @@ const prisma = new PrismaClient()
 async function main() {
   // Create users with REAL Cognito IDs from our deployment
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@hackathon.local' },
+    where: { email: 'admin@bidopsai.local' },
     update: {},
     create: {
       cognitoId: '24088408-c041-70cc-8502-2e8cf144f168',  // ✅ From AWS
-      email: 'admin@hackathon.local',
+      email: 'admin@bidopsai.local',
       firstName: 'Admin',
       lastName: 'User',
       role: 'ADMIN',
@@ -276,11 +276,11 @@ async function main() {
   })
 
   const drafter = await prisma.user.upsert({
-    where: { email: 'drafter@hackathon.local' },
+    where: { email: 'drafter@bidopsai.local' },
     update: {},
     create: {
       cognitoId: '6458e4c8-5041-70d1-a27c-d7017f823697',  // ✅ From AWS
-      email: 'drafter@hackathon.local',
+      email: 'drafter@bidopsai.local',
       firstName: 'Draft',
       lastName: 'Creator',
       role: 'DRAFTER',
@@ -344,7 +344,7 @@ podman restart bidopsai-core-api-dev
 ### **After Step 4 (restart):**
 - Backend reconnects with new env vars
 - Authentication works with our Cognito
-- Can login with: admin@hackathon.local / AdminPass123!@#
+- Can login with: admin@bidopsai.local / AdminPass123!@#
 
 ---
 
@@ -359,16 +359,16 @@ podman exec -it bidopsai-postgres-dev psql -U postgres -d bidopsai
 SELECT email, "cognitoId", role FROM users;
 
 # Should see:
-# admin@hackathon.local | 24088408-c041-70cc-8502-2e8cf144f168 | ADMIN
-# drafter@hackathon.local | 6458e4c8-5041-70d1-a27c-d7017f823697 | DRAFTER
+# admin@bidopsai.local | 24088408-c041-70cc-8502-2e8cf144f168 | ADMIN
+# drafter@bidopsai.local | 6458e4c8-5041-70d1-a27c-d7017f823697 | DRAFTER
 # ...
 ```
 
 ### **Test 2: Login Flow**
 1. Open http://localhost:3000
 2. Click "Sign In"
-3. Should redirect to: `hackathon-dev.auth.us-east-1.amazoncognito.com`
-4. Login with: `admin@hackathon.local` / `AdminPass123!@#`
+3. Should redirect to: `bidopsai-dev.auth.us-east-1.amazoncognito.com`
+4. Login with: `admin@bidopsai.local` / `AdminPass123!@#`
 5. Should redirect back to localhost:3000 with auth token
 6. Should see user profile/dashboard
 
@@ -415,7 +415,7 @@ Before running the commands:
 - [ ] Updated `.env.local` with new Cognito values
 - [ ] Got Cognito user IDs from AWS
 - [ ] Updated `prisma/seed.ts` with real Cognito IDs
-- [ ] Emails match: use `@hackathon.local` not `@bidopsai.com`
+- [ ] Emails match: use `@bidopsai.local` not `@bidopsai.com`
 
 After running commands:
 - [ ] All services started successfully

@@ -108,7 +108,7 @@ def test_alb_accessibility():
     # Test ALB responds
     response = requests.get(f"http://{alb_dns}", timeout=10)
     assert response.status_code == 200
-    assert "hackathon" in response.text.lower()
+    assert "bidopsai" in response.text.lower()
 ```
 
 **Example** (tests/integration/test_database_post_deployment.py:8-44):
@@ -128,7 +128,7 @@ def test_database_connectivity():
 
     # Get credentials from Secrets Manager
     secrets_client = boto3.client("secretsmanager")
-    secret = secrets_client.get_secret_value(SecretId="hackathon/rds/credentials")
+    secret = secrets_client.get_secret_value(SecretId="bidopsai/rds/credentials")
     creds = json.loads(secret["SecretString"])
 
     # Test database connection
@@ -136,7 +136,7 @@ def test_database_connectivity():
         conn = psycopg2.connect(
             host=db_endpoint,
             port=db_port,
-            database="hackathon",
+            database="bidopsai",
             user=creds["username"],
             password=creds["password"],
             connect_timeout=10,
@@ -605,7 +605,7 @@ PYTHONPATH=. pytest tests/contract/
 
 **Run integration tests** (slow, requires deployment):
 ```bash
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 PYTHONPATH=. pytest tests/integration/
 ```

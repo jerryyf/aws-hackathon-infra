@@ -64,7 +64,7 @@ Infrastructure code is fully validated and ready for deployment, but CDK deploym
 | Container Registry | ✅ Ready | ECR with immutable tags |
 | Security | ✅ Ready | Cognito, Secrets Manager, CloudTrail |
 | Monitoring | ✅ Ready | CloudWatch alarms and metrics |
-| DNS & Certificates | ✅ Ready | Route 53 + ACM for hackathon.local |
+| DNS & Certificates | ✅ Ready | Route 53 + ACM for bidopsai.local |
 
 ## Current Issues
 

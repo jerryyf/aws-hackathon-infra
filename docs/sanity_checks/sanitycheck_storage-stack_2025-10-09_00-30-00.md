@@ -7,7 +7,7 @@ Checklist
 ---------
 - CloudFormation: StorageStack = CREATE_COMPLETE
 - S3 buckets: KnowledgeBaseBucket, LogsBucket, BdaBucket exist and are encrypted
-- ECR: repository `hackathon/app` exists and image scan on push enabled
+- ECR: repository `bidopsai/app` exists and image scan on push enabled
 
 Commands
 --------

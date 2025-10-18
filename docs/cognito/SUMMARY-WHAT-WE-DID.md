@@ -26,7 +26,7 @@ Think of your website like a nightclub:
 ## 📋 **Step-by-Step: What We Built**
 
 ### **1. Created the User Pool (The VIP List)**
-- **Name:** hackathon-users-dev
+- **Name:** bidopsai-users-dev
 - **Location:** AWS us-east-1
 - **ID:** us-east-1_3tjXn7pNM
 
@@ -55,7 +55,7 @@ Think of your website like a nightclub:
 ### **4. Connected to bidopsai.com**
 - Told the bouncer: "After checking IDs, send people to bidopsai.com/callback"
 - Also works with localhost:3000 for testing
-- Gave the bouncer his own address: `hackathon-dev.auth.us-east-1.amazoncognito.com`
+- Gave the bouncer his own address: `bidopsai-dev.auth.us-east-1.amazoncognito.com`
 
 **Like:** Telling the bouncer which doors to use
 
@@ -73,7 +73,7 @@ Think of your website like a nightclub:
 ```
 User Pool ID:     us-east-1_3tjXn7pNM
 App Client ID:    4uci08tqhijkrncjbebr3hu60q
-Domain:           hackathon-dev.auth.us-east-1.amazoncognito.com
+Domain:           bidopsai-dev.auth.us-east-1.amazoncognito.com
 Region:           us-east-1
 ```
 
@@ -86,11 +86,11 @@ Region:           us-east-1
 ### **Option 1: Test in Browser (Easiest)**
 Just open this URL:
 ```
-https://hackathon-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
+https://bidopsai-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
 ```
 
 Login with:
-- **Username:** admin@hackathon.local
+- **Username:** admin@bidopsai.local
 - **Password:** AdminPass123!@#
 
 After login, you'll see:
@@ -102,7 +102,7 @@ That `code` is like a special ticket your website exchanges for a VIP wristband!
 
 ### **Option 2: Test in AWS Console**
 1. Go to AWS Console → Cognito
-2. Find "hackathon-users-dev"
+2. Find "bidopsai-users-dev"
 3. Look at users, groups, settings
 4. Click "App integration" → Test the Hosted UI
 
@@ -125,7 +125,7 @@ Force everyone to change passwords on first login:
 
 ```bash
 # Run this command:
-cd /home/vekysilkova/aws-hackathon-infra
+cd /home/vekysilkova/aws-bidopsai-infra
 
 USER_POOL_ID="us-east-1_3tjXn7pNM"
 for username in admin drafter bidder kbadmin viewer; do
@@ -191,7 +191,7 @@ Give them these values:
   userPoolId: 'us-east-1_3tjXn7pNM',
   userPoolWebClientId: '4uci08tqhijkrncjbebr3hu60q',
   oauth: {
-    domain: 'hackathon-dev.auth.us-east-1.amazoncognito.com',
+    domain: 'bidopsai-dev.auth.us-east-1.amazoncognito.com',
     scope: ['email', 'openid', 'profile', 'phone'],
     redirectSignIn: 'https://bidopsai.com/callback',
     redirectSignOut: 'https://bidopsai.com',

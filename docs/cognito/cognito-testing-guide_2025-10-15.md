@@ -16,7 +16,7 @@ Your Cognito User Pool is now deployed and configured to work with **bidopsai.co
 - **User Pool ID:** `us-east-1_3tjXn7pNM`
 - **User Pool ARN:** `arn:aws:cognito-idp:us-east-1:568790270051:userpool/us-east-1_3tjXn7pNM`
 - **App Client ID:** `4uci08tqhijkrncjbebr3hu60q`
-- **Domain:** `hackathon-dev.auth.us-east-1.amazoncognito.com`
+- **Domain:** `bidopsai-dev.auth.us-east-1.amazoncognito.com`
 - **Region:** `us-east-1`
 
 ### Callback URLs (Configured)
@@ -43,11 +43,11 @@ All 5 test users have been created with the following credentials:
 
 | Username | Email | Password | Group | Precedence |
 |----------|-------|----------|-------|------------|
-| admin | admin@hackathon.local | AdminPass123!@# | ADMIN | 1 |
-| drafter | drafter@hackathon.local | DrafterPass123!@# | DRAFTER | 2 |
-| bidder | bidder@hackathon.local | BidderPass123!@# | BIDDER | 3 |
-| kbadmin | kbadmin@hackathon.local | KbadminPass123!@# | KB_ADMIN | 4 |
-| viewer | viewer@hackathon.local | ViewerPass123!@# | KB_VIEW | 5 |
+| admin | admin@bidopsai.local | AdminPass123!@# | ADMIN | 1 |
+| drafter | drafter@bidopsai.local | DrafterPass123!@# | DRAFTER | 2 |
+| bidder | bidder@bidopsai.local | BidderPass123!@# | BIDDER | 3 |
+| kbadmin | kbadmin@bidopsai.local | KbadminPass123!@# | KB_ADMIN | 4 |
+| viewer | viewer@bidopsai.local | ViewerPass123!@# | KB_VIEW | 5 |
 
 ⚠️ **Note:** These passwords are permanent (no forced change required on first login).
 
@@ -60,26 +60,26 @@ All 5 test users have been created with the following credentials:
 Use this URL pattern (replace `{REDIRECT_URI}` with your callback):
 
 ```
-https://hackathon-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri={REDIRECT_URI}
+https://bidopsai-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri={REDIRECT_URI}
 ```
 
 ### Example URLs:
 
 **For bidopsai.com:**
 ```
-https://hackathon-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
+https://bidopsai-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
 ```
 
 **For localhost:**
 ```
-https://hackathon-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=http://localhost:3000/callback
+https://bidopsai-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=http://localhost:3000/callback
 ```
 
 ### Step 2: Open the URL in Browser
 
 1. Open the login URL in your browser
-2. You'll see the Cognito Hosted UI login page with "hackathon-dev" branding
-3. Login with any test user (e.g., `admin@hackathon.local` / `AdminPass123!@#`)
+2. You'll see the Cognito Hosted UI login page with "bidopsai-dev" branding
+3. Login with any test user (e.g., `admin@bidopsai.local` / `AdminPass123!@#`)
 4. Click "Sign In"
 
 ### Step 3: Handle the Redirect
@@ -114,7 +114,7 @@ Amplify.configure({
     userPoolId: 'us-east-1_3tjXn7pNM',
     userPoolWebClientId: '4uci08tqhijkrncjbebr3hu60q',
     oauth: {
-      domain: 'hackathon-dev.auth.us-east-1.amazoncognito.com',
+      domain: 'bidopsai-dev.auth.us-east-1.amazoncognito.com',
       scope: ['email', 'openid', 'profile', 'phone'],
       redirectSignIn: 'https://bidopsai.com/callback',
       redirectSignOut: 'https://bidopsai.com',
@@ -207,7 +207,7 @@ const handleSignOut = async () => {
 1. Navigate to `https://bidopsai.com`
 2. Click "Sign In" button
 3. Browser redirects to Cognito Hosted UI
-4. Login with test credentials (e.g., admin@hackathon.local)
+4. Login with test credentials (e.g., admin@bidopsai.local)
 5. After successful login, redirected back to `https://bidopsai.com/callback`
 6. Frontend exchanges code for tokens automatically
 7. User is now authenticated and can access protected routes
@@ -221,7 +221,7 @@ const handleSignOut = async () => {
 1. Go to AWS Console: https://console.aws.amazon.com/cognito
 2. Region: **us-east-1**
 3. Click on "User Pools"
-4. Select `hackathon-users-dev`
+4. Select `bidopsai-users-dev`
 
 ### Step 2: Verify Configuration
 
@@ -236,8 +236,8 @@ Check the following tabs:
 - ✅ Each user should be assigned to their respective group
 
 **App integration tab:**
-- ✅ Domain: `hackathon-dev.auth.us-east-1.amazoncognito.com`
-- ✅ App client: `hackathon-web-dev`
+- ✅ Domain: `bidopsai-dev.auth.us-east-1.amazoncognito.com`
+- ✅ App client: `bidopsai-web-dev`
 - ✅ Callback URLs include bidopsai.com
 - ✅ OAuth flows: Authorization code grant
 
@@ -249,7 +249,7 @@ Check the following tabs:
 ### Step 3: Test User Login via Console
 
 1. In the "App integration" tab, scroll to "App clients and analytics"
-2. Click on `hackathon-web-dev`
+2. Click on `bidopsai-web-dev`
 3. Click "View Hosted UI"
 4. This opens the Cognito Hosted UI
 5. Login with test credentials
@@ -263,7 +263,7 @@ Check the following tabs:
 
 Open this URL in browser:
 ```
-https://hackathon-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
+https://bidopsai-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
 ```
 
 After login, copy the `code` parameter from the redirect URL.
@@ -272,7 +272,7 @@ After login, copy the `code` parameter from the redirect URL.
 
 ```bash
 curl -X POST \
-  https://hackathon-dev.auth.us-east-1.amazoncognito.com/oauth2/token \
+  https://bidopsai-dev.auth.us-east-1.amazoncognito.com/oauth2/token \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   -d 'grant_type=authorization_code' \
   -d 'client_id=4uci08tqhijkrncjbebr3hu60q' \
@@ -310,7 +310,7 @@ Go to https://jwt.io and paste the `id_token` to see user information:
   "auth_time": 1729031234,
   "exp": 1729034834,
   "iat": 1729031234,
-  "email": "admin@hackathon.local"
+  "email": "admin@bidopsai.local"
 }
 ```
 
@@ -491,7 +491,7 @@ function ProfilePage() {
 
 ### Issue: Can't access Hosted UI
 
-**Solution:** Check that the domain `hackathon-dev.auth.us-east-1.amazoncognito.com` is active in Cognito console.
+**Solution:** Check that the domain `bidopsai-dev.auth.us-east-1.amazoncognito.com` is active in Cognito console.
 
 ### Issue: bidopsai.com not loading
 
@@ -548,11 +548,11 @@ Your Cognito User Pool is **fully configured and ready to use** with bidopsai.co
 
 **1. Open this URL in your browser:**
 ```
-https://hackathon-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
+https://bidopsai-dev.auth.us-east-1.amazoncognito.com/login?client_id=4uci08tqhijkrncjbebr3hu60q&response_type=code&scope=email+openid+profile+phone&redirect_uri=https://bidopsai.com/callback
 ```
 
 **2. Login with:**
-- **Username:** `admin@hackathon.local`
+- **Username:** `admin@bidopsai.local`
 - **Password:** `AdminPass123!@#`
 
 **3. After login, you'll be redirected to:**

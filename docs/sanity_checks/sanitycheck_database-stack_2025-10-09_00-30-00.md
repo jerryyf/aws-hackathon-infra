@@ -8,7 +8,7 @@ Checklist
 - CloudFormation: DatabaseStack = CREATE_COMPLETE
 - RDS cluster: status = available
 - RDS Proxy: status = available; endpoint present
-- Secrets Manager: secret `hackathon/rds/credentials` exists
+- Secrets Manager: secret `bidopsai/rds/credentials` exists
 - OpenSearch: domain status = Active; data node count = 2
 - VPC/Subnets: DB sits in `PrivateData` subnets
 

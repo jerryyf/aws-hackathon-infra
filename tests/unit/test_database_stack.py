@@ -16,7 +16,7 @@ def test_database_stack_rds_cluster_created():
         {
             "Engine": "aurora-postgresql",
             "EngineVersion": "15.4",
-            "DatabaseName": "hackathon",
+            "DatabaseName": "bidopsai",
             "StorageEncrypted": True,
         },
     )
@@ -40,7 +40,7 @@ def test_database_stack_rds_secret():
     template.resource_count_is("AWS::SecretsManager::Secret", 1)
     template.has_resource_properties(
         "AWS::SecretsManager::Secret",
-        {"Name": "hackathon/rds/credentials"},
+        {"Name": "bidopsai/rds/credentials"},
     )
 
 

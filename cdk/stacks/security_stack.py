@@ -34,7 +34,7 @@ class SecurityStack(Stack):
 
         self.env_name = environment
         self.domain_name = domain_name
-        domain_prefix = f"hackathon-{environment}"
+        domain_prefix = f"bidopsai-{environment}"
 
         # SSM Parameters (existing functionality)
         self._create_ssm_parameters()
@@ -68,7 +68,7 @@ class SecurityStack(Stack):
         self.app_config_param = ssm.StringParameter(
             self,
             "AppConfigParam",
-            parameter_name=f"/hackathon/{self.env_name}/app/config",
+            parameter_name=f"/bidopsai/{self.env_name}/app/config",
             string_value='{"environment": "' + self.env_name + '", "version": "1.0"}',
             description="Application configuration",
         )
@@ -76,7 +76,7 @@ class SecurityStack(Stack):
         self.endpoint_params = ssm.StringParameter(
             self,
             "EndpointParams",
-            parameter_name=f"/hackathon/{self.env_name}/endpoints",
+            parameter_name=f"/bidopsai/{self.env_name}/endpoints",
             string_value=(
                 '{"api": "https://api.example.com", '
                 '"bedrock": "https://bedrock.us-east-1.amazonaws.com"}'
@@ -90,7 +90,7 @@ class SecurityStack(Stack):
         return cognito.UserPool(
             self,
             "UserPool",
-            user_pool_name=f"hackathon-users-{self.env_name}",
+            user_pool_name=f"bidopsai-users-{self.env_name}",
             # Sign-in configuration
             sign_in_aliases=cognito.SignInAliases(
                 username=True,
@@ -141,7 +141,7 @@ class SecurityStack(Stack):
             # Email configuration
             email=cognito.UserPoolEmail.with_cognito(
                 reply_to="noreply@"
-                + (self.domain_name if self.domain_name else "hackathon.local")
+                + (self.domain_name if self.domain_name else "bidopsai.local")
             ),
             # User invitation
             user_invitation=cognito.UserInvitationConfig(
@@ -180,7 +180,7 @@ class SecurityStack(Stack):
 
         return self.user_pool.add_client(
             "UserPoolClient",
-            user_pool_client_name=f"hackathon-web-{self.env_name}",
+            user_pool_client_name=f"bidopsai-web-{self.env_name}",
             # OAuth configuration
             o_auth=cognito.OAuthSettings(
                 flows=cognito.OAuthFlows(

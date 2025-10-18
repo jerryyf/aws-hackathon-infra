@@ -2,7 +2,7 @@
 
 Timestamp: 2025-10-09 00:30:00 UTC
 
-Repository: aws-hackathon-infra (branch: 002-create-python-application)
+Repository: aws-bidopsai-infra (branch: 002-create-python-application)
 Target stack: NetworkStack
 
 Summary
@@ -56,7 +56,7 @@ Template fragments (where to look)
 
 Current issues and notes
 ------------------------
-- If your original deployment used a `.local` domain (e.g., `hackathon.local`), public ACM cannot issue certificates for non-public TLDs and DNS validation will fail. Use a public domain or skip creating public ACM cert for local development (the code now skips it).
+- If your original deployment used a `.local` domain (e.g., `bidopsai.local`), public ACM cannot issue certificates for non-public TLDs and DNS validation will fail. Use a public domain or skip creating public ACM cert for local development (the code now skips it).
 - Hosted zone discovery via AWS occurs only when `CDK_DEFAULT_ACCOUNT` and region are present; otherwise you must pass `--context domain_name=<yourdomain>` when running CDK synth/deploy if you want a certificate to be created.
 - Live validation (ACM certificate issuance, VPCEndpoint availability) requires `cdk deploy` in an AWS account with Route53 hosted zone control and appropriate permissions.
 

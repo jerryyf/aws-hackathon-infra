@@ -224,11 +224,11 @@ cdk deploy --context environment=dev
 **Current Components:**
 
 1. **SSM Parameters** (2 total):
-   - `/hackathon/app/config` - App configuration JSON
-   - `/hackathon/endpoints` - Service endpoint URLs
+   - `/bidopsai/app/config` - App configuration JSON
+   - `/bidopsai/endpoints` - Service endpoint URLs
 
 2. **Cognito User Pool** (Basic):
-   - Name: `hackathon-users`
+   - Name: `bidopsai-users`
    - Self sign-up: Enabled
    - Sign-in: Email only
    - Password: 8 chars min (weaker than new implementation)
@@ -652,7 +652,7 @@ email=cognito.UserPoolEmail.with_cognito("noreply@bidopsai.com")
 
 **Command:**
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra/cdk
+cd /home/vekysilkova/aws-bidopsai-infra/cdk
 PYTHONPATH=.. cdk deploy SecurityStack --context environment=dev --context domain_name=bidopsai.com
 ```
 
@@ -667,7 +667,7 @@ PYTHONPATH=.. cdk deploy SecurityStack --context environment=dev --context domai
 
 **Command:**
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra
+cd /home/vekysilkova/aws-bidopsai-infra
 bash scripts/create-test-users.sh
 ```
 

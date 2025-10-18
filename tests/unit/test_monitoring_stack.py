@@ -25,7 +25,7 @@ def test_monitoring_stack_app_log_group():
 
     template.has_resource_properties(
         "AWS::Logs::LogGroup",
-        {"LogGroupName": "/hackathon/app", "RetentionInDays": 7},
+        {"LogGroupName": "/bidopsai/app", "RetentionInDays": 7},
     )
 
 
@@ -39,7 +39,7 @@ def test_monitoring_stack_alb_log_group():
 
     template.has_resource_properties(
         "AWS::Logs::LogGroup",
-        {"LogGroupName": "/hackathon/alb", "RetentionInDays": 7},
+        {"LogGroupName": "/bidopsai/alb", "RetentionInDays": 7},
     )
 
 
@@ -76,7 +76,7 @@ def test_monitoring_stack_cloudtrail():
     template.has_resource_properties(
         "AWS::CloudTrail::Trail",
         {
-            "TrailName": "hackathon-trail",
+            "TrailName": "bidopsai-trail",
             "IsMultiRegionTrail": True,
             "EnableLogFileValidation": True,
             "IncludeGlobalServiceEvents": True,

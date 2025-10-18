@@ -228,7 +228,7 @@ issuer=C = US, O = Amazon, CN = Amazon RSA 2048 M02
 ## Deployment Command
 
 ```bash
-cd /home/vekysilkova/aws-hackathon-infra/cdk
+cd /home/vekysilkova/aws-bidopsai-infra/cdk
 PYTHONPATH=.. cdk deploy NetworkStack --context domain_name=bidopsai.com --require-approval never
 ```
 

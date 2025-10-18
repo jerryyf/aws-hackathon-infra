@@ -197,7 +197,7 @@ specs/
 
 After completing data model and quickstart, run:
 ```bash
-cd /Users/jerrlin/repos/personal/aws-hackathon-infra
+cd /Users/jerrlin/repos/personal/aws-bidopsai-infra
 ./.specify/scripts/bash/update-agent-context.sh opencode
 ```
 

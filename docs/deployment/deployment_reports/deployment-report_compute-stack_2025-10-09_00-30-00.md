@@ -5,7 +5,7 @@ Stack: ComputeStack
 
 Key resources
 -------------
-- ECS Cluster: `hackathon-cluster`
+- ECS Cluster: `bidopsai-cluster`
 - Fargate task definition: CPU 256, Memory 512
 - Placeholder container: `nginx:latest` (AppContainer)
 

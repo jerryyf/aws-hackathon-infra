@@ -1,4 +1,4 @@
-# aws-hackathon-infra
+# aws-bidopsai-infra
 
 > Warning: contains AI-generated content.
 
@@ -19,7 +19,7 @@ The test suite includes unit tests, contract tests (validate deployed infrastruc
 source .venv/bin/activate
 
 # Set AWS profile for contract/integration tests
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 ```
 
@@ -84,7 +84,7 @@ For a fully local deployment:
 PYTHONPATH=. pytest tests/unit
 
 # deploy
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 cd cdk && cdk deploy --all
 
@@ -125,7 +125,7 @@ The `ENVIRONMENT` variable controls AgentCore runtime resource allocation:
 export ENVIRONMENT=prod
 export AWS_REGION=us-east-1
 export DOMAIN_NAME=bidopsai.com
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 ```
 
 **Windows (PowerShell):**
@@ -133,17 +133,17 @@ export AWS_PROFILE=hackathon
 $env:ENVIRONMENT="prod"
 $env:AWS_REGION="us-east-1"
 $env:DOMAIN_NAME="bidopsai.com"
-$env:AWS_PROFILE="hackathon"
+$env:AWS_PROFILE="bidopsai"
 ```
 
 **Deployment Example:**
 ```bash
 # Deploy to production environment with custom domain
-ENVIRONMENT=prod DOMAIN_NAME=bidopsai.com cdk deploy --all --profile hackathon
+ENVIRONMENT=prod DOMAIN_NAME=bidopsai.com cdk deploy --all --profile bidopsai
 
 # Deploy to test environment (default)
-cdk deploy NetworkStack --profile hackathon
+cdk deploy NetworkStack --profile bidopsai
 
 # Deploy without domain name (skips ACM certificate creation)
-DOMAIN_NAME="" cdk deploy NetworkStack --profile hackathon
+DOMAIN_NAME="" cdk deploy NetworkStack --profile bidopsai
 ```

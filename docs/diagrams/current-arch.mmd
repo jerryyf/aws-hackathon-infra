@@ -1,0 +1,238 @@
+graph TB
+    subgraph "AWS Region: us-east-1"
+        subgraph "VPC: 10.0.0.0/16"
+            
+            subgraph "Public Subnets"
+                subgraph "AZ-1: us-east-1a 10.0.1.0/24"
+                    PublicALB1[Public ALB]
+                end
+                
+                subgraph "AZ-2: us-east-1b 10.0.2.0/24"
+                    PublicALB2[Public ALB]
+                end
+            end
+            
+            subgraph "Private App Subnets"
+                subgraph "AZ-1: us-east-1a 10.0.11.0/24"
+                    BFF1[BFF Service
+                    Next.js Frontend
+                    Port 3000
+                    2 vCPU / 4 GB]
+                end
+                
+                subgraph "AZ-2: us-east-1b 10.0.12.0/24"
+                    BFF2[BFF Service
+                    Next.js Frontend
+                    Port 3000
+                    2 vCPU / 4 GB]
+                end
+            end
+            
+            subgraph "Private Agent Subnets"
+                subgraph "AZ-1: us-east-1a 10.0.21.0/24"
+                    Agent1[AgentCore Runtime
+                    Port 8080
+                    2 vCPU / 4 GB]
+                end
+                
+                subgraph "AZ-2: us-east-1b 10.0.22.0/24"
+                    Agent2[AgentCore Runtime
+                    Port 8080
+                    2 vCPU / 4 GB]
+                end
+            end
+            
+            subgraph "Private Data Subnets"
+                subgraph "AZ-1: us-east-1a 10.0.31.0/24"
+                    RDS1[(RDS Aurora PostgreSQL
+                    Primary)]
+                end
+                
+                subgraph "AZ-2: us-east-1b 10.0.32.0/24"
+                    RDS2[(RDS Aurora PostgreSQL
+                    Replica)]
+                    OpenSearch[OpenSearch Domain]
+                end
+            end
+            
+            subgraph "Security Groups"
+                PublicALBSG[Public ALB SG
+                Inbound: 80, 443 from 0.0.0.0/0]
+                BFFSG[BFF SG
+                Inbound: 3000 from ALB SG
+                Outbound: 8080 to Agent SG, 443 to VPC Endpoints]
+                AgentSG[Agent SG
+                Inbound: 8080 from BFF SG
+                Outbound: 443 to VPC Endpoints, 5432 to RDS SG]
+                RDSSG[RDS SG
+                Inbound: 5432 from BFF SG, Agent SG]
+            end
+            
+            subgraph "VPC Endpoints"
+                VPCE_Bedrock[Bedrock Runtime
+                Interface Endpoint]
+                VPCE_ECR_API[ECR API
+                Interface Endpoint]
+                VPCE_ECR_DKR[ECR Docker
+                Interface Endpoint]
+                VPCE_CW_Logs[CloudWatch Logs
+                Interface Endpoint]
+                VPCE_SSM[SSM Parameter Store
+                Interface Endpoint]
+            end
+        end
+    end
+    
+    subgraph "AWS Managed Services - Regional"
+        Bedrock[Bedrock Service
+        Foundation Models
+        bedrock-runtime:InvokeModel
+        bedrock-agent-runtime:InvokeAgent]
+        
+        subgraph "Container Registry"
+            ECR_App[ECR Repository: bidopsai/app
+            BFF Container Image
+            Image Scan On Push Enabled]
+            ECR_Agent[ECR Repository: bidopsai/agent
+            Agent Container Image
+            Image Scan On Push Enabled]
+        end
+        
+        subgraph "Storage"
+            S3_KB[S3: Knowledge Base Bucket
+            KMS Encrypted
+            Versioned]
+            S3_Logs[S3: Logs Bucket
+            KMS Encrypted]
+            S3_BDA[S3: BDA Bucket
+            KMS Encrypted]
+        end
+        
+        subgraph "Security & Configuration"
+            SSM[SSM Parameter Store
+            /bidopsai/dev/app/config
+            /bidopsai/dev/endpoints
+            RDS credentials
+            API keys]
+            IAM_TaskExec[IAM Task Execution Role
+            ECR Pull
+            CloudWatch Logs Write
+            SSM Read]
+            IAM_BFF[IAM Task Role: BFF
+            CloudWatch Logs Write
+            SSM Read]
+            IAM_Agent[IAM Task Role: Agent
+            Bedrock Full Access
+            S3 Read/Write
+            SSM Read]
+        end
+        
+        subgraph "Observability"
+            CloudWatch[CloudWatch
+            Container Insights
+            Log Groups: /ecs/bff, /ecs/agentcore
+            Alarms: Task Count, Target Health]
+            CloudTrail[CloudTrail
+            API Audit Logs]
+        end
+    end
+    
+    subgraph "Internet"
+        Users[End Users]
+    end
+    
+    %% User traffic flow
+    Users -->|HTTPS 443| PublicALB1
+    Users -->|HTTPS 443| PublicALB2
+    
+    %% ALB to BFF routing
+    PublicALB1 -->|Target Group Health: /api/health| BFF1
+    PublicALB2 -->|Target Group Health: /api/health| BFF2
+    
+    %% BFF to AgentCore communication (Service Discovery)
+    BFF1 -->|Service Discovery HTTP:8080| Agent1
+    BFF2 -->|Service Discovery HTTP:8080| Agent2
+    
+    %% Database connections (grouped by service type)
+    BFF1 -.->|DB Pool| RDS1
+    BFF2 -.->|DB Pool| RDS2
+    Agent1 -.->|DB Pool| RDS1
+    Agent2 -.->|DB Pool| RDS2
+    
+    %% Security group memberships (lighter connections)
+    BFF1 -.-|SG| BFFSG
+    BFF2 -.-|SG| BFFSG
+    Agent1 -.-|SG| AgentSG
+    Agent2 -.-|SG| AgentSG
+    PublicALB1 -.-|SG| PublicALBSG
+    PublicALB2 -.-|SG| PublicALBSG
+    RDS1 -.-|SG| RDSSG
+    RDS2 -.-|SG| RDSSG
+    
+    %% Bedrock invocations (heavy line)
+    Agent1 ==>|Invoke Agent/Model| VPCE_Bedrock
+    Agent2 ==>|Invoke Agent/Model| VPCE_Bedrock
+    
+    %% Container image pulls (startup only)
+    BFF1 -..->|Image Pull| VPCE_ECR_DKR
+    BFF2 -..->|Image Pull| VPCE_ECR_DKR
+    Agent1 -..->|Image Pull| VPCE_ECR_DKR
+    Agent2 -..->|Image Pull| VPCE_ECR_DKR
+    
+    %% Logging streams
+    BFF1 -.->|Stream Logs| VPCE_CW_Logs
+    BFF2 -.->|Stream Logs| VPCE_CW_Logs
+    Agent1 -.->|Stream Logs| VPCE_CW_Logs
+    Agent2 -.->|Stream Logs| VPCE_CW_Logs
+    
+    %% Configuration reads
+    BFF1 -->|SSM Params| VPCE_SSM
+    BFF2 -->|SSM Params| VPCE_SSM
+    Agent1 -->|SSM Params| VPCE_SSM
+    Agent2 -->|SSM Params| VPCE_SSM
+    
+    %% S3 Knowledge Base access
+    Agent1 ==>|KB Access| S3_KB
+    Agent2 ==>|KB Access| S3_KB
+    
+    %% VPC Endpoint to AWS service connections
+    VPCE_Bedrock ==> Bedrock
+    VPCE_ECR_API --> ECR_App
+    VPCE_ECR_API --> ECR_Agent
+    VPCE_ECR_DKR --> ECR_App
+    VPCE_ECR_DKR --> ECR_Agent
+    VPCE_CW_Logs --> CloudWatch
+    VPCE_SSM --> SSM
+    
+    %% IAM role assumptions (task execution)
+    IAM_TaskExec -.-|Launch Role| BFF1
+    IAM_TaskExec -.-|Launch Role| BFF2
+    IAM_TaskExec -.-|Launch Role| Agent1
+    IAM_TaskExec -.-|Launch Role| Agent2
+    
+    %% IAM role assumptions (task roles)
+    IAM_BFF -.-|Runtime Role| BFF1
+    IAM_BFF -.-|Runtime Role| BFF2
+    IAM_Agent -.-|Runtime Role| Agent1
+    IAM_Agent -.-|Runtime Role| Agent2
+    
+    %% Audit logging
+    CloudTrail -.->|Audit| CloudWatch
+    
+    classDef compute fill:#FF9900,stroke:#D97F00,stroke-width:3px,color:#000
+    classDef networking fill:#8C4FFF,stroke:#6B3ACC,stroke-width:2px,color:#fff
+    classDef security fill:#DD344C,stroke:#B02A3D,stroke-width:2px,color:#fff
+    classDef storage fill:#7AA116,stroke:#5F8112,stroke-width:2px,color:#fff
+    classDef database fill:#3B48CC,stroke:#2D3899,stroke-width:2px,color:#fff
+    classDef management fill:#E7157B,stroke:#B81163,stroke-width:2px,color:#fff
+    classDef ml fill:#01A88D,stroke:#017F6A,stroke-width:3px,color:#fff
+    classDef internet fill:#232F3E,stroke:#161E2D,stroke-width:2px,color:#fff
+    
+    class BFF1,BFF2,Agent1,Agent2 compute
+    class PublicALB1,PublicALB2,PublicALBSG,BFFSG,AgentSG,RDSSG,VPCE_Bedrock,VPCE_ECR_API,VPCE_ECR_DKR,VPCE_CW_Logs,VPCE_SSM networking
+    class SSM,IAM_TaskExec,IAM_BFF,IAM_Agent security
+    class S3_KB,S3_Logs,S3_BDA,ECR_App,ECR_Agent storage
+    class RDS1,RDS2,OpenSearch database
+    class CloudWatch,CloudTrail management
+    class Bedrock ml
+    class Users internet

@@ -20,7 +20,7 @@ class MonitoringStack(Stack):
         self.app_log_group = logs.LogGroup(
             self,
             "AppLogGroup",
-            log_group_name="/hackathon/app",
+            log_group_name="/bidopsai/app",
             retention=logs.RetentionDays.ONE_WEEK,
             removal_policy=RemovalPolicy.DESTROY,
         )
@@ -28,7 +28,7 @@ class MonitoringStack(Stack):
         self.alb_log_group = logs.LogGroup(
             self,
             "AlbLogGroup",
-            log_group_name="/hackathon/alb",
+            log_group_name="/bidopsai/alb",
             retention=logs.RetentionDays.ONE_WEEK,
             removal_policy=RemovalPolicy.DESTROY,
         )
@@ -43,8 +43,8 @@ class MonitoringStack(Stack):
                 namespace="AWS/ApplicationELB",
                 metric_name="HealthyHostCount",
                 dimensions_map={
-                    "LoadBalancer": "hackathon-alb",
-                    "TargetGroup": "hackathon-targets",
+                    "LoadBalancer": "bidopsai-alb",
+                    "TargetGroup": "bidopsai-targets",
                 },
                 statistic="Average",
             ),
@@ -57,7 +57,7 @@ class MonitoringStack(Stack):
         self.cloudtrail = cloudtrail.Trail(
             self,
             "CloudTrail",
-            trail_name="hackathon-trail",
+            trail_name="bidopsai-trail",
             bucket=logs_bucket,  # From storage stack
             is_multi_region_trail=True,
             enable_file_validation=True,

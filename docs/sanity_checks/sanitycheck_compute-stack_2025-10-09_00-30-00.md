@@ -6,7 +6,7 @@ Stack: ComputeStack
 Checklist
 ---------
 - CloudFormation: ComputeStack = CREATE_COMPLETE
-- ECS Cluster: `hackathon-cluster` exists
+- ECS Cluster: `bidopsai-cluster` exists
 - Task Definition: `TaskDefinition` exists and container defined
 - Networking: tasks can be scheduled in `PrivateApp` subnets
 

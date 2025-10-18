@@ -10,7 +10,7 @@
 ```bash
 # Clone repository
 git clone <repository-url>
-cd aws-hackathon-infra
+cd aws-bidopsai-infra
 
 # Activate virtual environment
 source cdk/venv/bin/activate

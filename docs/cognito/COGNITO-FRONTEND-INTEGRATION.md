@@ -15,7 +15,7 @@ Copy these to your frontend repo's `.env.local`:
 NEXT_PUBLIC_AWS_REGION=us-east-1
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=us-east-1_3tjXn7pNM
 NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=4uci08tqhijkrncjbebr3hu60q
-NEXT_PUBLIC_COGNITO_DOMAIN=hackathon-dev.auth.us-east-1.amazoncognito.com
+NEXT_PUBLIC_COGNITO_DOMAIN=bidopsai-dev.auth.us-east-1.amazoncognito.com
 
 # GraphQL API Endpoint (keep existing)
 NEXT_PUBLIC_API_URL=http://localhost:4000/graphql
@@ -38,11 +38,11 @@ Use these exact IDs in your `prisma/seed.ts` file:
 
 | Username | Email | Cognito ID (sub) | Group |
 |----------|-------|------------------|-------|
-| admin | admin@hackathon.local | `0458b4f8-6061-702c-6c6a-38b488fa7ab3` | ADMIN |
-| drafter | drafter@hackathon.local | `6458e4c8-5041-70d1-a27c-d7017f823697` | DRAFTER |
-| bidder | bidder@hackathon.local | `c4787458-50a1-70fe-1689-de097c06e9f3` | BIDDER |
-| kbadmin | kbadmin@hackathon.local | `24088408-c041-70cc-8502-2e8cf144f168` | KB_ADMIN |
-| viewer | viewer@hackathon.local | `448854e8-c0b1-7087-94c4-93c5cbe0fcec` | KB_VIEW |
+| admin | admin@bidopsai.local | `0458b4f8-6061-702c-6c6a-38b488fa7ab3` | ADMIN |
+| drafter | drafter@bidopsai.local | `6458e4c8-5041-70d1-a27c-d7017f823697` | DRAFTER |
+| bidder | bidder@bidopsai.local | `c4787458-50a1-70fe-1689-de097c06e9f3` | BIDDER |
+| kbadmin | kbadmin@bidopsai.local | `24088408-c041-70cc-8502-2e8cf144f168` | KB_ADMIN |
+| viewer | viewer@bidopsai.local | `448854e8-c0b1-7087-94c4-93c5cbe0fcec` | KB_VIEW |
 
 ---
 
@@ -60,13 +60,13 @@ async function main() {
 
   // Admin User
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@hackathon.local' },
+    where: { email: 'admin@bidopsai.local' },
     update: {
       cognitoId: '0458b4f8-6061-702c-6c6a-38b488fa7ab3',
     },
     create: {
       cognitoId: '0458b4f8-6061-702c-6c6a-38b488fa7ab3',
-      email: 'admin@hackathon.local',
+      email: 'admin@bidopsai.local',
       firstName: 'Admin',
       lastName: 'User',
       role: 'ADMIN',
@@ -77,13 +77,13 @@ async function main() {
 
   // Drafter User
   const drafter = await prisma.user.upsert({
-    where: { email: 'drafter@hackathon.local' },
+    where: { email: 'drafter@bidopsai.local' },
     update: {
       cognitoId: '6458e4c8-5041-70d1-a27c-d7017f823697',
     },
     create: {
       cognitoId: '6458e4c8-5041-70d1-a27c-d7017f823697',
-      email: 'drafter@hackathon.local',
+      email: 'drafter@bidopsai.local',
       firstName: 'Draft',
       lastName: 'Creator',
       role: 'DRAFTER',
@@ -94,13 +94,13 @@ async function main() {
 
   // Bidder User
   const bidder = await prisma.user.upsert({
-    where: { email: 'bidder@hackathon.local' },
+    where: { email: 'bidder@bidopsai.local' },
     update: {
       cognitoId: 'c4787458-50a1-70fe-1689-de097c06e9f3',
     },
     create: {
       cognitoId: 'c4787458-50a1-70fe-1689-de097c06e9f3',
-      email: 'bidder@hackathon.local',
+      email: 'bidder@bidopsai.local',
       firstName: 'Bid',
       lastName: 'Manager',
       role: 'BIDDER',
@@ -111,13 +111,13 @@ async function main() {
 
   // KB Admin User
   const kbadmin = await prisma.user.upsert({
-    where: { email: 'kbadmin@hackathon.local' },
+    where: { email: 'kbadmin@bidopsai.local' },
     update: {
       cognitoId: '24088408-c041-70cc-8502-2e8cf144f168',
     },
     create: {
       cognitoId: '24088408-c041-70cc-8502-2e8cf144f168',
-      email: 'kbadmin@hackathon.local',
+      email: 'kbadmin@bidopsai.local',
       firstName: 'KB',
       lastName: 'Admin',
       role: 'KB_ADMIN',
@@ -128,13 +128,13 @@ async function main() {
 
   // Viewer User
   const viewer = await prisma.user.upsert({
-    where: { email: 'viewer@hackathon.local' },
+    where: { email: 'viewer@bidopsai.local' },
     update: {
       cognitoId: '448854e8-c0b1-7087-94c4-93c5cbe0fcec',
     },
     create: {
       cognitoId: '448854e8-c0b1-7087-94c4-93c5cbe0fcec',
-      email: 'viewer@hackathon.local',
+      email: 'viewer@bidopsai.local',
       firstName: 'Knowledge',
       lastName: 'Viewer',
       role: 'KB_VIEW',
@@ -171,11 +171,11 @@ After seeding, test login with these credentials:
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@hackathon.local | AdminPass123!@# | ADMIN |
-| drafter@hackathon.local | DrafterPass123!@# | DRAFTER |
-| bidder@hackathon.local | BidderPass123!@# | BIDDER |
-| kbadmin@hackathon.local | KbadminPass123!@# | KB_ADMIN |
-| viewer@hackathon.local | ViewerPass123!@# | KB_VIEW |
+| admin@bidopsai.local | AdminPass123!@# | ADMIN |
+| drafter@bidopsai.local | DrafterPass123!@# | DRAFTER |
+| bidder@bidopsai.local | BidderPass123!@# | BIDDER |
+| kbadmin@bidopsai.local | KbadminPass123!@# | KB_ADMIN |
+| viewer@bidopsai.local | ViewerPass123!@# | KB_VIEW |
 
 **⚠️ Note:** You'll be prompted to change password on first login.
 
@@ -233,8 +233,8 @@ SELECT email, "cognitoId", role FROM users;
 ### **Test 2: Test Login**
 1. Open http://localhost:3000
 2. Click "Sign In"
-3. Should redirect to: `hackathon-dev.auth.us-east-1.amazoncognito.com`
-4. Login with: `admin@hackathon.local` / `AdminPass123!@#`
+3. Should redirect to: `bidopsai-dev.auth.us-east-1.amazoncognito.com`
+4. Login with: `admin@bidopsai.local` / `AdminPass123!@#`
 5. Set new password when prompted
 6. Should redirect back to localhost:3000
 7. You're logged in! ✅
@@ -286,9 +286,9 @@ User visits localhost:3000
     ↓
 Clicks "Sign In"
     ↓
-Redirects to: hackathon-dev.auth.us-east-1.amazoncognito.com
+Redirects to: bidopsai-dev.auth.us-east-1.amazoncognito.com
     ↓
-Enters: admin@hackathon.local / AdminPass123!@#
+Enters: admin@bidopsai.local / AdminPass123!@#
     ↓
 Cognito validates credentials ✅
     ↓
@@ -320,7 +320,7 @@ For your senior or team members:
 NEXT_PUBLIC_AWS_REGION=us-east-1
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=us-east-1_3tjXn7pNM
 NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=4uci08tqhijkrncjbebr3hu60q
-NEXT_PUBLIC_COGNITO_DOMAIN=hackathon-dev.auth.us-east-1.amazoncognito.com
+NEXT_PUBLIC_COGNITO_DOMAIN=bidopsai-dev.auth.us-east-1.amazoncognito.com
 ```
 
 **Step 2: Update prisma/seed.ts Cognito IDs**
@@ -342,7 +342,7 @@ podman restart bidopsai-core-api-dev
 
 **Step 4: Test**
 - Open http://localhost:3000
-- Login with: admin@hackathon.local / AdminPass123!@#
+- Login with: admin@bidopsai.local / AdminPass123!@#
 - ✅ Done!
 
 ---

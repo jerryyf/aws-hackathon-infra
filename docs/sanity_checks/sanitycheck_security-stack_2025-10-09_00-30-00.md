@@ -6,12 +6,12 @@ Stack: SecurityStack
 Checklist
 ---------
 - CloudFormation: SecurityStack = CREATE_COMPLETE
-- SSM Parameters: `/hackathon/app/config`, `/hackathon/endpoints` exist
-- Cognito: user pool `hackathon-users` exists and sign-in aliases are configured
+- SSM Parameters: `/bidopsai/app/config`, `/bidopsai/endpoints` exist
+- Cognito: user pool `bidopsai-users` exists and sign-in aliases are configured
 
 Commands
 --------
 - Get SSM parameter values:
   ```bash
-  aws ssm get-parameter --name /hackathon/app/config --query Parameter.Value --output text
+  aws ssm get-parameter --name /bidopsai/app/config --query Parameter.Value --output text
   ```

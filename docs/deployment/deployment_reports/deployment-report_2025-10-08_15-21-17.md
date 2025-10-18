@@ -47,7 +47,7 @@ Initial deployment attempt failed due to regional service availability issue. In
 | Container Registry | ✅ Ready | ECR with immutable tags |
 | Security | ✅ Ready | Cognito, Secrets Manager, CloudTrail |
 | Monitoring | ✅ Ready | CloudWatch alarms and metrics |
-| DNS & Certificates | ✅ Ready | Route 53 + ACM for hackathon.local |
+| DNS & Certificates | ✅ Ready | Route 53 + ACM for bidopsai.local |
 
 ## Next Steps for Successful Deployment
 

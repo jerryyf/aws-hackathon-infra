@@ -37,7 +37,7 @@ The AWS AgentCore feature specification (008-add-aws-agentcore) is well-document
 - **Workaround**: Use escape hatch: `cdk.CfnResource(self, "Runtime", type="AWS::BedrockAgentCore::Runtime", properties={...})`
 
 #### ✅ RESOLVED: ECR Repository Available
-- **Status**: Existing `hackathon/app` ECR repository will be used for agent images
+- **Status**: Existing `bidopsai/app` ECR repository will be used for agent images
 - **File**: `cdk/stacks/storage_stack.py:41-47`
 - **Spec Reference**: tasks.md T005, spec.md FR-001
 - **Resolution**: Single ECR repository approach confirmed by user (2025-10-14)
@@ -112,7 +112,7 @@ The AWS AgentCore feature specification (008-add-aws-agentcore) is well-document
 - ✅ Multi-AZ configuration correct (us-east-1a, us-east-1b)
 
 ### Storage Stack: ECR Repository Ready ✅
-- ✅ ECR repository exists (`hackathon/app`) - **will be used for agent images**
+- ✅ ECR repository exists (`bidopsai/app`) - **will be used for agent images**
 - ✅ Image scanning enabled
 - ✅ Immutable tags configured
 - ✅ Repository URI exported as CloudFormation output
@@ -149,7 +149,7 @@ cd cdk && cdk synth AgentCoreStack
 **Blocker**: T003/T004 depend on resolving L1 construct approach (no L2 module available)
 
 ### Phase 2: Foundational (6 tasks) - 🟠 2 HIGH PRIORITY GAPS
-- [x] T005: Add agent ECR repository - ✅ **COMPLETE** (existing `hackathon/app` repo will be used)
+- [x] T005: Add agent ECR repository - ✅ **COMPLETE** (existing `bidopsai/app` repo will be used)
 - [ ] T006: Create IAM execution role - 🟠 **MISSING** (security_stack.py needs 50+ lines)
 - [ ] T007: Add IAM permissions policy - 🟠 **MISSING** (depends on T006)
 - [x] T008: Add VPC endpoint - ✅ **ALREADY COMPLETE** (network_stack.py L322-335)

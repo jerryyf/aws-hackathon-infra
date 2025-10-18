@@ -10,7 +10,7 @@ def test_security_stack_cognito_created():
 
     template.resource_count_is("AWS::Cognito::UserPool", 1)
     template.has_resource_properties(
-        "AWS::Cognito::UserPool", {"UserPoolName": "hackathon-users-dev"}
+        "AWS::Cognito::UserPool", {"UserPoolName": "bidopsai-users-dev"}
     )
 
 
@@ -104,7 +104,7 @@ def test_security_stack_user_pool_domain_created():
 
     template.resource_count_is("AWS::Cognito::UserPoolDomain", 1)
     template.has_resource_properties(
-        "AWS::Cognito::UserPoolDomain", {"Domain": "hackathon-dev"}
+        "AWS::Cognito::UserPoolDomain", {"Domain": "bidopsai-dev"}
     )
 
 
@@ -117,12 +117,12 @@ def test_security_stack_ssm_parameters_created():
 
     template.has_resource_properties(
         "AWS::SSM::Parameter",
-        {"Name": "/hackathon/dev/app/config", "Description": "Application configuration"},
+        {"Name": "/bidopsai/dev/app/config", "Description": "Application configuration"},
     )
 
     template.has_resource_properties(
         "AWS::SSM::Parameter",
-        {"Name": "/hackathon/dev/endpoints", "Description": "Service endpoints"},
+        {"Name": "/bidopsai/dev/endpoints", "Description": "Service endpoints"},
     )
 
 

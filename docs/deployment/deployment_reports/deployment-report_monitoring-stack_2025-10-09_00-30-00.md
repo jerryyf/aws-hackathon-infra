@@ -6,10 +6,10 @@ Stack: MonitoringStack
 Key resources
 -------------
 - CloudWatch Log Groups:
-  - `/hackathon/app` (1 week retention)
-  - `/hackathon/alb` (1 week retention)
+  - `/bidopsai/app` (1 week retention)
+  - `/bidopsai/alb` (1 week retention)
 - CloudWatch Alarm: `ALB Healthy Hosts` (threshold < 1 triggers)
-- CloudTrail: `hackathon-trail` (multi-region, file validation enabled), logs to StorageStack logs bucket
+- CloudTrail: `bidopsai-trail` (multi-region, file validation enabled), logs to StorageStack logs bucket
 
 Important file/artifact
 -----------------------

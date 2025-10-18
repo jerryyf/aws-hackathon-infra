@@ -88,9 +88,9 @@ monitoring_stack.add_dependency(network_stack)
 
 # Apply resource tags per FR-009 requirement
 # All four tags (Project, Environment, Owner, CostCenter) are required
-cdk.Tags.of(app).add("Project", "aws-hackathon")
+cdk.Tags.of(app).add("Project", "aws-bidopsai")
 cdk.Tags.of(app).add("Environment", environment)
-cdk.Tags.of(app).add("Owner", os.getenv("OWNER", "hackathon-team"))
-cdk.Tags.of(app).add("CostCenter", os.getenv("COST_CENTER", "hackathon"))
+cdk.Tags.of(app).add("Owner", os.getenv("OWNER", "bidopsai-team"))
+cdk.Tags.of(app).add("CostCenter", os.getenv("COST_CENTER", "bidopsai"))
 
 app.synth()

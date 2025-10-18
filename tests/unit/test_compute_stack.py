@@ -12,7 +12,7 @@ def test_compute_stack_ecs_cluster_created():
 
     template.resource_count_is("AWS::ECS::Cluster", 1)
     template.has_resource_properties(
-        "AWS::ECS::Cluster", {"ClusterName": "hackathon-cluster"}
+        "AWS::ECS::Cluster", {"ClusterName": "bidopsai-cluster"}
     )
 
 

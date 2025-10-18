@@ -36,7 +36,7 @@
 ## User Scenarios & Testing
 
 ### Primary User Story
-As a developer on the AgentCore hackathon team, I need to deploy AI agent runtimes to AWS using infrastructure-as-code so that I can quickly provision production-grade, containerized agent environments without manual AWS console configuration.
+As a developer on the AgentCore bidopsai team, I need to deploy AI agent runtimes to AWS using infrastructure-as-code so that I can quickly provision production-grade, containerized agent environments without manual AWS console configuration.
 
 ### Acceptance Scenarios
 1. **Given** a Python agent entrypoint file exists, **When** the CDK stack is deployed, **Then** an ECR repository is created, a container image is built and pushed, and an AgentCore Runtime is provisioned with the correct IAM permissions

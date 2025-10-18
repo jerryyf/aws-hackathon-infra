@@ -6,9 +6,9 @@ Stack: SecurityStack
 Key resources
 -------------
 - SSM Parameters:
-  - `/hackathon/app/config`
-  - `/hackathon/endpoints`
-- Cognito User Pool: `hackathon-users`
+  - `/bidopsai/app/config`
+  - `/bidopsai/endpoints`
+- Cognito User Pool: `bidopsai-users`
 
 Important file/artifact
 -----------------------
@@ -17,7 +17,7 @@ Important file/artifact
 Sanity checks (Console)
 -----------------------
 - SSM Console: verify parameters exist and have correct values.
-- Cognito Console: user pool `hackathon-users` exists; check sign-in aliases and password policy.
+- Cognito Console: user pool `bidopsai-users` exists; check sign-in aliases and password policy.
 
 Next steps
 ----------

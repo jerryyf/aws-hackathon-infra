@@ -37,7 +37,7 @@ def aws_region() -> str:
 
 @pytest.fixture(scope="session")
 def aws_profile() -> str:
-    return os.getenv("AWS_PROFILE", "hackathon")
+    return os.getenv("AWS_PROFILE", "bidopsai")
 
 
 @pytest.fixture

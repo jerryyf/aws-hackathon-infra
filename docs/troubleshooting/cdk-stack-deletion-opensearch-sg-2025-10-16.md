@@ -6,7 +6,7 @@ CDK stack destruction failed due to orphaned OpenSearch domain blocking security
 
 **Date**: 2025-10-16  
 **Branch**: `009-cognito-stack`  
-**AWS Profile**: `hackathon`  
+**AWS Profile**: `bidopsai`  
 **Region**: `us-east-1`
 
 ## Root Cause
@@ -182,7 +182,7 @@ If stack is in `DELETE_FAILED` state:
 
 ```bash
 # Set AWS credentials
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 
 # Destroy all stacks (reverse order)

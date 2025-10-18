@@ -1,7 +1,7 @@
 # Full Deployment Report — Hackathon Infra
 
 Timestamp: 2025-10-09 00:30:00 UTC
-Repository: aws-hackathon-infra (branch: 002-create-python-application)
+Repository: aws-bidopsai-infra (branch: 002-create-python-application)
 Target: Full CDK app (Network, Database, Compute, Storage, Security, Monitoring)
 
 Overview
@@ -37,7 +37,7 @@ Where to find logs and templates
 --------------------------------
 - Synthesized templates: `cdk/cdk.out/`
 - CloudFormation events: AWS Console > CloudFormation > [StackName] > Events
-- Service logs: CloudWatch Log Groups (names: `/hackathon/app`, `/hackathon/alb`)
+- Service logs: CloudWatch Log Groups (names: `/bidopsai/app`, `/bidopsai/alb`)
 
 Recommendations & next steps
 ---------------------------

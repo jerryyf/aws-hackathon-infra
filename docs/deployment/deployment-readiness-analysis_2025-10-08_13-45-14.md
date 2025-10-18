@@ -178,7 +178,7 @@ monitoring_stack = MonitoringStack(app, "MonitoringStack", env=env, logs_bucket=
 # cdk/stacks/storage_stack.py - remove bucket_name parameters entirely
 self.knowledge_base_bucket = s3.Bucket(
     self, "KnowledgeBaseBucket",
-    # bucket_name="hackathon-knowledge-base",  # REMOVE THIS LINE
+    # bucket_name="bidopsai-knowledge-base",  # REMOVE THIS LINE
     encryption=s3.BucketEncryption.KMS_MANAGED,  # Fix C3
     versioned=True,
     block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
@@ -191,7 +191,7 @@ self.knowledge_base_bucket = s3.Bucket(
 # cdk/stacks/storage_stack.py line 44-49
 self.ecr_repo = ecr.Repository(
     self, "EcrRepository",
-    repository_name="hackathon/app",
+    repository_name="bidopsai/app",
     image_scan_on_push=True,
     image_tag_mutability=ecr.TagMutability.IMMUTABLE,  # ADD THIS LINE
     removal_policy=RemovalPolicy.DESTROY

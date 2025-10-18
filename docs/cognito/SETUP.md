@@ -26,7 +26,7 @@ aws configure
 
 # Clone repository
 git clone <repo-url>
-cd aws-hackathon-infra
+cd aws-bidopsai-infra
 
 # Create virtual environment
 python3.11 -m venv venv
@@ -72,7 +72,7 @@ aws configure
 
 # Clone repository
 git clone <repo-url>
-cd aws-hackathon-infra
+cd aws-bidopsai-infra
 
 # Create virtual environment
 python3.11 -m venv venv
@@ -116,7 +116,7 @@ aws configure
 
 # Clone repository
 git clone <repo-url>
-cd aws-hackathon-infra
+cd aws-bidopsai-infra
 
 # Create virtual environment
 python3.11 -m venv venv
@@ -165,7 +165,7 @@ aws configure
 
 # Clone repository
 git clone <repo-url>
-cd aws-hackathon-infra
+cd aws-bidopsai-infra
 
 # Create virtual environment
 python3.11 -m venv venv

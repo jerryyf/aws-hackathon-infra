@@ -70,7 +70,7 @@ class DatabaseStack(Stack):
         self.rds_secret = secretsmanager.Secret(
             self,
             "RdsSecret",
-            secret_name="hackathon/rds/credentials",
+            secret_name="bidopsai/rds/credentials",
             generate_secret_string=secretsmanager.SecretStringGenerator(
                 secret_string_template='{"username": "postgres"}',
                 generate_string_key="password",
@@ -90,7 +90,7 @@ class DatabaseStack(Stack):
             readers=[rds.ClusterInstance.serverless_v2("reader")],
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnets=data_subnets),
-            default_database_name="hackathon",
+            default_database_name="bidopsai",
             backup=rds.BackupProps(retention=Duration.days(7)),
             storage_encrypted=True,
         )

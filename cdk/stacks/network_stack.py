@@ -202,7 +202,7 @@ class NetworkStack(Stack):
                     "during synth.",
                 )
         else:
-            # For local/development domains (like hackathon.local) or when no domain
+            # For local/development domains (like bidopsai.local) or when no domain
             # provided, we skip creating a public ACM certificate. Use a private CA
             # or import a certificate into ACM manually if needed. Add metadata so
             # the rationale is visible in the CloudFormation template/construct tree.

@@ -28,7 +28,7 @@ This project uses a three-tier testing approach:
 
 3. **AWS Credentials** (for integration tests only):
    ```bash
-   export AWS_PROFILE=hackathon
+   export AWS_PROFILE=bidopsai
    export AWS_REGION=us-east-1
    ```
 
@@ -87,7 +87,7 @@ tests/contract/test_agentcore_runtime_contract.py ........  [100%]
 **Requires AWS credentials and deployed stacks** - queries actual AWS resources.
 
 ```bash
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 PYTHONPATH=. pytest tests/integration/
 ```
@@ -386,7 +386,7 @@ def test_runtime_status_active(agentcore_stack_outputs):
 
 2. **AWS Credentials Required**: Tests will fail without proper credentials
    ```bash
-   export AWS_PROFILE=hackathon
+   export AWS_PROFILE=bidopsai
    export AWS_REGION=us-east-1
    ```
 
@@ -621,13 +621,13 @@ botocore.exceptions.NoCredentialsError: Unable to locate credentials
 
 **Solution**: Set AWS profile and region:
 ```bash
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 ```
 
 **Verify credentials**:
 ```bash
-aws sts get-caller-identity --profile hackathon
+aws sts get-caller-identity --profile bidopsai
 ```
 
 ---
@@ -666,7 +666,7 @@ PYTHONPATH=. pytest tests/unit/
 
 PYTHONPATH=. pytest tests/contract/
 
-export AWS_PROFILE=hackathon
+export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
 PYTHONPATH=. pytest tests/integration/
 ```

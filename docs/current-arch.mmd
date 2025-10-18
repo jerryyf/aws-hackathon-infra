@@ -1,0 +1,109 @@
+graph TB
+    subgraph External["External"]
+        Users[Users]
+        Internet[Internet]
+    end
+    
+    subgraph DNS["DNS & Security"]
+        Route53[Route 53<br/>bidopsai.com]
+        ACM[ACM Certificate]
+        WAF[WAF Web ACL]
+    end
+    
+    subgraph VPC["VPC: 10.0.0.0/16"]
+        IGW[Internet Gateway]
+        
+        subgraph Public["Public Subnets (2 AZs)"]
+            NAT[NAT Gateways]
+            PublicALB[Public ALB]
+        end
+        
+        subgraph PrivateApp["Private App Subnets (2 AZs)"]
+            InternalALB[Internal ALB]
+            ECSApp[ECS Tasks<br/>Not Yet Deployed]
+        end
+        
+        subgraph PrivateAgent["Private Agent Subnets (2 AZs)"]
+            ECSAgent[Agent Tasks<br/>Not Yet Deployed]
+        end
+        
+        subgraph PrivateData["Private Data Subnets (2 AZs)"]
+            RDS[(Aurora PostgreSQL<br/>Writer + Reader)]
+            RDSProxy[RDS Proxy]
+            OpenSearch[(OpenSearch<br/>2 Nodes)]
+        end
+        
+        subgraph VPCEndpoints["VPC Endpoints"]
+            VPCE[S3, ECR, Bedrock<br/>Secrets, CloudWatch<br/>SSM]
+        end
+    end
+    
+    subgraph AWS["AWS Managed Services"]
+        S3[S3 Buckets<br/>Knowledge, Logs, BDA]
+        ECR[ECR Repositories<br/>App, Agent]
+        Bedrock[Amazon Bedrock]
+        Secrets[Secrets Manager]
+        Cognito[Cognito User Pool]
+        ECSCluster[ECS Cluster<br/>hackathon-cluster]
+        CloudWatch[CloudWatch<br/>Logs & Alarms]
+        CloudTrail[CloudTrail]
+    end
+    
+    %% User Flow
+    Users -->|HTTPS| Route53
+    Route53 --> ACM
+    Route53 --> PublicALB
+    WAF --> PublicALB
+    
+    %% Network Flow
+    Internet <--> IGW
+    IGW <--> PublicALB
+    IGW <--> NAT
+    PublicALB --> InternalALB
+    InternalALB -.-> ECSApp
+    NAT --> ECSApp
+    NAT --> ECSAgent
+    
+    %% Data Access
+    ECSApp -.-> RDSProxy
+    RDSProxy --> RDS
+    ECSApp --> VPCE
+    ECSAgent --> VPCE
+    
+    %% VPC Endpoints to Services
+    VPCE --> S3
+    VPCE --> ECR
+    VPCE --> Bedrock
+    VPCE --> Secrets
+    VPCE --> CloudWatch
+    
+    %% ECS Cluster Management
+    ECSCluster -.-> ECSApp
+    ECSCluster -.-> ECSAgent
+    
+    %% Monitoring
+    CloudWatch -.-> PublicALB
+    CloudWatch -.-> RDS
+    CloudWatch -.-> ECSCluster
+    CloudTrail --> S3
+    
+    %% Authentication
+    Users -.-> Cognito
+    
+    %% Styling
+    classDef placeholder fill:#D5DBDB,stroke:#85929E,stroke-width:2px,stroke-dasharray:5 5,color:#000
+    classDef networking fill:#8C4FFF,stroke:#6B3ACC,stroke-width:2px,color:#fff
+    classDef security fill:#DD344C,stroke:#B02A3D,stroke-width:2px,color:#fff
+    classDef storage fill:#7AA116,stroke:#5F8112,stroke-width:2px,color:#fff
+    classDef database fill:#3F48CC,stroke:#2E3699,stroke-width:2px,color:#fff
+    classDef compute fill:#FF9900,stroke:#D97F00,stroke-width:2px,color:#000
+    classDef management fill:#E7157B,stroke:#B81163,stroke-width:2px,color:#fff
+    classDef external fill:#99A3A4,stroke:#566573,stroke-width:2px,color:#fff
+    
+    class ECSApp,ECSAgent,ECSCluster placeholder
+    class IGW,NAT,PublicALB,InternalALB,VPCE networking
+    class WAF,ACM,Secrets,Cognito security
+    class S3,ECR storage
+    class RDS,RDSProxy,OpenSearch database
+    class CloudWatch,CloudTrail,Route53 management
+    class Users,Internet external

@@ -4,6 +4,9 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_iam as iam,
     aws_logs as logs,
+    aws_elasticloadbalancingv2 as elbv2,
+    aws_servicediscovery as servicediscovery,
+    Duration,
     CfnOutput,
 )
 from constructs import Construct
@@ -292,4 +295,172 @@ class ComputeStack(Stack):
             value=self.agent_task_definition.task_definition_arn,
             description="AgentCore task definition ARN",
             export_name="AgentTaskDefinitionArn",
+        )
+
+        if network_stack and hasattr(network_stack, "alb"):
+            bff_target_group = elbv2.ApplicationTargetGroup(
+                self,
+                "BffTargetGroup",
+                vpc=vpc,
+                port=3000,
+                protocol=elbv2.ApplicationProtocol.HTTP,
+                target_type=elbv2.TargetType.IP,
+                health_check=elbv2.HealthCheck(
+                    path="/api/health",
+                    interval=Duration.seconds(30),
+                    healthy_threshold_count=2,
+                    unhealthy_threshold_count=3,
+                ),
+            )
+            self.bff_target_group = bff_target_group
+
+        service_discovery_namespace = servicediscovery.PrivateDnsNamespace(
+            self,
+            "ServiceDiscoveryNamespace",
+            name="bidopsai.local",
+            vpc=vpc,
+            description="Service discovery namespace for BidOpsAI services",
+        )
+        self.service_discovery_namespace = service_discovery_namespace
+
+        if network_stack:
+            private_app_subnets = vpc.select_subnets(
+                subnet_group_name="PrivateApp"
+            ).subnets
+            private_agent_subnets = vpc.select_subnets(
+                subnet_group_name="PrivateAgent"
+            ).subnets
+        else:
+            private_app_subnets = vpc.select_subnets(
+                subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
+            ).subnets
+            private_agent_subnets = vpc.select_subnets(
+                subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
+            ).subnets
+
+        if network_stack and hasattr(network_stack, "alb"):
+            bff_service = ecs.FargateService(
+                self,
+                "BffService",
+                cluster=self.cluster,
+                task_definition=self.bff_task_definition,
+                desired_count=2,
+                security_groups=[bff_security_group],
+                vpc_subnets=ec2.SubnetSelection(subnets=private_app_subnets),
+                min_healthy_percent=50,
+                max_healthy_percent=200,
+            )
+
+            bff_service.attach_to_application_target_group(bff_target_group)
+
+            network_stack.alb_security_group.add_egress_rule(
+                peer=bff_security_group,
+                connection=ec2.Port.tcp(3000),
+                description="Allow ALB to BFF on port 3000",
+            )
+
+            bff_security_group.add_ingress_rule(
+                peer=network_stack.alb_security_group,
+                connection=ec2.Port.tcp(3000),
+                description="Allow inbound from ALB on port 3000",
+            )
+
+            self.bff_service = bff_service
+
+        agent_service = ecs.FargateService(
+            self,
+            "AgentService",
+            cluster=self.cluster,
+            task_definition=self.agent_task_definition,
+            desired_count=2,
+            security_groups=[agent_security_group],
+            vpc_subnets=ec2.SubnetSelection(subnets=private_agent_subnets),
+            min_healthy_percent=50,
+            max_healthy_percent=200,
+            cloud_map_options=ecs.CloudMapOptions(
+                name="agentcore",
+                cloud_map_namespace=service_discovery_namespace,
+                dns_record_type=servicediscovery.DnsRecordType.A,
+            ),
+        )
+
+        bff_security_group.add_egress_rule(
+            peer=agent_security_group,
+            connection=ec2.Port.tcp(8080),
+            description="Allow BFF to AgentCore on port 8080",
+        )
+
+        agent_security_group.add_ingress_rule(
+            peer=bff_security_group,
+            connection=ec2.Port.tcp(8080),
+            description="Allow inbound from BFF on port 8080",
+        )
+
+        self.agent_service = agent_service
+
+        if network_stack and hasattr(network_stack, "alb"):
+            bff_scaling = bff_service.auto_scale_task_count(
+                min_capacity=2, max_capacity=10
+            )
+
+            bff_scaling.scale_on_cpu_utilization(
+                "BffCpuScaling",
+                target_utilization_percent=70,
+                scale_in_cooldown=Duration.seconds(300),
+                scale_out_cooldown=Duration.seconds(300),
+            )
+
+            bff_scaling.scale_on_memory_utilization(
+                "BffMemoryScaling",
+                target_utilization_percent=80,
+                scale_in_cooldown=Duration.seconds(300),
+                scale_out_cooldown=Duration.seconds(300),
+            )
+
+            CfnOutput(
+                self,
+                "BffServiceArn",
+                value=bff_service.service_arn,
+                export_name=f"{ENVIRONMENT}-BffServiceArn",
+            )
+        else:
+            self.bff_service = None
+
+        agent_scaling = agent_service.auto_scale_task_count(
+            min_capacity=2, max_capacity=10
+        )
+
+        agent_scaling.scale_on_cpu_utilization(
+            "AgentCpuScaling",
+            target_utilization_percent=70,
+            scale_in_cooldown=Duration.seconds(300),
+            scale_out_cooldown=Duration.seconds(300),
+        )
+
+        agent_scaling.scale_on_memory_utilization(
+            "AgentMemoryScaling",
+            target_utilization_percent=80,
+            scale_in_cooldown=Duration.seconds(300),
+            scale_out_cooldown=Duration.seconds(300),
+        )
+
+        CfnOutput(
+            self,
+            "AgentServiceArn",
+            value=agent_service.service_arn,
+            export_name=f"{ENVIRONMENT}-AgentServiceArn",
+        )
+
+        CfnOutput(
+            self,
+            "ServiceDiscoveryNamespaceId",
+            value=service_discovery_namespace.namespace_id,
+            export_name=f"{ENVIRONMENT}-ServiceDiscoveryNamespaceId",
+        )
+
+        CfnOutput(
+            self,
+            "AgentCoreServiceDiscoveryDns",
+            value=f"agentcore.{service_discovery_namespace.namespace_name}",
+            export_name=f"{ENVIRONMENT}-AgentCoreServiceDiscoveryDns",
         )

@@ -1,5 +1,5 @@
 import aws_cdk as cdk
-from aws_cdk.assertions import Template
+from aws_cdk.assertions import Template, Match
 from cdk.stacks.compute_stack import ComputeStack
 from cdk.stacks.network_stack import NetworkStack
 
@@ -345,3 +345,104 @@ def test_compute_stack_task_definition_arn_outputs():
     template.has_output(
         "AgentTaskDefinitionArn", {"Export": {"Name": "AgentTaskDefinitionArn"}}
     )
+
+
+def test_compute_stack_bff_target_group(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::ElasticLoadBalancingV2::TargetGroup",
+        {
+            "Port": 3000,
+            "Protocol": "HTTP",
+            "TargetType": "ip",
+            "HealthCheckPath": "/api/health",
+            "HealthCheckIntervalSeconds": 30,
+            "HealthyThresholdCount": 2,
+            "UnhealthyThresholdCount": 3,
+        },
+    )
+
+
+def test_compute_stack_service_discovery_namespace(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::ServiceDiscovery::PrivateDnsNamespace",
+        {"Name": "bidopsai.local"},
+    )
+
+
+def test_compute_stack_bff_service(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::ECS::Service",
+        {
+            "ServiceName": Match.absent(),
+            "DesiredCount": 2,
+            "LaunchType": "FARGATE",
+            "DeploymentConfiguration": {
+                "MaximumPercent": 200,
+                "MinimumHealthyPercent": 50,
+            },
+        },
+    )
+
+
+def test_compute_stack_agent_service(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.resource_count_is("AWS::ECS::Service", 2)
+
+    template.has_resource_properties(
+        "AWS::ECS::Service",
+        {
+            "DesiredCount": 2,
+            "LaunchType": "FARGATE",
+            "ServiceRegistries": Match.any_value(),
+        },
+    )
+
+
+def test_compute_stack_bff_auto_scaling(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_resource_properties(
+        "AWS::ApplicationAutoScaling::ScalableTarget",
+        {
+            "MinCapacity": 2,
+            "MaxCapacity": 10,
+            "ServiceNamespace": "ecs",
+        },
+    )
+
+    template.has_resource_properties(
+        "AWS::ApplicationAutoScaling::ScalingPolicy",
+        {
+            "PolicyType": "TargetTrackingScaling",
+            "TargetTrackingScalingPolicyConfiguration": {
+                "PredefinedMetricSpecification": {
+                    "PredefinedMetricType": Match.string_like_regexp(
+                        "ECS.*Utilization"
+                    )
+                },
+                "ScaleInCooldown": 300,
+                "ScaleOutCooldown": 300,
+            },
+        },
+    )
+
+
+def test_compute_stack_service_outputs(network_stack, test_app):
+    stack = ComputeStack(test_app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    template.has_output("AgentServiceArn", {})
+    template.has_output("ServiceDiscoveryNamespaceId", {})
+    template.has_output("AgentCoreServiceDiscoveryDns", {})

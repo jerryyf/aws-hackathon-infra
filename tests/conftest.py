@@ -138,3 +138,17 @@ def compute_stack_outputs(cloudformation_client):
 @pytest.fixture
 def monitoring_stack_outputs(cloudformation_client):
     return get_stack_outputs(cloudformation_client, "MonitoringStack")
+
+
+@pytest.fixture
+def test_app():
+    import aws_cdk as cdk
+
+    return cdk.App()
+
+
+@pytest.fixture
+def network_stack(test_app):
+    from cdk.stacks.network_stack import NetworkStack
+
+    return NetworkStack(test_app, "TestNetworkStack")

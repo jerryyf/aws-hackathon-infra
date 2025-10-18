@@ -122,16 +122,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Create target group for BFF service with health check on /api/health (30-second interval, 3 failures unhealthy, 2 successes healthy) and attach to public ALB in cdk/stacks/compute_stack.py
-- [ ] T032 [US3] Create ECS Service Discovery namespace (private DNS namespace) for internal service-to-service communication in cdk/stacks/compute_stack.py
-- [ ] T033 [US3] Create ECS service for BFF with desired count 2, PrivateApp subnets, BFF security group, public ALB target group registration, rolling update strategy (50% min healthy, 200% max) in cdk/stacks/compute_stack.py
-- [ ] T034 [US3] Create ECS service for AgentCore with desired count 2, PrivateAgent subnets, agent security group, Service Discovery configuration (agentcore.local DNS), rolling update strategy (50% min healthy, 200% max) in cdk/stacks/compute_stack.py
-- [ ] T035 [US3] Configure auto-scaling for BFF service with min 2, max 10 tasks, CPU threshold 70%, memory threshold 80%, 300-second cooldown in cdk/stacks/compute_stack.py
-- [ ] T036 [US3] Configure auto-scaling for AgentCore service with min 2, max 10 tasks, CPU threshold 70%, memory threshold 80%, 300-second cooldown in cdk/stacks/compute_stack.py
-- [ ] T037 [US3] Export service ARNs for BFF and AgentCore as CloudFormation outputs in cdk/stacks/compute_stack.py
-- [ ] T038 [US3] Export Service Discovery namespace ID and AgentCore service DNS name as CloudFormation outputs in cdk/stacks/compute_stack.py
-- [ ] T039 [US3] Create contract test validating service ARNs and Service Discovery outputs in tests/contract/test_ecs_services_contract.py
-- [ ] T040 [US3] Update unit tests to verify ECS service configurations, target group, Service Discovery, and auto-scaling policies in tests/unit/test_compute_stack.py
+- [X] T031 [US3] Create target group for BFF service with health check on /api/health (30-second interval, 3 failures unhealthy, 2 successes healthy) and attach to public ALB in cdk/stacks/compute_stack.py
+- [X] T032 [US3] Create ECS Service Discovery namespace (private DNS namespace) for internal service-to-service communication in cdk/stacks/compute_stack.py
+- [X] T033 [US3] Create ECS service for BFF with desired count 2, PrivateApp subnets, BFF security group, public ALB target group registration, rolling update strategy (50% min healthy, 200% max) in cdk/stacks/compute_stack.py
+- [X] T034 [US3] Create ECS service for AgentCore with desired count 2, PrivateAgent subnets, agent security group, Service Discovery configuration (agentcore.local DNS), rolling update strategy (50% min healthy, 200% max) in cdk/stacks/compute_stack.py
+- [X] T035 [US3] Configure auto-scaling for BFF service with min 2, max 10 tasks, CPU threshold 70%, memory threshold 80%, 300-second cooldown in cdk/stacks/compute_stack.py
+- [X] T036 [US3] Configure auto-scaling for AgentCore service with min 2, max 10 tasks, CPU threshold 70%, memory threshold 80%, 300-second cooldown in cdk/stacks/compute_stack.py
+- [X] T037 [US3] Export service ARNs for BFF and AgentCore as CloudFormation outputs in cdk/stacks/compute_stack.py
+- [X] T038 [US3] Export Service Discovery namespace ID and AgentCore service DNS name as CloudFormation outputs in cdk/stacks/compute_stack.py
+- [X] T039 [US3] Create contract test validating service ARNs and Service Discovery outputs in tests/contract/test_ecs_services_contract.py
+- [X] T040 [US3] Update unit tests to verify ECS service configurations, target group, Service Discovery, and auto-scaling policies in tests/unit/test_compute_stack.py
 
 **Checkpoint**: ECS services should be deployable with ALB integration (BFF), Service Discovery (AgentCore), health checks, and auto-scaling policies
 

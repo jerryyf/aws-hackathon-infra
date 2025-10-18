@@ -9,6 +9,7 @@ try:
     from cdk.stacks.storage_stack import StorageStack
     from cdk.stacks.security_stack import SecurityStack
     from cdk.stacks.monitoring_stack import MonitoringStack
+    from cdk.config import get_domain_name
 except ModuleNotFoundError:
     from stacks.network_stack import NetworkStack
     from stacks.database_stack import DatabaseStack
@@ -16,38 +17,16 @@ except ModuleNotFoundError:
     from stacks.storage_stack import StorageStack
     from stacks.security_stack import SecurityStack
     from stacks.monitoring_stack import MonitoringStack
+    from config import get_domain_name
 
 app = cdk.App()
 
 # Get environment from context or default to 'dev'
 environment = app.node.try_get_context("environment") or "dev"
 
-# Optional domain name can be provided via cdk context: cdk --context domain_name=example.com
-domain_name = app.node.try_get_context("domain_name") or os.getenv("DOMAIN_NAME")
-
-# Only attempt Route53 discovery if CDK_DEFAULT_ACCOUNT is set (i.e. env provided)
-cdk_account = os.getenv("CDK_DEFAULT_ACCOUNT")
-if not domain_name and cdk_account:
-    try:
-        import boto3
-
-        client = boto3.client("route53")
-        resp = client.list_hosted_zones()
-        # pick first public hosted zone (IsPrivateZone == False)
-        public_zones = [
-            z
-            for z in resp.get("HostedZones", [])
-            if not z.get("Config", {}).get("PrivateZone")
-        ]
-        if public_zones:
-            # HostedZone Name has trailing dot, strip it
-            zone_name = public_zones[0].get("Name", "")
-            if zone_name.endswith("."):
-                zone_name = zone_name[:-1]
-            domain_name = zone_name
-    except Exception:
-        # Ignore discovery failures; synth will continue without a public domain.
-        domain_name = domain_name
+# Get domain name with priority: context > env var > config
+context_domain = app.node.try_get_context("domain_name")
+domain_name = get_domain_name(context_domain)
 
 # Environment configuration (only set if account available)
 cdk_account = os.getenv("CDK_DEFAULT_ACCOUNT")
@@ -70,7 +49,8 @@ if env:
         app, "MonitoringStack", env=env, logs_bucket=storage_stack.logs_bucket
     )
 else:
-    network_stack = NetworkStack(app, "NetworkStack", domain_name=domain_name)
+    # Without env, don't pass domain_name to avoid hosted zone lookups - for unit tests
+    network_stack = NetworkStack(app, "NetworkStack")
     database_stack = DatabaseStack(app, "DatabaseStack", network_stack=network_stack)
     compute_stack = ComputeStack(app, "ComputeStack", network_stack=network_stack)
     storage_stack = StorageStack(app, "StorageStack")

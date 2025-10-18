@@ -49,7 +49,8 @@ if env:
         app, "MonitoringStack", env=env, logs_bucket=storage_stack.logs_bucket
     )
 else:
-    network_stack = NetworkStack(app, "NetworkStack", domain_name=domain_name)
+    # Without env, don't pass domain_name to avoid hosted zone lookups - for unit tests
+    network_stack = NetworkStack(app, "NetworkStack")
     database_stack = DatabaseStack(app, "DatabaseStack", network_stack=network_stack)
     compute_stack = ComputeStack(app, "ComputeStack", network_stack=network_stack)
     storage_stack = StorageStack(app, "StorageStack")

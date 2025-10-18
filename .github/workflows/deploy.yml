@@ -11,6 +11,7 @@ env:
   AWS_REGION: us-east-1
   PYTHON_VERSION: '3.13.3'
   NODE_VERSION: '24.10.0'
+  DOMAIN_NAME: bidopsai.com
 
 jobs:
   pre-commit:

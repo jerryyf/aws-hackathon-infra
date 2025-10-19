@@ -58,32 +58,48 @@ if cdk_account:
 # Create stacks. Pass env only when available to avoid context provider lookups
 if env:
     network_stack = NetworkStack(app, "NetworkStack", env=env, domain_name=domain_name)
+    storage_stack = StorageStack(app, "StorageStack", env=env)
+    security_stack = SecurityStack(app, "SecurityStack", env=env)
     database_stack = DatabaseStack(
         app, "DatabaseStack", env=env, network_stack=network_stack
     )
     compute_stack = ComputeStack(
-        app, "ComputeStack", env=env, network_stack=network_stack
+        app,
+        "ComputeStack",
+        env=env,
+        network_stack=network_stack,
+        storage_stack=storage_stack,
+        security_stack=security_stack,
+        database_stack=database_stack,
     )
-    storage_stack = StorageStack(app, "StorageStack", env=env)
-    security_stack = SecurityStack(app, "SecurityStack", env=env)
     monitoring_stack = MonitoringStack(
         app, "MonitoringStack", env=env, logs_bucket=storage_stack.logs_bucket
     )
 else:
     network_stack = NetworkStack(app, "NetworkStack", domain_name=domain_name)
-    database_stack = DatabaseStack(app, "DatabaseStack", network_stack=network_stack)
-    compute_stack = ComputeStack(app, "ComputeStack", network_stack=network_stack)
     storage_stack = StorageStack(app, "StorageStack")
     security_stack = SecurityStack(app, "SecurityStack")
+    database_stack = DatabaseStack(app, "DatabaseStack", network_stack=network_stack)
+    compute_stack = ComputeStack(
+        app,
+        "ComputeStack",
+        network_stack=network_stack,
+        storage_stack=storage_stack,
+        security_stack=security_stack,
+        database_stack=database_stack,
+    )
     monitoring_stack = MonitoringStack(
         app, "MonitoringStack", logs_bucket=storage_stack.logs_bucket
     )
 
 # Add dependencies between stacks
-database_stack.add_dependency(network_stack)
-compute_stack.add_dependency(network_stack)
 storage_stack.add_dependency(network_stack)
 security_stack.add_dependency(network_stack)
+database_stack.add_dependency(network_stack)
+compute_stack.add_dependency(network_stack)
+compute_stack.add_dependency(storage_stack)
+compute_stack.add_dependency(security_stack)
+compute_stack.add_dependency(database_stack)
 monitoring_stack.add_dependency(network_stack)
 
 # Apply resource tags per FR-009 requirement

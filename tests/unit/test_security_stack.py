@@ -117,7 +117,10 @@ def test_security_stack_ssm_parameters_created():
 
     template.has_resource_properties(
         "AWS::SSM::Parameter",
-        {"Name": "/bidopsai/dev/app/config", "Description": "Application configuration"},
+        {
+            "Name": "/bidopsai/dev/app/config",
+            "Description": "Application configuration",
+        },
     )
 
     template.has_resource_properties(

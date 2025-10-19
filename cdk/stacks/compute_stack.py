@@ -13,13 +13,15 @@ from aws_cdk import (
     CfnOutput,
 )
 from constructs import Construct
-from cdk.config import ECS_RESOURCE_ALLOCATIONS, ENVIRONMENT
+from config import ECS_RESOURCE_ALLOCATIONS, ENVIRONMENT
 
 
 class ComputeStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         network_stack = kwargs.pop("network_stack", None)
         storage_stack = kwargs.pop("storage_stack", None)
+        _ = kwargs.pop("security_stack", None)
+        _ = kwargs.pop("database_stack", None)
 
         super().__init__(scope, construct_id, **kwargs)
         if network_stack:
@@ -381,6 +383,18 @@ class ComputeStack(Stack):
                 ),
             )
             self.bff_target_group = bff_target_group
+
+            if hasattr(network_stack, "https_listener") and network_stack.https_listener:
+                elbv2.ApplicationListenerRule(
+                    self,
+                    "BffListenerRule",
+                    listener=network_stack.https_listener,
+                    priority=10,
+                    conditions=[
+                        elbv2.ListenerCondition.path_patterns(["/api/*"])
+                    ],
+                    target_groups=[bff_target_group],
+                )
 
         service_discovery_namespace = servicediscovery.PrivateDnsNamespace(
             self,

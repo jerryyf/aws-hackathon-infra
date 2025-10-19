@@ -35,14 +35,14 @@ def test_bff_security_group_allows_inbound_from_alb_only(ec2, cloudformation):
     ingress_rules = sg.get("IpPermissions", [])
 
     for rule in ingress_rules:
-        assert (
-            "0.0.0.0/0" not in [cidr.get("CidrIp") for cidr in rule.get("IpRanges", [])]
-        ), "BFF security group allows inbound from 0.0.0.0/0"
+        assert "0.0.0.0/0" not in [
+            cidr.get("CidrIp") for cidr in rule.get("IpRanges", [])
+        ], "BFF security group allows inbound from 0.0.0.0/0"
 
         if rule.get("FromPort") == 3000:
-            assert len(rule.get("UserIdGroupPairs", [])) > 0, (
-                "BFF security group port 3000 should only allow inbound from other security groups"
-            )
+            assert (
+                len(rule.get("UserIdGroupPairs", [])) > 0
+            ), "BFF security group port 3000 should only allow inbound from other security groups"
 
 
 def test_agent_security_group_allows_inbound_from_bff_only(ec2, cloudformation):
@@ -58,20 +58,22 @@ def test_agent_security_group_allows_inbound_from_bff_only(ec2, cloudformation):
     ingress_rules = sg.get("IpPermissions", [])
 
     for rule in ingress_rules:
-        assert (
-            "0.0.0.0/0" not in [cidr.get("CidrIp") for cidr in rule.get("IpRanges", [])]
-        ), "AgentCore security group allows inbound from 0.0.0.0/0"
+        assert "0.0.0.0/0" not in [
+            cidr.get("CidrIp") for cidr in rule.get("IpRanges", [])
+        ], "AgentCore security group allows inbound from 0.0.0.0/0"
 
         if rule.get("FromPort") == 8080:
-            source_groups = [pair["GroupId"] for pair in rule.get("UserIdGroupPairs", [])]
-            assert bff_sg_id in source_groups, (
-                f"AgentCore security group port 8080 should allow inbound from BFF security group {bff_sg_id}"
-            )
+            source_groups = [
+                pair["GroupId"] for pair in rule.get("UserIdGroupPairs", [])
+            ]
+            assert (
+                bff_sg_id in source_groups
+            ), f"AgentCore security group port 8080 should allow inbound from BFF security group {bff_sg_id}"
 
 
 def test_no_security_group_allows_unrestricted_inbound_access(ec2, cloudformation):
     resources = cloudformation.describe_stack_resources(StackName="ComputeStack")
-    
+
     security_group_ids = [
         resource["PhysicalResourceId"]
         for resource in resources["StackResources"]
@@ -86,6 +88,6 @@ def test_no_security_group_allows_unrestricted_inbound_access(ec2, cloudformatio
 
         for rule in ingress_rules:
             cidr_blocks = [cidr.get("CidrIp") for cidr in rule.get("IpRanges", [])]
-            assert "0.0.0.0/0" not in cidr_blocks, (
-                f"Security group {sg_id} ({sg['GroupName']}) allows unrestricted inbound access from 0.0.0.0/0"
-            )
+            assert (
+                "0.0.0.0/0" not in cidr_blocks
+            ), f"Security group {sg_id} ({sg['GroupName']}) allows unrestricted inbound access from 0.0.0.0/0"

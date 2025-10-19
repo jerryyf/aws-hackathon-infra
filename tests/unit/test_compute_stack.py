@@ -659,3 +659,103 @@ def test_compute_stack_alb_5xx_alarm(network_stack, test_app):
             "TreatMissingData": "notBreaching",
         },
     )
+
+
+def test_compute_stack_accepts_all_stack_dependencies():
+    app = cdk.App()
+    network_stack = NetworkStack(app, "TestNetworkStack")
+
+    from cdk.stacks.storage_stack import StorageStack
+    from cdk.stacks.security_stack import SecurityStack
+    from cdk.stacks.database_stack import DatabaseStack
+
+    storage_stack = StorageStack(app, "TestStorageStack")
+    security_stack = SecurityStack(app, "TestSecurityStack", environment="test")
+    database_stack = DatabaseStack(
+        app, "TestDatabaseStack", network_stack=network_stack
+    )
+
+    stack = ComputeStack(
+        app,
+        "TestComputeStack",
+        network_stack=network_stack,
+        storage_stack=storage_stack,
+        security_stack=security_stack,
+        database_stack=database_stack,
+    )
+    template = Template.from_stack(stack)
+
+    template.resource_count_is("AWS::ECS::Cluster", 1)
+
+
+def test_compute_stack_s3_bucket_arn_uses_storage_stack():
+    app = cdk.App()
+    network_stack = NetworkStack(app, "TestNetworkStack")
+
+    from cdk.stacks.storage_stack import StorageStack
+
+    storage_stack = StorageStack(app, "TestStorageStack")
+
+    stack = ComputeStack(
+        app,
+        "TestComputeStack",
+        network_stack=network_stack,
+        storage_stack=storage_stack,
+    )
+    template = Template.from_stack(stack)
+
+    from aws_cdk.assertions import Match
+
+    template.has_resource_properties(
+        "AWS::IAM::Policy",
+        {
+            "PolicyDocument": {
+                "Statement": Match.array_with(
+                    [
+                        {
+                            "Action": ["s3:GetObject", "s3:PutObject"],
+                            "Effect": "Allow",
+                            "Resource": Match.object_like(
+                                {"Fn::Join": Match.any_value()}
+                            ),
+                        }
+                    ]
+                )
+            },
+            "Roles": Match.array_with(
+                [{"Ref": Match.string_like_regexp(r"AgentTaskRole.*")}]
+            ),
+        },
+    )
+
+
+def test_compute_stack_s3_bucket_arn_fallback_without_storage_stack():
+    app = cdk.App()
+    network_stack = NetworkStack(app, "TestNetworkStack")
+
+    stack = ComputeStack(app, "TestComputeStack", network_stack=network_stack)
+    template = Template.from_stack(stack)
+
+    from aws_cdk.assertions import Match
+
+    template.has_resource_properties(
+        "AWS::IAM::Policy",
+        {
+            "PolicyDocument": {
+                "Statement": Match.array_with(
+                    [
+                        {
+                            "Action": ["s3:GetObject", "s3:PutObject"],
+                            "Effect": "Allow",
+                            "Resource": Match.string_like_regexp(
+                                r"arn:aws:s3:::bidopsai-.+-agent-data/\*"
+                            ),
+                        }
+                    ]
+                )
+            },
+            "Roles": Match.array_with(
+                [{"Ref": Match.string_like_regexp(r"AgentTaskRole.*")}]
+            ),
+        },
+    )

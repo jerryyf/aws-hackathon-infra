@@ -20,13 +20,13 @@ def test_bff_task_definition_arn_output(cloudformation):
         None,
     )
 
-    assert (
-        bff_task_definition_arn is not None
-    ), "BffTaskDefinitionArn output not found"
+    assert bff_task_definition_arn is not None, "BffTaskDefinitionArn output not found"
     assert bff_task_definition_arn.startswith(
         "arn:aws:ecs:us-east-1"
     ), "Invalid BFF task definition ARN format"
-    assert "task-definition/TestComputeStack-BffTaskDefinition" in bff_task_definition_arn
+    assert (
+        "task-definition/TestComputeStack-BffTaskDefinition" in bff_task_definition_arn
+    )
 
 
 def test_agent_task_definition_arn_output(cloudformation):
@@ -48,7 +48,10 @@ def test_agent_task_definition_arn_output(cloudformation):
     assert agent_task_definition_arn.startswith(
         "arn:aws:ecs:us-east-1"
     ), "Invalid AgentCore task definition ARN format"
-    assert "task-definition/TestComputeStack-AgentTaskDefinition" in agent_task_definition_arn
+    assert (
+        "task-definition/TestComputeStack-AgentTaskDefinition"
+        in agent_task_definition_arn
+    )
 
 
 def test_bff_task_role_arn(cloudformation):

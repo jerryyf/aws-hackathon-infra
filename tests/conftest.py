@@ -27,9 +27,6 @@ def load_contract():
     return _load
 
 
-
-
-
 @pytest.fixture(scope="session")
 def aws_region() -> str:
     return os.getenv("AWS_REGION", "us-east-1")

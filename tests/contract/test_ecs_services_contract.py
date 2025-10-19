@@ -119,7 +119,9 @@ def test_bff_service_target_group_health(compute_stack_outputs, elbv2_client):
 
     health = elbv2_client.describe_target_health(TargetGroup=bff_target_group_arn)
 
-    target_health_states = [t["TargetHealth"]["State"] for t in health["TargetHealthDescriptions"]]
+    target_health_states = [
+        t["TargetHealth"]["State"] for t in health["TargetHealthDescriptions"]
+    ]
     healthy_count = target_health_states.count("healthy")
 
     assert (
@@ -141,9 +143,9 @@ def test_agent_service_has_service_discovery(compute_stack_outputs, ecs_client):
     assert (
         len(service_registries) > 0
     ), "AgentService does not have Service Discovery configuration"
-    assert (
-        service_registries[0]["registryArn"]
-    ), "AgentService Service Discovery registry ARN is empty"
+    assert service_registries[0][
+        "registryArn"
+    ], "AgentService Service Discovery registry ARN is empty"
 
 
 def test_bff_service_has_load_balancer_attachment(compute_stack_outputs, ecs_client):
@@ -157,9 +159,5 @@ def test_bff_service_has_load_balancer_attachment(compute_stack_outputs, ecs_cli
     service = response["services"][0]
     load_balancers = service.get("loadBalancers", [])
 
-    assert (
-        len(load_balancers) > 0
-    ), "BffService does not have load balancer attachment"
-    assert (
-        load_balancers[0]["targetGroupArn"]
-    ), "BffService target group ARN is empty"
+    assert len(load_balancers) > 0, "BffService does not have load balancer attachment"
+    assert load_balancers[0]["targetGroupArn"], "BffService target group ARN is empty"

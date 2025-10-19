@@ -4,6 +4,46 @@
 
 Repository for AWS Hackathon AgentCore infrastructure. See docs/SETUP.md for detailed setup instructions.
 
+## Architecture Overview
+
+This CDK application provisions a complete AWS infrastructure for containerized workloads using ECS Fargate, organized into 6 modular stacks with clear dependency relationships.
+
+### Stack Architecture
+
+```
+ComputeStack (ECS Cluster, Services, Task Definitions)
+├── NetworkStack (VPC, ALB, Subnets, Security Groups)
+├── StorageStack (ECR Repositories, S3 Buckets)
+├── SecurityStack (IAM Roles, SSM Parameter Store)
+└── DatabaseStack (RDS PostgreSQL, OpenSearch)
+
+MonitoringStack (CloudWatch Dashboards, Alarms)
+```
+
+### Stack Dependencies
+
+**ComputeStack** integrates with other stacks via constructor parameters:
+- **NetworkStack**: VPC, ALB, subnets (PrivateApp, PrivateAgent), security groups
+- **StorageStack**: ECR repositories (bidopsai/app, bidopsai/agent), S3 buckets
+- **SecurityStack**: Reserved for future IAM role integration
+- **DatabaseStack**: RDS security group for database access rules
+
+**Deployment Order**:
+1. NetworkStack → 2. StorageStack → 3. SecurityStack → 4. DatabaseStack → 5. ComputeStack → 6. MonitoringStack
+
+### Key Components
+
+| Stack | Resources | Purpose |
+|-------|-----------|---------|
+| **NetworkStack** | VPC, ALB, Subnets (Public, PrivateApp, PrivateAgent, PrivateData) | Network isolation and load balancing |
+| **StorageStack** | ECR repos (app/agent), S3 buckets (data, logs) | Container image registry and data storage |
+| **SecurityStack** | IAM roles, SSM Parameter Store | Identity and secrets management |
+| **DatabaseStack** | RDS PostgreSQL, OpenSearch | Persistent data and search |
+| **ComputeStack** | ECS cluster, services (BFF, Agent), task definitions | Containerized workload orchestration |
+| **MonitoringStack** | CloudWatch dashboards, alarms | Observability and alerting |
+
+For detailed architecture diagrams, see `docs/diagrams/`.
+
 ## Spec-driven Development Toolkit
 
 - opencode, copilot
@@ -83,15 +123,28 @@ For a fully local deployment:
 # Run unit tests first
 PYTHONPATH=. pytest tests/unit
 
-# deploy
+# Deploy stacks in dependency order
 export AWS_PROFILE=bidopsai
 export AWS_REGION=us-east-1
-cd cdk && cdk deploy --all
 
-# run contract and integration tests
+cd cdk
+
+# Deploy infrastructure stacks first (can run in parallel)
+cdk deploy NetworkStack StorageStack SecurityStack DatabaseStack --profile bidopsai
+
+# Deploy compute stack (requires NetworkStack, StorageStack, DatabaseStack)
+cdk deploy ComputeStack --profile bidopsai
+
+# Deploy monitoring stack last
+cdk deploy MonitoringStack --profile bidopsai
+
+# Run contract and integration tests
+cd ..
 PYTHONPATH=. pytest tests/contract
 PYTHONPATH=. pytest tests/integration
 ```
+
+**Note**: ComputeStack depends on NetworkStack, StorageStack, and DatabaseStack. Deploy these stacks before deploying ComputeStack.
 
 ## Environment Variables
 

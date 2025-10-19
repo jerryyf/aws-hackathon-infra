@@ -86,7 +86,9 @@ def test_database_stack_outputs():
 
     template.has_output("RdsEndpoint", {"Export": {"Name": "RdsEndpoint"}})
     template.has_output("RdsPort", {"Export": {"Name": "RdsPort"}})
-    template.has_output("OpenSearchEndpoint", {"Export": {"Name": "OpenSearchEndpoint"}})
+    template.has_output(
+        "OpenSearchEndpoint", {"Export": {"Name": "OpenSearchEndpoint"}}
+    )
 
 
 def test_database_stack_without_network_stack():

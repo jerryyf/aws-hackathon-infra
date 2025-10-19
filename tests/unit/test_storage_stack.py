@@ -135,8 +135,14 @@ def test_storage_stack_outputs():
     stack = StorageStack(app, "TestStorageStack")
     template = Template.from_stack(stack)
 
-    template.has_output("KnowledgeBaseBucketName", {"Export": {"Name": "KnowledgeBaseBucketName"}})
+    template.has_output(
+        "KnowledgeBaseBucketName", {"Export": {"Name": "KnowledgeBaseBucketName"}}
+    )
     template.has_output("LogsBucketName", {"Export": {"Name": "LogsBucketName"}})
     template.has_output("BdaBucketName", {"Export": {"Name": "BdaBucketName"}})
-    template.has_output("AppEcrRepositoryUri", {"Export": {"Name": "AppEcrRepositoryUri"}})
-    template.has_output("AgentEcrRepositoryUri", {"Export": {"Name": "AgentEcrRepositoryUri"}})
+    template.has_output(
+        "AppEcrRepositoryUri", {"Export": {"Name": "AppEcrRepositoryUri"}}
+    )
+    template.has_output(
+        "AgentEcrRepositoryUri", {"Export": {"Name": "AgentEcrRepositoryUri"}}
+    )

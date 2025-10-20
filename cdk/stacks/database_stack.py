@@ -70,7 +70,7 @@ class DatabaseStack(Stack):
         self.rds_secret = secretsmanager.Secret(
             self,
             "RdsSecret",
-            secret_name="hackathon/rds/credentials",
+            secret_name="hackathon/rds/credentials",  # pragma: allowlist secret
             generate_secret_string=secretsmanager.SecretStringGenerator(
                 secret_string_template='{"username": "postgres"}',
                 generate_string_key="password",

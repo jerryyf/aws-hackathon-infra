@@ -8,4 +8,5 @@ black>=24.0.0
 pyright>=1.1.0
 pylint>=3.0.0
 pyyaml>=6.0.0
+pre-commit>=3.5.0
 # aws-cdk-lib v2 includes compatible assertions. Do not pin aws-cdk.assertions here to avoid dependency conflicts.

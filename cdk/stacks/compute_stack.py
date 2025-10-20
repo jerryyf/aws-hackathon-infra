@@ -13,7 +13,7 @@ from aws_cdk import (
     CfnOutput,
 )
 from constructs import Construct
-from config import ECS_RESOURCE_ALLOCATIONS, ENVIRONMENT
+from cdk.config import ECS_RESOURCE_ALLOCATIONS, ENVIRONMENT
 
 
 class ComputeStack(Stack):
@@ -274,7 +274,6 @@ class ComputeStack(Stack):
         bff_log_group = logs.LogGroup(
             self,
             "BffLogGroup",
-            log_group_name=f"/ecs/bidopsai/bff-{ENVIRONMENT}",
             retention=logs.RetentionDays.ONE_WEEK,
         )
         self.bff_log_group = bff_log_group
@@ -282,13 +281,12 @@ class ComputeStack(Stack):
         agent_log_group = logs.LogGroup(
             self,
             "AgentLogGroup",
-            log_group_name=f"/ecs/bidopsai/agent-{ENVIRONMENT}",
             retention=logs.RetentionDays.ONE_WEEK,
         )
         self.agent_log_group = agent_log_group
 
         bff_image_uri = (
-            storage_stack.app_ecr_repo.repository_uri
+            f"{storage_stack.app_ecr_repo.repository_uri}:develop"
             if storage_stack
             else "nginx:latest"
         )
@@ -316,11 +314,17 @@ class ComputeStack(Stack):
                 "AWS_REGION": self.region,
                 "ENVIRONMENT": ENVIRONMENT,
                 "LOG_LEVEL": "info",
+                "NEXT_PUBLIC_AWS_REGION": self.region,
+                "NEXT_PUBLIC_COGNITO_USER_POOL_ID": "us-east-1_ZMuy6Ezgu",
+                "NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID": "3mgd16b4fluil27ivo2aoqarpm",
+                "NEXT_PUBLIC_COGNITO_DOMAIN": "bidopsai-dev.auth.us-east-1.amazoncognito.com",
+                "NEXT_PUBLIC_OAUTH_REDIRECT_SIGN_IN": "https://bidopsai.com/dashboard",
+                "NEXT_PUBLIC_OAUTH_REDIRECT_SIGN_OUT": "https://bidopsai.com/",
             },
         )
 
         agent_image_uri = (
-            storage_stack.agent_ecr_repo.repository_uri
+            f"{storage_stack.agent_ecr_repo.repository_uri}:develop"
             if storage_stack
             else "nginx:latest"
         )
@@ -376,11 +380,14 @@ class ComputeStack(Stack):
                 protocol=elbv2.ApplicationProtocol.HTTP,
                 target_type=elbv2.TargetType.IP,
                 health_check=elbv2.HealthCheck(
-                    path="/api/health",
+                    enabled=True,
+                    path="/",
                     interval=Duration.seconds(30),
+                    timeout=Duration.seconds(10),
                     healthy_threshold_count=2,
-                    unhealthy_threshold_count=3,
+                    unhealthy_threshold_count=5,
                 ),
+                deregistration_delay=Duration.seconds(30),
             )
             self.bff_target_group = bff_target_group
 
@@ -389,9 +396,9 @@ class ComputeStack(Stack):
                     self,
                     "BffListenerRule",
                     listener=network_stack.https_listener,
-                    priority=10,
+                    priority=100,
                     conditions=[
-                        elbv2.ListenerCondition.path_patterns(["/api/*"])
+                        elbv2.ListenerCondition.path_patterns(["/*"])
                     ],
                     target_groups=[bff_target_group],
                 )
@@ -431,6 +438,7 @@ class ComputeStack(Stack):
                 vpc_subnets=ec2.SubnetSelection(subnets=private_app_subnets),
                 min_healthy_percent=50,
                 max_healthy_percent=200,
+                circuit_breaker=ecs.DeploymentCircuitBreaker(rollback=True),
             )
 
             bff_service.attach_to_application_target_group(bff_target_group)
@@ -464,6 +472,7 @@ class ComputeStack(Stack):
                 cloud_map_namespace=service_discovery_namespace,
                 dns_record_type=servicediscovery.DnsRecordType.A,
             ),
+            circuit_breaker=ecs.DeploymentCircuitBreaker(rollback=True),
         )
 
         bff_security_group.add_egress_rule(
@@ -489,14 +498,14 @@ class ComputeStack(Stack):
                 "BffCpuScaling",
                 target_utilization_percent=70,
                 scale_in_cooldown=Duration.seconds(300),
-                scale_out_cooldown=Duration.seconds(300),
+                scale_out_cooldown=Duration.seconds(60),
             )
 
             bff_scaling.scale_on_memory_utilization(
                 "BffMemoryScaling",
                 target_utilization_percent=80,
                 scale_in_cooldown=Duration.seconds(300),
-                scale_out_cooldown=Duration.seconds(300),
+                scale_out_cooldown=Duration.seconds(60),
             )
 
             CfnOutput(
@@ -516,14 +525,14 @@ class ComputeStack(Stack):
             "AgentCpuScaling",
             target_utilization_percent=70,
             scale_in_cooldown=Duration.seconds(300),
-            scale_out_cooldown=Duration.seconds(300),
+            scale_out_cooldown=Duration.seconds(60),
         )
 
         agent_scaling.scale_on_memory_utilization(
             "AgentMemoryScaling",
             target_utilization_percent=80,
             scale_in_cooldown=Duration.seconds(300),
-            scale_out_cooldown=Duration.seconds(300),
+            scale_out_cooldown=Duration.seconds(60),
         )
 
         CfnOutput(

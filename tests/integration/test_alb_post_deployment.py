@@ -4,8 +4,8 @@ import boto3
 
 def test_alb_accessibility():
     """Test that ALB is deployed and in active state"""
-    cloudformation = boto3.client("cloudformation")
-    elbv2 = boto3.client("elbv2")
+    cloudformation = boto3.client("cloudformation", region_name="us-east-1")
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
 
     try:
         response = cloudformation.describe_stacks(StackName="NetworkStack")

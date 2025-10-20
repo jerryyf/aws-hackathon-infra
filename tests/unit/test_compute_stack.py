@@ -372,18 +372,11 @@ def test_compute_stack_cloudwatch_log_groups():
     template.has_resource_properties(
         "AWS::Logs::LogGroup",
         {
-            "LogGroupName": "/ecs/bidopsai/bff-test",
             "RetentionInDays": 7,
         },
     )
 
-    template.has_resource_properties(
-        "AWS::Logs::LogGroup",
-        {
-            "LogGroupName": "/ecs/bidopsai/agent-test",
-            "RetentionInDays": 7,
-        },
-    )
+    template.resource_count_is("AWS::Logs::LogGroup", 2)
 
 
 def test_compute_stack_task_definition_arn_outputs():
@@ -410,10 +403,10 @@ def test_compute_stack_bff_target_group(network_stack, test_app):
             "Port": 3000,
             "Protocol": "HTTP",
             "TargetType": "ip",
-            "HealthCheckPath": "/api/health",
+            "HealthCheckPath": "/",
             "HealthCheckIntervalSeconds": 30,
             "HealthyThresholdCount": 2,
-            "UnhealthyThresholdCount": 3,
+            "UnhealthyThresholdCount": 5,
         },
     )
 
@@ -484,7 +477,7 @@ def test_compute_stack_bff_auto_scaling(network_stack, test_app):
                     "PredefinedMetricType": Match.string_like_regexp("ECS.*Utilization")
                 },
                 "ScaleInCooldown": 300,
-                "ScaleOutCooldown": 300,
+                "ScaleOutCooldown": 60,
             },
         },
     )
@@ -715,9 +708,7 @@ def test_compute_stack_s3_bucket_arn_uses_storage_stack():
                         {
                             "Action": ["s3:GetObject", "s3:PutObject"],
                             "Effect": "Allow",
-                            "Resource": Match.object_like(
-                                {"Fn::Join": Match.any_value()}
-                            ),
+                            "Resource": "arn:aws:s3:::bidopsai-test-agent-data/*",
                         }
                     ]
                 )

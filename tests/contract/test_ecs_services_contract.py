@@ -117,7 +117,7 @@ def test_bff_service_target_group_health(compute_stack_outputs, elbv2_client):
         bff_target_group_arn is not None
     ), "BFF target group not found in load balancer"
 
-    health = elbv2_client.describe_target_health(TargetGroup=bff_target_group_arn)
+    health = elbv2_client.describe_target_health(TargetGroupArn=bff_target_group_arn)
 
     target_health_states = [
         t["TargetHealth"]["State"] for t in health["TargetHealthDescriptions"]

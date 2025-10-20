@@ -26,7 +26,16 @@ def get_security_group_id(cloudformation, logical_resource_id):
 
 
 def test_bff_security_group_allows_inbound_from_alb_only(ec2, cloudformation):
-    bff_sg_id = get_security_group_id(cloudformation, "BffSecurityGroup")
+    resources = cloudformation.describe_stack_resources(StackName="ComputeStack")
+    bff_sg_id = next(
+        (
+            resource["PhysicalResourceId"]
+            for resource in resources["StackResources"]
+            if resource["ResourceType"] == "AWS::EC2::SecurityGroup"
+            and "Bff" in resource["LogicalResourceId"]
+        ),
+        None,
+    )
     assert bff_sg_id is not None, "BFF security group not found"
 
     response = ec2.describe_security_groups(GroupIds=[bff_sg_id])
@@ -46,10 +55,27 @@ def test_bff_security_group_allows_inbound_from_alb_only(ec2, cloudformation):
 
 
 def test_agent_security_group_allows_inbound_from_bff_only(ec2, cloudformation):
-    agent_sg_id = get_security_group_id(cloudformation, "AgentSecurityGroup")
+    resources = cloudformation.describe_stack_resources(StackName="ComputeStack")
+    agent_sg_id = next(
+        (
+            resource["PhysicalResourceId"]
+            for resource in resources["StackResources"]
+            if resource["ResourceType"] == "AWS::EC2::SecurityGroup"
+            and "Agent" in resource["LogicalResourceId"]
+        ),
+        None,
+    )
     assert agent_sg_id is not None, "AgentCore security group not found"
 
-    bff_sg_id = get_security_group_id(cloudformation, "BffSecurityGroup")
+    bff_sg_id = next(
+        (
+            resource["PhysicalResourceId"]
+            for resource in resources["StackResources"]
+            if resource["ResourceType"] == "AWS::EC2::SecurityGroup"
+            and "Bff" in resource["LogicalResourceId"]
+        ),
+        None,
+    )
     assert bff_sg_id is not None, "BFF security group not found"
 
     response = ec2.describe_security_groups(GroupIds=[agent_sg_id])

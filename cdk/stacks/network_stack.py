@@ -169,6 +169,7 @@ class NetworkStack(Stack):
         # Route 53 Hosted Zone and ACM Certificate handling
         self.hosted_zone = None
         self.certificate = None
+        self.https_listener = None
 
         # If a domain_name was supplied via context or env, and it doesn't look like
         # a reserved internal domain, attempt to lookup the existing public hosted
@@ -375,6 +376,15 @@ class NetworkStack(Stack):
             "DomainName",
             value=domain_name if domain_name else "",
             description="Domain name configured for the ALB (empty if not configured)",
+        )
+
+        CfnOutput(
+            self,
+            "HttpsListenerArn",
+            value=(
+                self.https_listener.listener_arn if self.https_listener is not None else ""
+            ),
+            description="HTTPS Listener ARN (empty if not created)",
         )
 
         data_subnets = [

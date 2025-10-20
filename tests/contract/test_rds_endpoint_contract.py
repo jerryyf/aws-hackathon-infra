@@ -39,7 +39,16 @@ def test_rds_cluster_properties(database_stack_outputs, rds_client):
                     TargetGroupName=target_groups["TargetGroups"][0]["TargetGroupName"],
                 )
                 if targets["Targets"]:
-                    cluster_id = targets["Targets"][0]["RdsResourceId"]
+                    target_resource_id = targets["Targets"][0]["RdsResourceId"]
+                    try:
+                        instance_response = rds_client.describe_db_instances(
+                            DBInstanceIdentifier=target_resource_id
+                        )
+                        cluster_id = instance_response["DBInstances"][0][
+                            "DBClusterIdentifier"
+                        ]
+                    except rds_client.exceptions.DBInstanceNotFoundFault:
+                        cluster_id = target_resource_id
                 else:
                     return
             else:

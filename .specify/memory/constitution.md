@@ -1,28 +1,25 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: Initial → 1.0.0
-Bump Rationale: MAJOR - Initial constitution establishing AWS Well-Architected Framework governance
+Version Change: 1.0.0 → 1.1.0
+Bump Rationale: MINOR - Updated branching strategy from Git Flow to trunk-based development
 
-Modified Principles:
-- Added: I. AWS Well-Architected Framework (6 Pillars)
-- Added: II. Infrastructure as Code Excellence
-- Added: III. Security & Compliance First
-- Added: IV. Code Quality & Maintainability
-- Added: V. Extensibility & Modularity
-- Added: VI. Observability & Operational Excellence
+Modified Sections:
+- Development Standards > Branching & Deployment Strategy
+  Old: Git Flow with feature branches → PR → main → automated deployment
+  New: Trunk-based development with short-lived feature branches, continuous integration to main
 
-Added Sections:
-- Core Principles (6 principles)
-- AWS-Specific Standards
-- Development Standards
-- Governance
+Rationale for Change:
+- Aligns with modern DevOps practices emphasizing continuous integration
+- Reduces merge conflicts and integration overhead
+- Supports faster feedback loops and deployment cadence
+- Maintains quality gates through automated testing and code review
 
 Templates Status:
-✅ .specify/templates/plan-template.md - Reviewed, compatible with constitution checks
-✅ .specify/templates/spec-template.md - Reviewed, compatible with security/compliance requirements
-✅ .specify/templates/tasks-template.md - Reviewed, compatible with quality gates
-✅ .specify/templates/agent-file-template.md - Reviewed, no updates needed
+✅ .specify/templates/plan-template.md - No updates needed (branching agnostic)
+✅ .specify/templates/spec-template.md - No updates needed (branching agnostic)
+✅ .specify/templates/tasks-template.md - No updates needed (branching agnostic)
+✅ .specify/templates/agent-file-template.md - No updates needed (branching agnostic)
 
 Follow-up TODOs: None
 -->
@@ -132,7 +129,10 @@ Systems MUST be observable and debuggable in production:
 
 ### Branching & Deployment Strategy
 
-- **Git Flow**: Feature branches → Pull Request → Code Review → Main branch → Automated deployment
+- **Trunk-Based Development**: All developers commit to main branch (trunk) frequently, using short-lived feature branches (<2 days)
+- **Feature Branches**: Small, focused branches that merge to main after code review and passing CI checks
+- **Continuous Integration**: Automated testing MUST run on every commit to main; broken builds MUST be fixed immediately
+- **Feature Flags**: Use feature flags for incomplete features to keep main branch always deployable
 - **Environment Progression**: Dev → Staging → Production (no skipping)
 - **Rollback Plan**: Every deployment MUST have a documented rollback procedure
 
@@ -178,5 +178,5 @@ This constitution supersedes all other development practices and architectural d
 - Production deployments violating security or reliability principles MUST be rolled back immediately
 - Unjustified complexity MUST be refactored before feature completion
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-03 | **Last Amended**: 2025-10-03
+**Version**: 1.1.0 | **Ratified**: 2025-10-03 | **Last Amended**: 2025-10-21
 
